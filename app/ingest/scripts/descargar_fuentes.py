@@ -22,8 +22,8 @@ import urllib.parse
 import urllib.request
 import zipfile
 
-RAIZ = pathlib.Path(__file__).resolve().parent.parent
-DESTINO = RAIZ / "data" / "raw"
+RAIZ = pathlib.Path(__file__).resolve().parent.parent  # app/ingest
+DESTINO = RAIZ.parent / "data" / "raw"  # app/data/raw (compartido entre servicios)
 UA = {"User-Agent": "Mozilla/5.0 (MAD Open Data Challenge 2026; proyecto Muevete Cerca)"}
 
 CKAN_CM = "https://datos.comunidad.madrid/api/3/action"
@@ -188,7 +188,7 @@ def main():
                 rutas, urls = [guardar(carpeta, nombre_desde_url(ident), pedir(ident))], [ident]
             manifest[k] = {"tipo": tipo, "identificador": ident, "urls": urls,
                            "descargado": dt.datetime.now().isoformat(timespec="seconds"),
-                           "ficheros": [str(r.relative_to(RAIZ)) for r in rutas],
+                           "ficheros": [str(r.relative_to(RAIZ.parent)) for r in rutas],
                            "bytes": sum(r.stat().st_size for r in rutas)}
             print(f"   ok ({manifest[k]['bytes'] / 1e6:.1f} MB)")
         except Exception as e:  # una fuente caída no debe parar el resto (RNF-08)
@@ -196,7 +196,7 @@ def main():
             print(f"   ERROR: {e}", file=sys.stderr)
     DESTINO.mkdir(parents=True, exist_ok=True)
     manifest_path.write_text(json.dumps(manifest, ensure_ascii=False, indent=1), encoding="utf-8")
-    print(f"\nHecho: {len(ids) - fallos} correctas, {fallos} con error. Manifiesto: {manifest_path.relative_to(RAIZ)}")
+    print(f"\nHecho: {len(ids) - fallos} correctas, {fallos} con error. Manifiesto: {manifest_path.relative_to(RAIZ.parent)}")
     return 1 if fallos else 0
 
 

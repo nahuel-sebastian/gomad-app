@@ -22,8 +22,8 @@ from collections import Counter
 from pathlib import Path
 
 RAIZ = Path(__file__).resolve().parent.parent
-RAW = RAIZ / "data" / "raw"
-SALIDA = RAIZ / "data" / "perfil"
+RAW = RAIZ.parent / "data" / "raw"  # app/data (compartido entre servicios)
+SALIDA = RAIZ.parent / "data" / "perfil"
 
 # Columnas que pueden llevar el código de municipio (INE 5 dígitos o los 3 últimos)
 COLS_MUNI = re.compile(

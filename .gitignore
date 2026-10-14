@@ -7,8 +7,8 @@ data/
 !.env.example
 
 # Python
-# entorno virtual de la app (python3 -m venv app/.venv)
-app/.venv/
+# un entorno virtual por servicio (app/api/.venv, app/ingest/.venv)
+app/*/.venv/
 __pycache__/
 *.pyc
 .venv/
