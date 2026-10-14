@@ -1,5 +1,7 @@
-# Datos descargados: se regeneran con scripts/download_sources.py
-data/
+# Datos descargados: se regeneran con app/ingest/scripts/download_sources.py
+# (anclado: tests/data/ si se versiona, son muestras pequenas para las pruebas)
+/data/
+/app/data/
 
 # Secretos (clave de AEMET, claves de IA, credenciales de Oracle…)
 .env

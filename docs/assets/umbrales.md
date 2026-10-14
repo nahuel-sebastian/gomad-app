@@ -96,6 +96,6 @@ Fuentes oficiales localizadas:
 
 | Umbral | Estado | Fuente candidata |
 |---|---|---|
-| Lluvia: probabilidad de precipitación a partir de la cual se propone cubierto | Decisión del equipo (no hay umbral oficial) | AEMET da `probPrecipitacion` por franjas de 6 h y `precipitacion` horaria |
+| Lluvia: probabilidad de precipitación a partir de la cual se propone cubierto | Decisión del equipo (no hay umbral oficial) | AEMET da `probPrecipitacion` por franjas de 6 h y `precipitacion` horaria (comprobado 14/10: franjas `0208`, `0814`, `1420`, `2002`; la regla horaria tendrá que asignar a cada hora la probabilidad de su franja; CLAUDE.md §7.1) |
 | Velocidad al caminar o correr para el «tiempo a pie» | Decisión del equipo | Ver D-07 |
 | Desnivel máximo para el perfil «carrito» o «mayor» | Fuera del MVP (RF-13 es Should) | IGN MDT05 (sin verificar) |
