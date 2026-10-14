@@ -54,7 +54,6 @@ export default function Results({ activity, onBack }: ResultsProps) {
         },
     ];
 
-    // Título dinámico según la actividad
     const title =
         activity === "Sorpréndeme"
             ? "Planes para ti hoy"
@@ -119,19 +118,32 @@ export default function Results({ activity, onBack }: ResultsProps) {
                     ref={sheetRef}
                     className={`results-sheet${isSheetExpanded ? " results-sheet--expanded" : ""}`}
                     onPointerDown={(event) => {
+                        // BLOQUEO EN DESKTOP: Ignoramos el drag si la pantalla es ancha
+                        if (window.innerWidth >= 768) return;
+
+                        // Evitar que al hacer scroll dentro del modal se mueva el contenedor entero
+                        const scrollContainer =
+                            event.currentTarget.querySelector(
+                                ".results-sheet__scroll",
+                            );
+                        if (
+                            scrollContainer instanceof HTMLElement &&
+                            scrollContainer.scrollTop > 0
+                        ) {
+                            return;
+                        }
+
                         dragStartY.current = event.clientY;
                         didDrag.current = false;
                         event.currentTarget.setPointerCapture(event.pointerId);
                     }}
                     onPointerMove={(event) => {
-                        if (dragStartY.current === null || !sheetRef.current) {
+                        if (dragStartY.current === null || !sheetRef.current)
                             return;
-                        }
 
                         const delta = event.clientY - dragStartY.current;
-                        if (Math.abs(delta) > 8) {
-                            didDrag.current = true;
-                        }
+                        if (Math.abs(delta) > 8) didDrag.current = true;
+
                         const sheetHeight = sheetRef.current.offsetHeight;
                         const maxOffset = Math.max(sheetHeight - 164, 0);
                         const baseOffset = isSheetExpanded ? 0 : maxOffset;
@@ -139,25 +151,23 @@ export default function Results({ activity, onBack }: ResultsProps) {
                             maxOffset,
                             Math.max(0, baseOffset + delta),
                         );
+
                         sheetRef.current.style.transform = `translateY(${offset}px)`;
                     }}
                     onPointerUp={(event) => {
                         if (dragStartY.current !== null) {
                             const delta = event.clientY - dragStartY.current;
-                            if (Math.abs(delta) > 40) {
+                            if (Math.abs(delta) > 40)
                                 setIsSheetExpanded(delta < 0);
-                            }
                         }
                         dragStartY.current = null;
-                        if (sheetRef.current) {
+                        if (sheetRef.current)
                             sheetRef.current.style.transform = "";
-                        }
                     }}
                     onPointerCancel={() => {
                         dragStartY.current = null;
-                        if (sheetRef.current) {
+                        if (sheetRef.current)
                             sheetRef.current.style.transform = "";
-                        }
                     }}>
                     <button
                         className="results-sheet__handle"
@@ -180,7 +190,6 @@ export default function Results({ activity, onBack }: ResultsProps) {
 
                     <div className="results-sheet__scroll">
                         <div className="container view-header">
-                            {/* Botón Volver eliminado de aquí */}
                             <h1 className="view-title">{title}</h1>
                             <p className="view-subtitle">
                                 Las 3 mejores opciones en Getafe · datos de
@@ -194,7 +203,6 @@ export default function Results({ activity, onBack }: ResultsProps) {
                                     <div className="result-card__number">
                                         {item.id}
                                     </div>
-
                                     <div className="result-card__content">
                                         <h2 className="result-card__title">
                                             {item.title}
@@ -202,7 +210,6 @@ export default function Results({ activity, onBack }: ResultsProps) {
                                         <p className="result-card__meta">
                                             {item.meta}
                                         </p>
-
                                         <div className="chips chips--small">
                                             {item.chips.map((chip, idx) => (
                                                 <span
@@ -213,7 +220,6 @@ export default function Results({ activity, onBack }: ResultsProps) {
                                             ))}
                                         </div>
                                     </div>
-
                                     <div className="result-card__score-wrap">
                                         <div
                                             className={`score-badge score-badge--${item.tone}`}>
@@ -226,7 +232,6 @@ export default function Results({ activity, onBack }: ResultsProps) {
                                     </div>
                                 </div>
                             ))}
-
                             <button
                                 type="button"
                                 className="button button--full">
@@ -235,7 +240,6 @@ export default function Results({ activity, onBack }: ResultsProps) {
                         </div>
                     </div>
                 </div>
-
                 <div className="map-demo"></div>
             </div>
         </section>

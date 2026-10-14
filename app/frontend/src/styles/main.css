@@ -203,6 +203,10 @@ button {
 }
 
 @media (min-width: 768px) {
+    .filter-chip {
+        margin-bottom: 1rem;
+    }
+
     .header__toggle {
         display: none;
     }
@@ -473,9 +477,33 @@ button {
 
 /* ---------- Vista de Resultados ---------- */
 
-.view-header {
-    padding: 2rem;
-    background: var(--bg);
+.results-screen {
+    position: relative;
+    height: calc(100dvh - var(--header-height));
+    min-height: 0;
+    overflow: hidden;
+}
+
+.results-layout {
+    position: relative;
+    height: 100%;
+}
+
+.map-demo {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    background: #e9eff3;
+}
+
+.results-desktop-toolbar {
+    position: absolute;
+    z-index: 2;
+    top: 12px;
+    right: var(--gutter);
+    left: var(--gutter);
+    min-height: 92px;
 }
 
 .back-button {
@@ -486,6 +514,11 @@ button {
     color: var(--navy);
     font-size: 14px;
     font-weight: 600;
+}
+
+.view-header {
+    padding: 2rem 1.5rem 1.5rem;
+    background: var(--surface);
 }
 
 .view-title {
@@ -501,147 +534,7 @@ button {
     color: var(--muted);
 }
 
-.map-demo {
-    width: 100%;
-    height: 20rem;
-    background: #e9eff3;
-}
-
-.results-list {
-    display: flex;
-    flex-direction: column;
-    gap: 16px;
-    padding-block: 20px;
-}
-
-/* Tarjetas de resultado */
-.result-card {
-    display: flex;
-    gap: 12px;
-    padding: 16px;
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    align-items: flex-start;
-}
-
-.result-card__number {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-    width: 28px;
-    height: 28px;
-    border-radius: 50%;
-    background: var(--navy);
-    color: var(--surface);
-    font-size: 14px;
-    font-weight: 700;
-}
-
-.result-card__content {
-    flex: 1;
-    min-width: 0;
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-}
-
-.result-card__title {
-    font-size: 16px;
-    font-weight: 700;
-}
-
-.result-card__meta {
-    font-size: 13px;
-    color: var(--muted);
-}
-
-/* Ajustes a los chips para la vista de tarjetas */
-.chips--small .chip {
-    padding: 4px 8px;
-    font-size: 12px;
-}
-
-.chip--warn {
-    background: #fcebcb;
-    color: #7a4300;
-}
-
-/* Puntuación (Score) */
-.result-card__score-wrap {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 4px;
-    flex-shrink: 0;
-}
-
-.score-badge {
-    padding: 6px 12px;
-    border-radius: 10px;
-    font-size: 18px;
-    font-weight: 700;
-    color: var(--surface);
-    text-align: center;
-}
-
-.score-badge--good {
-    background: var(--green-dark);
-}
-
-.score-badge--warn {
-    background: #8a4b00;
-}
-
-.score-verdict {
-    font-size: 11px;
-    font-weight: 600;
-    text-align: center;
-    max-width: 60px;
-    line-height: 1.2;
-}
-
-.score-verdict--good {
-    color: var(--green-dark);
-}
-
-.score-verdict--warn {
-    color: #8a4b00;
-}
-
-/* Botón ancho */
-.button--full {
-    width: 100%;
-}
-
-.results-screen {
-    position: relative;
-    height: calc(100dvh - var(--header-height));
-    min-height: 0;
-    overflow: hidden;
-}
-
-.results-layout {
-    position: relative;
-    height: 100%;
-}
-
-.results-layout > .map-demo {
-    position: absolute;
-    inset: 0;
-    height: 100%;
-}
-
-.results-desktop-toolbar {
-    position: absolute;
-    z-index: 2;
-    top: 12px;
-    right: var(--gutter);
-    left: var(--gutter);
-    min-height: 92px;
-}
-
+/* Modal (Bottom sheet) móvil */
 .results-sheet {
     position: absolute;
     z-index: 3;
@@ -649,16 +542,66 @@ button {
     bottom: 0;
     left: 0;
     height: calc(100% - 110px);
-    max-height: calc(100% - 110px);
-    overflow-y: auto;
+    max-height: 75vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
     border-radius: 20px 20px 0 0;
     background: var(--surface);
     box-shadow: 0 -4px 18px rgba(18, 57, 91, 0.16);
     transform: translateY(calc(100% - 164px));
     transition: transform 0.25s ease-out;
-    touch-action: none;
+    touch-action: pan-y;
 }
 
+.results-sheet--expanded {
+    transform: translateY(0);
+}
+
+.results-sheet__handle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 32px;
+    flex-shrink: 0;
+    touch-action: none;
+    cursor: grab;
+}
+
+.results-sheet__handle:active {
+    cursor: grabbing;
+}
+
+.results-sheet__handle span {
+    width: 40px;
+    height: 4px;
+    border-radius: 999px;
+    background: var(--border);
+}
+
+/* Contenedor del scroll móvil */
+.results-sheet__scroll {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    overflow-y: hidden;
+    overscroll-behavior-y: contain;
+    padding-bottom: 24px;
+}
+
+/* Solo habilita scroll cuando el sheet está arriba */
+.results-sheet--expanded .results-sheet__scroll {
+    overflow-y: auto;
+}
+
+.results-list {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+/* Filtros */
 .results-filters {
     display: flex;
     align-items: center;
@@ -712,31 +655,107 @@ button {
     color: var(--navy);
 }
 
-.results-sheet--expanded {
-    transform: translateY(0);
+/* Tarjetas de resultado */
+.result-card {
+    display: flex;
+    gap: 12px;
+    padding: 16px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    align-items: flex-start;
 }
 
-.results-sheet__handle {
+.result-card__number {
     display: flex;
     align-items: center;
     justify-content: center;
+    flex-shrink: 0;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: var(--navy);
+    color: var(--surface);
+    font-size: 14px;
+    font-weight: 700;
+}
+
+.result-card__content {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.result-card__title {
+    font-size: 16px;
+    font-weight: 700;
+}
+
+.result-card__meta {
+    font-size: 13px;
+    color: var(--muted);
+}
+
+.chips--small .chip {
+    padding: 4px 8px;
+    font-size: 12px;
+}
+
+.chip--warn {
+    background: #fcebcb;
+    color: #7a4300;
+}
+
+.result-card__score-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    flex-shrink: 0;
+}
+
+.score-badge {
+    padding: 6px 12px;
+    border-radius: 10px;
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--surface);
+    text-align: center;
+}
+
+.score-badge--good {
+    background: var(--green-dark);
+}
+
+.score-badge--warn {
+    background: #8a4b00;
+}
+
+.score-verdict {
+    font-size: 11px;
+    font-weight: 600;
+    text-align: center;
+    max-width: 60px;
+    line-height: 1.2;
+}
+
+.score-verdict--good {
+    color: var(--green-dark);
+}
+
+.score-verdict--warn {
+    color: #8a4b00;
+}
+
+.button--full {
     width: 100%;
-    height: 32px;
-    touch-action: none;
-    cursor: grab;
 }
 
-.results-sheet__handle:active {
-    cursor: grabbing;
-}
-
-.results-sheet__handle span {
-    width: 40px;
-    height: 4px;
-    border-radius: 999px;
-    background: var(--border);
-}
-
+/* ==============================================================
+   ESCRITORIO (Media query exclusivo para Desktop)
+   ============================================================== */
 @media (min-width: 768px) {
     .results-screen {
         display: grid;
@@ -798,7 +817,7 @@ button {
         gap: 16px;
     }
 
-    .results-layout > .map-demo {
+    .map-demo {
         position: relative;
         inset: auto;
         grid-column: 2;
@@ -806,36 +825,51 @@ button {
         height: 100%;
         min-height: 0;
         border-radius: var(--radius);
+        background:
+            linear-gradient(rgba(24, 35, 43, 0.72), rgba(24, 35, 43, 0.72)),
+            repeating-linear-gradient(
+                35deg,
+                #68757a 0 2px,
+                #4c595e 2px 3px,
+                #38464b 3px 30px
+            );
+        box-shadow: inset 0 0 0 1px rgba(18, 57, 91, 0.12);
     }
 
-    .results-layout > .results-sheet {
+    /* Rompemos el estilo bottom-sheet y lo hacemos columna estática */
+    .results-sheet {
         position: static;
         grid-column: 1;
         grid-row: 1;
-        height: auto;
+        height: 100%;
         min-height: 0;
         max-height: none;
         overflow: hidden;
         border-radius: 0;
         background: transparent;
         box-shadow: none;
-        transform: none;
+
+        /* IGNORAR TRANSFORMACIÓN JS EN DESKTOP */
+        transform: none !important;
     }
 
     .results-sheet__handle {
         display: none;
     }
 
-    .results-sheet > .container {
-        max-width: none;
-        padding-inline: 0;
-    }
-
-    .results-sheet > .view-header {
+    .results-sheet__scroll > .view-header {
         display: none;
     }
 
-    .results-sheet > .results-list {
+    .results-sheet__scroll {
+        min-height: 0;
+        height: 100%;
+        overflow: hidden;
+        padding-bottom: 0;
+    }
+
+    /* En desktop solo hace scroll el listado */
+    .results-sheet__scroll > .results-list {
         height: 100%;
         min-height: 0;
         overflow-y: auto;
@@ -843,7 +877,7 @@ button {
         scrollbar-color: var(--border) transparent;
     }
 
-    .results-sheet > .results-list::before {
+    .results-sheet__scroll > .results-list::before {
         content: "536 resultados";
         display: block;
         padding: 0 0 10px;
@@ -867,45 +901,4 @@ button {
         width: 30px;
         height: 30px;
     }
-
-    .map-demo {
-        background:
-            linear-gradient(rgba(24, 35, 43, 0.72), rgba(24, 35, 43, 0.72)),
-            repeating-linear-gradient(
-                35deg,
-                #68757a 0 2px,
-                #4c595e 2px 3px,
-                #38464b 3px 30px
-            );
-        box-shadow: inset 0 0 0 1px rgba(18, 57, 91, 0.12);
-    }
-}
-/* Modal (Bottom sheet) */
-.results-sheet {
-    display: flex;
-    flex-direction: column;
-    max-height: 80vh;
-    background: var(--surface);
-    border-radius: 20px 20px 0 0;
-    overflow: hidden;
-}
-
-/* Contenedor interno que agrupa header + listado */
-.results-sheet__scroll {
-    flex: 1;
-    overflow-y: hidden; /* Bloquea el scroll por defecto */
-    overscroll-behavior-y: contain;
-    padding-bottom: 24px;
-}
-
-/* Solo permite scroll si el modal está expandido */
-.results-sheet--expanded .results-sheet__scroll {
-    overflow-y: auto;
-}
-
-/* Listado de tarjetas */
-.results-list {
-    display: flex;
-    flex-direction: column;
-    gap: 16px;
 }
