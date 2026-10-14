@@ -53,6 +53,7 @@ UA = {"User-Agent": "Mozilla/5.0 (MAD Open Data Challenge 2026; proyecto Muevete
 CKAN_CM = "https://datos.comunidad.madrid/api/3/action"
 CKAN_AY = "https://datos.madrid.es/api/3/action"
 WFS = "https://idem.comunidad.madrid/geoidem/wfs?service=WFS&version=2.0.0&request=GetFeature&outputFormat=application/json&typeNames="
+AEMET_URL = "https://opendata.aemet.es/opendata/api/prediccion/especifica/municipio/horaria/"
 NMC = "https://apiscm.comunidad.madrid/t/ciudadanos.comunidad.madrid/sector-publico/nomecalles-descargas/v1/paquetes/"
 
 # id: (kind, identificador, grupo, pesada, descripcion, refresh)
@@ -122,8 +123,8 @@ _SOURCES = {
 SOURCES = {key: Source(*value) for key, value in _SOURCES.items()}
 
 
-def fetch(url, timeout=300):
-    req = urllib.request.Request(url, headers=UA)
+def fetch(url, timeout=300, headers=None):
+    req = urllib.request.Request(url, headers={**UA, **(headers or {})})
     with urllib.request.urlopen(req, timeout=timeout) as r:
         return r.read()
 
@@ -219,8 +220,46 @@ def download_nomecalles(ref, folder):
     return [zip_path], [NMC + ref]
 
 
+def read_env(path=None):
+    """Lee app/.env (CLAVE=valor por linea) sin dependencias. Las variables de entorno reales mandan."""
+    path = pathlib.Path(path or (APP_DIR / ".env"))
+    values = {}
+    if path.exists():
+        for line in path.read_text(encoding="utf-8").splitlines():
+            line = line.strip()
+            if line and not line.startswith("#") and "=" in line:
+                k, v = line.split("=", 1)
+                values[k.strip()] = v.strip().strip('"').strip("'")
+    values.update({k: v for k, v in os.environ.items() if k.startswith("AEMET_")})
+    return values
+
+
+def aemet_municipalities(value):
+    if value and value != "todos":
+        return [c.strip() for c in value.split(",") if c.strip()]
+    geo = json.loads((RAW_DIR / "municipios" / "municipios.geojson").read_text(encoding="utf-8"))
+    return sorted("28" + str(f["properties"]["CDMUNICIPIO"]).zfill(3) for f in geo["features"])
+
+
 def download_aemet(folder, municipalities):
-    raise NotImplementedError("AEMET se añade en Task 3")
+    """Prevision horaria de AEMET por municipio. La clave va en la cabecera api_key, nunca en la URL."""
+    env = read_env()
+    key = env.get("AEMET_API_KEY")
+    if not key:
+        raise RuntimeError("Falta AEMET_API_KEY en app/.env (ver app/.env.example)")
+    pause = float(env.get("AEMET_PAUSE_S", "1.5"))
+    codes = aemet_municipalities(municipalities or env.get("AEMET_MUNICIPALITIES", "todos"))
+    paths, urls = [], []
+    for code in codes:
+        first = json.loads(fetch(AEMET_URL + code, timeout=60, headers={"api_key": key}))
+        if first.get("estado") != 200:
+            raise RuntimeError(f"AEMET {code}: estado {first.get('estado')} {first.get('descripcion', '')}")
+        paths.append(save(folder, f"{code}.json", fetch(first["datos"], timeout=60)))
+        meta = {k: v for k, v in first.items() if k != "api_key"}
+        paths.append(save(folder, f"{code}.meta.json", json.dumps(meta, ensure_ascii=False).encode("utf-8")))
+        urls.append(AEMET_URL + code)
+        time.sleep(pause)
+    return paths, urls
 
 
 def select(args):

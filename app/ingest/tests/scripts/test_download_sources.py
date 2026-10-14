@@ -117,3 +117,49 @@ def test_wfs_generated_fid_is_not_a_change(dl, monkeypatch):
     e3 = dl.download_source("eiel_deporte", dl.SOURCES["eiel_deporte"], e2, force=False)
     assert e2["changed"] is False
     assert e3["changed"] is True                                  # un cambio real si se detecta
+
+
+def test_aemet_without_key_gives_clear_error(dl, monkeypatch):
+    monkeypatch.setattr(dl, "read_env", lambda path=None: {})
+    with pytest.raises(RuntimeError, match="AEMET_API_KEY"):
+        dl.download_aemet(dl.RAW_DIR / "aemet", "28065")
+
+
+def test_aemet_key_not_in_urls_or_files(dl, monkeypatch):
+    key = "SECRET-KEY-123"
+    monkeypatch.setattr(dl, "read_env", lambda path=None: {"AEMET_API_KEY": key, "AEMET_PAUSE_S": "0"})
+    seen = []
+
+    def fake_fetch(url, timeout=300, headers=None):
+        seen.append((url, headers))
+        if "opendata/api/prediccion" in url:
+            return json.dumps({"estado": 200, "datos": "https://opendata.aemet.es/opendata/sh/abc"}).encode()
+        return b'[{"nombre": "Getafe", "prediccion": {"dia": []}}]'
+
+    monkeypatch.setattr(dl, "fetch", fake_fetch)
+    paths, urls = dl.download_aemet(dl.RAW_DIR / "aemet", "28065")
+    assert all(key not in u for u in urls)
+    assert all(key not in p.read_text(encoding="latin-1") for p in paths)
+    assert seen[0][1]["api_key"] == key and key not in seen[0][0]
+
+
+def test_aemet_status_429_is_error(dl, monkeypatch):
+    monkeypatch.setattr(dl, "read_env", lambda path=None: {"AEMET_API_KEY": "k", "AEMET_PAUSE_S": "0"})
+    monkeypatch.setattr(dl, "fetch", lambda url, timeout=300, headers=None: json.dumps(
+        {"estado": 429, "descripcion": "Límite de peticiones"}).encode())
+    with pytest.raises(RuntimeError, match="429"):
+        dl.download_aemet(dl.RAW_DIR / "aemet", "28065")
+
+
+def test_aemet_all_reads_179_municipalities(dl):
+    folder = dl.RAW_DIR / "municipios"
+    folder.mkdir(parents=True)
+    feats = [{"type": "Feature", "properties": {"CDMUNICIPIO": f"{i:03d}"}, "geometry": None} for i in range(1, 180)]
+    (folder / "municipios.geojson").write_text(json.dumps({"type": "FeatureCollection", "features": feats}))
+    assert len(dl.aemet_municipalities("todos")) == 179
+    assert dl.aemet_municipalities("28065,28079") == ["28065", "28079"]
+
+
+def test_read_env_reads_app_env(dl):
+    (dl.APP_DIR / ".env").write_text("AEMET_API_KEY=abc\n# comentario\n", encoding="utf-8")
+    assert dl.read_env()["AEMET_API_KEY"] == "abc"
