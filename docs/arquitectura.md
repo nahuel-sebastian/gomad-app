@@ -74,9 +74,19 @@ Dos ficheros según el ritmo de los datos:
 - Tráfico de la capital (cada 5 min): **no se guarda**; caché en memoria de la API (5–15 min).
 
 ### 3.4 Grafo peatonal
-- Construcción **semanal** desde el extracto de OSM con **pyrosm** (`get_network("walking")`); si se queda sin memoria con toda la región, filtrar antes con **osmium**.
+- Construcción **semanal** desde el extracto de OSM con **pyrosm** (`get_network("walking")`) o, como pyrosm no instala en 3.12 (medición de abajo), con el **respaldo pyosmium**; si se queda sin memoria con toda la región, filtrar antes con **osmium**.
 - `app/ingest/graph.py`. Salida: `data/graph/<zona>/nodes.parquet` y `data/graph/<zona>/edges.parquet` con **factores precalculados por tramo**: longitud, penalización por tipo de vía (`highway`), % de verde (VPLA en 166 municipios; parques de OSM / cubierta terrestre en los 13 sin VPLA, capital incluida), sombra si hay dato, fuente/banco/desfibrilador cerca.
 - Tamaño estimado (sin verificar): del orden de 1–pocos millones de tramos, unos cientos de MB en memoria. **Medir con el extracto.**
+- **Medido el 14/10 (Task 8, `app/ingest/scripts/probe_pyrosm.py`, extracto Geofabrik `madrid-latest.osm.pbf` de 85 MB, Python 3.12, WSL2 con 12 núcleos y 16 GB):**
+  - **pyrosm 0.6.2 no instala en Python 3.12:** su dependencia de compilación `pyrobuf` falla con setuptools moderno (`'PyrobufDistribution' object has no attribute 'dry_run'`), y una restricción `setuptools<75` no llega a ese entorno anidado. Se usa el **respaldo con pyosmium 3.7.0** (Task 20 paso 3b): un tramo por par de nodos consecutivos de cada `way` con `highway` en `footway, path, pedestrian, living_street, residential, service, steps, track, unclassified, tertiary, secondary, primary, cycleway, tertiary_link, secondary_link, primary_link`, sin `foot=no` ni `access=no/private` (salvo `foot=yes/designated/permissive`); entra si algún extremo cae en la caja. pyosmium 3.7 no tiene `osmium.filter`: lee el extracto completo en cada pasada.
+  - | Caja | Nodos | Tramos | Segundos | Pico de memoria |
+    |---|---|---|---|---|
+    | Getafe (28065) | 59.751 | 68.000 | 15 | 443 MB |
+    | Madrid capital (28079, caja: incluye parte de los municipios vecinos) | 980.138 | 1.129.705 | 30 | 1.467 MB |
+    | Comunidad entera (caja de los 179 municipios) | 2.402.102 | 2.643.587 | 50 | 3.129 MB |
+  - Tramos más frecuentes en Getafe: `footway` 21.410, `residential` 11.853, `service` 8.321, `track` 7.555, `path` 5.979, `tertiary` 3.977, `cycleway` 3.531, `pedestrian` 2.348 (lista completa para `routing.yaml` en Task 20). Red regional: 58.221 km de tramos.
+  - El pico de memoria es de la **construcción** (un objeto Python y una `LineString` por tramo), no del grafo servido. Estimación para la API: 2,6 M tramos × (`u`, `v`, longitud y ~7 factores en arrays numpy, ~80 B) ≈ 200–300 MB, más la geometría en WKB para dibujar rutas (~100 B/tramo, ~260 MB) → **≈ 0,5–1 GB con el grafo regional**.
+  - **¿Cabe en la VM de Task 6?** La VM aún no existe (Task 6 [manual], pendiente). Con la forma prevista A1.Flex de 12 GB cabe todo (construcción regional ~3,2 GB + API ~1 GB). Con la alternativa de pago de 4 GB la API cabe, pero la construcción regional semanal va justa junto a la API: construir por cajas (`osmium extract`) o fuera de la VM. **Primera entrada de DEC-A11**; se cierra el sáb 17 con latencia medida.
 
 ### 3.5 Oracle (opcional)
 Script que carga los mismos `data/clean/*.parquet` en Autonomous DB y pantalla de administración en APEX (+ Select AI). Solo si F1–F5 están terminados.
