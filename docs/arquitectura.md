@@ -12,7 +12,7 @@
 |---|---|---|
 | D-01 | **Almacén** | Datos limpios en **GeoParquet** como núcleo; la app sirve con **DuckDB** (solo lectura). Oracle Autonomous DB **opcional**: carga del mismo GeoParquet + APEX para la pantalla de administración, solo si sobra tiempo |
 | D-02 | **Pilotos de ruta** | Diseño **regional desde el principio** (179 municipios). **Getafe** para afinar y probar hasta el viernes 16; el sábado 17 se activa toda la Comunidad con validación por muestras. Si falla en algún municipio: ruta directa con aviso, sin tocar código |
-| D-03 | **IA para F6** | Interfaz propia (`interpretar`, `redactar`) con un adaptador por proveedor. Primero **OCI Generative AI**; si el jueves 15 a mediodía no funciona, plan B (API de Anthropic). F6 funciona sin LLM (formulario editable) y hay respuestas grabadas para la demo |
+| D-03 | **IA para F6** | Interfaz propia (`interpretar`, `redactar`; en código: `interpret`, `write_up`) con un adaptador por proveedor. Primero **OCI Generative AI**; si el jueves 15 a mediodía no funciona, plan B (API de Anthropic). F6 funciona sin LLM (formulario editable) y hay respuestas grabadas para la demo |
 | D-04 | **Ubicación escrita (RF-01)** | Buscador de Nomecalles (sin clave) + capa **`callejero_completo_2025`** de Nomecalles para las coordenadas. Respaldo: GPS o centro del municipio |
 | — | **Algoritmo de rutas** | Grafo peatonal de toda la Comunidad **en memoria**; **A\* / Dijkstra bidireccional** con coste calculado por petición; **Dijkstra con radio** para las distancias de F1 |
 | D-13 | **Despliegue** | **Docker Compose** en una **VM de OCI** (créditos del proyecto; preferir la forma Always Free si hay capacidad). Primer despliegue el **viernes 16** |
@@ -154,7 +154,7 @@ Cada uno se prueba por separado:
 ### 5.2 Pantallas (partiendo del prototipo; detalle con la maquetadora)
 | Pantalla | En el prototipo | Falta |
 |---|---|---|
-| Inicio «¿Qué te apetece hacer?» | Sí (actividades, Sorpréndeme) | Ubicación por GPS o texto (`/ubicacion`) |
+| Inicio «¿Qué te apetece hacer?» | Sí (actividades, Sorpréndeme) | Ubicación por GPS o texto (`/location`) |
 | Resultados | Sí (lista, «Ver más») | Mapa MapLibre sincronizado; panel «Ajustar» con deslizadores de pesos (recálculo al soltar) |
 | Detalle «¿Por qué te recomendamos este lugar?» | Sí | Nota por factor, línea horaria con mejor franja, aire y tiempo con icono + color + texto, fuente y fecha |
 | Ruta | Sí | Directa vs. saludable reales, métricas, fuentes/bancos/desfibriladores, descripción en texto |
