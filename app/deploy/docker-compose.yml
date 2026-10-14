@@ -11,8 +11,8 @@ services:
     ports:
       - "80:80"
       - "443:443"
-    environment:
-      - DOMAIN=${DOMAIN:-:80}
+    # DOMAIN se lee de app/.env (sin DOMAIN, el Caddyfile usa :80, solo HTTP)
+    env_file: ../.env
     volumes:
       - caddy_data:/data
     depends_on:

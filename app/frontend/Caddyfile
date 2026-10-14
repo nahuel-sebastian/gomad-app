@@ -1,5 +1,22 @@
 # DOMAIN=:80 sirve HTTP (pruebas); con un dominio real Caddy saca el certificado de Let's Encrypt
-{$DOMAIN} {
+{
+	# el log de errores (p. ej. 502 mientras arranca la api) incluye la peticion:
+	# se quitan la consulta de la URL, las IP y las cabeceras (Referer) para no guardar ubicaciones
+	log default {
+		format filter {
+			wrap json
+			fields {
+				request>uri regexp \?.* ?[redacted]
+				request>remote_ip delete
+				request>client_ip delete
+				request>remote_port delete
+				request>headers delete
+			}
+		}
+	}
+}
+
+{$DOMAIN::80} {
 	encode gzip
 	handle /api/* {
 		uri strip_prefix /api
