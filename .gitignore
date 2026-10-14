@@ -1,0 +1,28 @@
+# Datos descargados: se regeneran con scripts/descargar_fuentes.py
+data/
+
+# Secretos (clave de AEMET, claves de IA, credenciales de Oracle…)
+.env
+.env.*
+!.env.example
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Node
+node_modules/
+dist/
+
+# Sistema
+.DS_Store
+
+# Wallet de Oracle
+wallet/
+*.sso
+*.p12
+
+# Claude Code: ajustes personales (no compartir)
+.claude/settings.local.json

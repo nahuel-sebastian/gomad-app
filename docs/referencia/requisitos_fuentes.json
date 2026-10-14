@@ -1,0 +1,1323 @@
+[
+ {
+  "id": "RF-01",
+  "f": "F1",
+  "t": "Ubicación por GPS, dirección o municipio",
+  "src": [
+   {
+    "n": "Límites municipales",
+    "i": "Comun:IDEM_V_MUNICIPIOS",
+    "o": "IDEM",
+    "l": [
+     [
+      "GeoJSON",
+      "https://idem.comunidad.madrid/geoidem/wfs?service=WFS&version=2.0.0&request=GetFeature&outputFormat=application/json&typeNames=Comun:IDEM_V_MUNICIPIOS"
+     ]
+    ]
+   },
+   {
+    "n": "Viales urbanos",
+    "i": "RedesTransporte:IDEM_GDIE_G_CALLES",
+    "o": "IDEM",
+    "l": [
+     [
+      "Ficha",
+      "https://idem.comunidad.madrid/catalogocartografia/srv/spa/catalog.search#/metadata/spacm_callescm"
+     ],
+     [
+      "GeoJSON",
+      "https://idem.comunidad.madrid/geoidem/wfs?service=WFS&version=2.0.0&request=GetFeature&outputFormat=application/json&typeNames=RedesTransporte:IDEM_GDIE_G_CALLES"
+     ]
+    ]
+   }
+  ],
+  "cov": "179 municipios",
+  "cap": []
+ },
+ {
+  "id": "RF-02",
+  "f": "F1",
+  "t": "Elegir actividad: correr, caminar, nadar, pádel…",
+  "src": [
+   {
+    "n": "EIEL: instalaciones deportivas",
+    "i": "ServiciosPublicos:IDEM_EIEL_INSTAL_DEPORTIVA_23",
+    "o": "IDEM",
+    "l": [
+     [
+      "Ficha",
+      "https://idem.comunidad.madrid/catalogocartografia/srv/spa/catalog.search#/metadata/spacm_eiel_instdepor2023"
+     ],
+     [
+      "GeoJSON",
+      "https://idem.comunidad.madrid/geoidem/wfs?service=WFS&version=2.0.0&request=GetFeature&outputFormat=application/json&typeNames=ServiciosPublicos:IDEM_EIEL_INSTAL_DEPORTIVA_23"
+     ]
+    ]
+   },
+   {
+    "n": "Planeamiento: redes públicas «Deportivos»",
+    "i": "UsoDelSuelo:VPLA_V_RED_REF_25",
+    "o": "IDEM",
+    "l": [
+     [
+      "Ficha",
+      "https://idem.comunidad.madrid/catalogocartografia/srv/spa/catalog.search#/metadata/spacm_redesref2025"
+     ],
+     [
+      "GeoJSON",
+      "https://idem.comunidad.madrid/geoidem/wfs?service=WFS&version=2.0.0&request=GetFeature&outputFormat=application/json&typeNames=UsoDelSuelo:VPLA_V_RED_REF_25"
+     ]
+    ]
+   },
+   {
+    "n": "Nomecalles: instalaciones deportivas (deporte deducido del nombre)",
+    "i": "Nomecalles · deporte",
+    "o": "NMC",
+    "l": [
+     [
+      "Ficha",
+      "https://gestiona.comunidad.madrid/nomecalles_web/"
+     ],
+     [
+      "API",
+      "https://apiscm.comunidad.madrid/t/ciudadanos.comunidad.madrid/sector-publico/nomecalles-descargas/v1/paquetes/deporte"
+     ]
+    ]
+   },
+   {
+    "n": "OpenStreetMap sport=*",
+    "i": "openstreetmap",
+    "o": "Externa",
+    "l": [
+     [
+      "Ficha",
+      "https://download.geofabrik.de/europe/spain/madrid.html"
+     ]
+    ]
+   }
+  ],
+  "cov": "Los 179 municipios combinando fuentes: Nomecalles en 178 (sin deporte por instalación), EIEL en 155 (con deporte), planeamiento en 166, OSM en todos",
+  "cap": [
+   {
+    "n": "Centros deportivos municipales",
+    "i": "200186-0-polideportivos",
+    "l": [
+     [
+      "Ficha",
+      "https://datos.madrid.es/dataset/200186-0-polideportivos"
+     ]
+    ]
+   },
+   {
+    "n": "Instalaciones deportivas básicas",
+    "i": "200215-0-instalaciones-deportivas",
+    "l": [
+     [
+      "Ficha",
+      "https://datos.madrid.es/dataset/200215-0-instalaciones-deportivas"
+     ]
+    ]
+   },
+   {
+    "n": "Piscinas municipales",
+    "i": "210227-0-piscinas-publicas",
+    "l": [
+     [
+      "Ficha",
+      "https://datos.madrid.es/dataset/210227-0-piscinas-publicas"
+     ]
+    ]
+   }
+  ]
+ },
+ {
+  "id": "RF-03",
+  "f": "F1",
+  "t": "Modo «Sorpréndeme»",
+  "src": [
+   {
+    "n": "Catálogo de destinos (RF-04)",
+    "i": "—",
+    "o": "IDEM",
+    "l": []
+   },
+   {
+    "n": "AEMET: predicción horaria por municipio",
+    "i": "prediccion/especifica/municipio/horaria",
+    "o": "Externa",
+    "l": [
+     [
+      "Ficha",
+      "https://opendata.aemet.es/centrodedescargas/productosAEMET"
+     ]
+    ]
+   }
+  ],
+  "cov": "Comunidad",
+  "cap": [
+   {
+    "n": "Las de RF-04",
+    "i": "—",
+    "l": []
+   }
+  ]
+ },
+ {
+  "id": "RF-04",
+  "f": "F1",
+  "t": "Catálogo unificado de destinos",
+  "src": [
+   {
+    "n": "EIEL: instalaciones deportivas",
+    "i": "ServiciosPublicos:IDEM_EIEL_INSTAL_DEPORTIVA_23",
+    "o": "IDEM",
+    "l": [
+     [
+      "Ficha",
+      "https://idem.comunidad.madrid/catalogocartografia/srv/spa/catalog.search#/metadata/spacm_eiel_instdepor2023"
+     ],
+     [
+      "GeoJSON",
+      "https://idem.comunidad.madrid/geoidem/wfs?service=WFS&version=2.0.0&request=GetFeature&outputFormat=application/json&typeNames=ServiciosPublicos:IDEM_EIEL_INSTAL_DEPORTIVA_23"
+     ]
+    ]
+   },
+   {
+    "n": "Nomecalles: instalaciones deportivas",
+    "i": "Nomecalles · deporte",
+    "o": "NMC",
+    "l": [
+     [
+      "Ficha",
+      "https://gestiona.comunidad.madrid/nomecalles_web/"
+     ],
+     [
+      "API",
+      "https://apiscm.comunidad.madrid/t/ciudadanos.comunidad.madrid/sector-publico/nomecalles-descargas/v1/paquetes/deporte"
+     ]
+    ]
+   },
+   {
+    "n": "EIEL: parques",
+    "i": "CubiertaTerrestre:IDEM_EIEL_PARQUE_23",
+    "o": "IDEM",
+    "l": [
+     [
+      "Ficha",
+      "https://idem.comunidad.madrid/catalogocartografia/srv/spa/catalog.search#/metadata/spacm_eiel_parques2023"
+     ],
+     [
+      "GeoJSON",
+      "https://idem.comunidad.madrid/geoidem/wfs?service=WFS&version=2.0.0&request=GetFeature&outputFormat=application/json&typeNames=CubiertaTerrestre:IDEM_EIEL_PARQUE_23"
+     ]
+    ]
+   },
+   {
+    "n": "Nomecalles: parques y jardines",
+    "i": "Nomecalles · parques",
+    "o": "NMC",
+    "l": [
+     [
+      "Ficha",
+      "https://gestiona.comunidad.madrid/nomecalles_web/"
+     ],
+     [
+      "API",
+      "https://apiscm.comunidad.madrid/t/ciudadanos.comunidad.madrid/sector-publico/nomecalles-descargas/v1/paquetes/parques"
+     ]
+    ]
+   },
+   {
+    "n": "Planeamiento: zonas verdes y deportivos",
+    "i": "UsoDelSuelo:VPLA_V_RED_REF_25",
+    "o": "IDEM",
+    "l": [
+     [
+      "Ficha",
+      "https://idem.comunidad.madrid/catalogocartografia/srv/spa/catalog.search#/metadata/spacm_redesref2025"
+     ],
+     [
+      "GeoJSON",
+      "https://idem.comunidad.madrid/geoidem/wfs?service=WFS&version=2.0.0&request=GetFeature&outputFormat=application/json&typeNames=UsoDelSuelo:VPLA_V_RED_REF_25"
+     ]
+    ]
+   },
+   {
+    "n": "Áreas recreativas",
+    "i": "ServiciosPublicos:IDEM_MA_AREAS_RECREA",
+    "o": "IDEM",
+    "l": [
+     [
+      "Ficha",
+      "https://idem.comunidad.madrid/catalogocartografia/srv/spa/catalog.search#/metadata/spacm_areasrecrea"
+     ],
+     [
+      "GeoJSON",
+      "https://idem.comunidad.madrid/geoidem/wfs?service=WFS&version=2.0.0&request=GetFeature&outputFormat=application/json&typeNames=ServiciosPublicos:IDEM_MA_AREAS_RECREA"
+     ]
+    ]
+   },
+   {
+    "n": "Sendas por la naturaleza",
+    "i": "RedesTransporte:IDEM_V_MA_SENDAS_VERDES",
+    "o": "IDEM",
+    "l": [
+     [
+      "Ficha",
+      "https://idem.comunidad.madrid/catalogocartografia/srv/spa/catalog.search#/metadata/spacm_sendasnaturaleza"
+     ],
+     [
+      "GeoJSON",
+      "https://idem.comunidad.madrid/geoidem/wfs?service=WFS&version=2.0.0&request=GetFeature&outputFormat=application/json&typeNames=RedesTransporte:IDEM_V_MA_SENDAS_VERDES"
+     ]
+    ]
+   },
+   {
+    "n": "Vías pecuarias",
+    "i": "Zonas:IDEM_MA_VIAS_PECUARIAS",
+    "o": "IDEM",
+    "l": [
+     [
+      "Ficha",
+      "https://idem.comunidad.madrid/catalogocartografia/srv/spa/catalog.search#/metadata/spacm_vpec"
+     ],
+     [
+      "GeoJSON",
+      "https://idem.comunidad.madrid/geoidem/wfs?service=WFS&version=2.0.0&request=GetFeature&outputFormat=application/json&typeNames=Zonas:IDEM_MA_VIAS_PECUARIAS"
+     ]
+    ]
+   },
+   {
+    "n": "Zonas de baño",
+    "i": "censo_clasificacion_zonas_bano",
+    "o": "CKAN Comunidad",
+    "l": [
+     [
+      "Ficha",
+      "https://datos.comunidad.madrid/dataset/censo_clasificacion_zonas_bano"
+     ]
+    ]
+   }
+  ],
+  "cov": "Comunidad",
+  "cap": [
+   {
+    "n": "Centros deportivos municipales",
+    "i": "200186-0-polideportivos",
+    "l": [
+     [
+      "Ficha",
+      "https://datos.madrid.es/dataset/200186-0-polideportivos"
+     ]
+    ]
+   },
+   {
+    "n": "Instalaciones deportivas básicas",
+    "i": "200215-0-instalaciones-deportivas",
+    "l": [
+     [
+      "Ficha",
+      "https://datos.madrid.es/dataset/200215-0-instalaciones-deportivas"
+     ]
+    ]
+   },
+   {
+    "n": "Piscinas municipales",
+    "i": "210227-0-piscinas-publicas",
+    "l": [
+     [
+      "Ficha",
+      "https://datos.madrid.es/dataset/210227-0-piscinas-publicas"
+     ]
+    ]
+   },
+   {
+    "n": "Parques y jardines",
+    "i": "200761-0-parques-jardines",
+    "l": [
+     [
+      "Ficha",
+      "https://datos.madrid.es/dataset/200761-0-parques-jardines"
+     ]
+    ]
+   }
+  ]
+ },
+ {
+  "id": "RF-05",
+  "f": "F1",
+  "t": "Top 3 con distancia, tiempo a pie y nota",
+  "src": [
+   {
+    "n": "Catálogo de destinos (RF-04)",
+    "i": "—",
+    "o": "IDEM",
+    "l": []
+   },
+   {
+    "n": "OpenStreetMap: red peatonal",
+    "i": "openstreetmap",
+    "o": "Externa",
+    "l": [
+     [
+      "Ficha",
+      "https://download.geofabrik.de/europe/spain/madrid.html"
+     ]
+    ]
+   }
+  ],
+  "cov": "Comunidad",
+  "cap": []
+ },
+ {
+  "id": "RF-06",
+  "f": "F2",
+  "t": "Previsión horaria y aire de la estación más cercana",
+  "src": [
+   {
+    "n": "AEMET: predicción horaria por municipio",
+    "i": "prediccion/especifica/municipio/horaria",
+    "o": "Externa",
+    "l": [
+     [
+      "Ficha",
+      "https://opendata.aemet.es/centrodedescargas/productosAEMET"
+     ]
+    ]
+   },
+   {
+    "n": "Calidad del aire: estaciones",
+    "i": "calidad_aire_estaciones",
+    "o": "CKAN Comunidad",
+    "l": [
+     [
+      "Ficha",
+      "https://datos.comunidad.madrid/dataset/calidad_aire_estaciones"
+     ]
+    ]
+   },
+   {
+    "n": "Calidad del aire: datos del día",
+    "i": "calidad_aire_datos_dia",
+    "o": "CKAN Comunidad",
+    "l": [
+     [
+      "Ficha",
+      "https://datos.comunidad.madrid/dataset/calidad_aire_datos_dia"
+     ]
+    ]
+   },
+   {
+    "n": "Calidad del aire: municipios por zona",
+    "i": "calidad_aire_zonas",
+    "o": "CKAN Comunidad",
+    "l": [
+     [
+      "Ficha",
+      "https://datos.comunidad.madrid/dataset/calidad_aire_zonas"
+     ]
+    ]
+   }
+  ],
+  "cov": "179 municipios; sin estación propia se usa la de su zona",
+  "cap": [
+   {
+    "n": "Calidad del aire en tiempo real",
+    "i": "212531-0-calidad-aire-tiempo-real",
+    "l": [
+     [
+      "Ficha",
+      "https://datos.madrid.es/dataset/212531-0-calidad-aire-tiempo-real"
+     ]
+    ]
+   },
+   {
+    "n": "Estaciones de control del aire",
+    "i": "212629-0-estaciones-control-aire",
+    "l": [
+     [
+      "Ficha",
+      "https://datos.madrid.es/dataset/212629-0-estaciones-control-aire"
+     ]
+    ]
+   },
+   {
+    "n": "Meteorología en tiempo real",
+    "i": "300392-0-meteorologia-tiempo-real",
+    "l": [
+     [
+      "Ficha",
+      "https://datos.madrid.es/dataset/300392-0-meteorologia-tiempo-real"
+     ]
+    ]
+   }
+  ]
+ },
+ {
+  "id": "RF-07",
+  "f": "F2",
+  "t": "Puntuación: cercanía, actividad, verde, aire y tiempo",
+  "src": [
+   {
+    "n": "Planeamiento: zonas verdes",
+    "i": "UsoDelSuelo:VPLA_V_RED_REF_25",
+    "o": "IDEM",
+    "l": [
+     [
+      "Ficha",
+      "https://idem.comunidad.madrid/catalogocartografia/srv/spa/catalog.search#/metadata/spacm_redesref2025"
+     ],
+     [
+      "GeoJSON",
+      "https://idem.comunidad.madrid/geoidem/wfs?service=WFS&version=2.0.0&request=GetFeature&outputFormat=application/json&typeNames=UsoDelSuelo:VPLA_V_RED_REF_25"
+     ]
+    ]
+   },
+   {
+    "n": "Cubierta terrestre",
+    "i": "BTA:IDEM_BTA_CUBIERTER_POL_17",
+    "o": "IDEM",
+    "l": [
+     [
+      "Ficha",
+      "https://idem.comunidad.madrid/catalogocartografia/srv/spa/catalog.search#/metadata/spacm_bta"
+     ]
+    ]
+   },
+   {
+    "n": "Fuentes de RF-06",
+    "i": "—",
+    "o": "CKAN Comunidad",
+    "l": []
+   }
+  ],
+  "cov": "Comunidad",
+  "cap": [
+   {
+    "n": "Parques y jardines",
+    "i": "200761-0-parques-jardines",
+    "l": [
+     [
+      "Ficha",
+      "https://datos.madrid.es/dataset/200761-0-parques-jardines"
+     ]
+    ]
+   },
+   {
+    "n": "Calidad del aire en tiempo real",
+    "i": "212531-0-calidad-aire-tiempo-real",
+    "l": [
+     [
+      "Ficha",
+      "https://datos.madrid.es/dataset/212531-0-calidad-aire-tiempo-real"
+     ]
+    ]
+   }
+  ]
+ },
+ {
+  "id": "RF-08",
+  "f": "F2",
+  "t": "Mejor franja horaria",
+  "src": [
+   {
+    "n": "AEMET: predicción horaria por municipio",
+    "i": "prediccion/especifica/municipio/horaria",
+    "o": "Externa",
+    "l": [
+     [
+      "Ficha",
+      "https://opendata.aemet.es/centrodedescargas/productosAEMET"
+     ]
+    ]
+   },
+   {
+    "n": "Calidad del aire: datos del día",
+    "i": "calidad_aire_datos_dia",
+    "o": "CKAN Comunidad",
+    "l": [
+     [
+      "Ficha",
+      "https://datos.comunidad.madrid/dataset/calidad_aire_datos_dia"
+     ]
+    ]
+   },
+   {
+    "n": "Calidad del aire: histórico horario",
+    "i": "calidad_aire_datos_historico",
+    "o": "CKAN Comunidad",
+    "l": [
+     [
+      "Ficha",
+      "https://datos.comunidad.madrid/dataset/calidad_aire_datos_historico"
+     ]
+    ]
+   }
+  ],
+  "cov": "Comunidad",
+  "cap": [
+   {
+    "n": "Calidad del aire en tiempo real",
+    "i": "212531-0-calidad-aire-tiempo-real",
+    "l": [
+     [
+      "Ficha",
+      "https://datos.madrid.es/dataset/212531-0-calidad-aire-tiempo-real"
+     ]
+    ]
+   }
+  ]
+ },
+ {
+  "id": "RF-09",
+  "f": "F2",
+  "t": "Alternativa cubierta con lluvia, calor o mal aire",
+  "src": [
+   {
+    "n": "EIEL: instalaciones deportivas (SUP_CUBI, TIPOINSTAL)",
+    "i": "ServiciosPublicos:IDEM_EIEL_INSTAL_DEPORTIVA_23",
+    "o": "IDEM",
+    "l": [
+     [
+      "Ficha",
+      "https://idem.comunidad.madrid/catalogocartografia/srv/spa/catalog.search#/metadata/spacm_eiel_instdepor2023"
+     ],
+     [
+      "GeoJSON",
+      "https://idem.comunidad.madrid/geoidem/wfs?service=WFS&version=2.0.0&request=GetFeature&outputFormat=application/json&typeNames=ServiciosPublicos:IDEM_EIEL_INSTAL_DEPORTIVA_23"
+     ]
+    ]
+   },
+   {
+    "n": "AEMET + calidad del aire",
+    "i": "—",
+    "o": "Externa",
+    "l": []
+   }
+  ],
+  "cov": "Comunidad",
+  "cap": [
+   {
+    "n": "Centros deportivos municipales",
+    "i": "200186-0-polideportivos",
+    "l": [
+     [
+      "Ficha",
+      "https://datos.madrid.es/dataset/200186-0-polideportivos"
+     ]
+    ]
+   },
+   {
+    "n": "Piscinas municipales",
+    "i": "210227-0-piscinas-publicas",
+    "l": [
+     [
+      "Ficha",
+      "https://datos.madrid.es/dataset/210227-0-piscinas-publicas"
+     ]
+    ]
+   }
+  ]
+ },
+ {
+  "id": "RF-10",
+  "f": "F2",
+  "t": "Explicación en lenguaje llano",
+  "src": [],
+  "cov": "Motor de reglas, sin fuente propia",
+  "cap": []
+ },
+ {
+  "id": "RF-11",
+  "f": "F3",
+  "t": "Mapa sincronizado con la lista",
+  "src": [
+   {
+    "n": "Límites municipales",
+    "i": "Comun:IDEM_V_MUNICIPIOS",
+    "o": "IDEM",
+    "l": [
+     [
+      "GeoJSON",
+      "https://idem.comunidad.madrid/geoidem/wfs?service=WFS&version=2.0.0&request=GetFeature&outputFormat=application/json&typeNames=Comun:IDEM_V_MUNICIPIOS"
+     ]
+    ]
+   },
+   {
+    "n": "OpenStreetMap: mapa base",
+    "i": "openstreetmap",
+    "o": "Externa",
+    "l": [
+     [
+      "Ficha",
+      "https://download.geofabrik.de/europe/spain/madrid.html"
+     ]
+    ]
+   }
+  ],
+  "cov": "Comunidad",
+  "cap": []
+ },
+ {
+  "id": "RF-12",
+  "f": "F3",
+  "t": "Ruta saludable frente a ruta directa",
+  "src": [
+   {
+    "n": "OpenStreetMap: red peatonal",
+    "i": "openstreetmap",
+    "o": "Externa",
+    "l": [
+     [
+      "Ficha",
+      "https://download.geofabrik.de/europe/spain/madrid.html"
+     ]
+    ]
+   },
+   {
+    "n": "Planeamiento: zonas verdes",
+    "i": "UsoDelSuelo:VPLA_V_RED_REF_25",
+    "o": "IDEM",
+    "l": [
+     [
+      "Ficha",
+      "https://idem.comunidad.madrid/catalogocartografia/srv/spa/catalog.search#/metadata/spacm_redesref2025"
+     ],
+     [
+      "GeoJSON",
+      "https://idem.comunidad.madrid/geoidem/wfs?service=WFS&version=2.0.0&request=GetFeature&outputFormat=application/json&typeNames=UsoDelSuelo:VPLA_V_RED_REF_25"
+     ]
+    ]
+   },
+   {
+    "n": "Cubierta terrestre",
+    "i": "BTA:IDEM_BTA_CUBIERTER_POL_17",
+    "o": "IDEM",
+    "l": [
+     [
+      "Ficha",
+      "https://idem.comunidad.madrid/catalogocartografia/srv/spa/catalog.search#/metadata/spacm_bta"
+     ]
+    ]
+   },
+   {
+    "n": "Viales urbanos (tipo de vía en lugar de tráfico)",
+    "i": "RedesTransporte:IDEM_GDIE_G_CALLES",
+    "o": "IDEM",
+    "l": [
+     [
+      "Ficha",
+      "https://idem.comunidad.madrid/catalogocartografia/srv/spa/catalog.search#/metadata/spacm_callescm"
+     ],
+     [
+      "GeoJSON",
+      "https://idem.comunidad.madrid/geoidem/wfs?service=WFS&version=2.0.0&request=GetFeature&outputFormat=application/json&typeNames=RedesTransporte:IDEM_GDIE_G_CALLES"
+     ]
+    ]
+   }
+  ],
+  "cov": "Comunidad",
+  "cap": [
+   {
+    "n": "Tráfico en tiempo real (pm.xml)",
+    "i": "202087-0-trafico-intensidad",
+    "l": [
+     [
+      "Ficha",
+      "https://datos.madrid.es/dataset/202087-0-trafico-intensidad"
+     ]
+    ]
+   },
+   {
+    "n": "Parques y jardines",
+    "i": "200761-0-parques-jardines",
+    "l": [
+     [
+      "Ficha",
+      "https://datos.madrid.es/dataset/200761-0-parques-jardines"
+     ]
+    ]
+   }
+  ]
+ },
+ {
+  "id": "RF-13",
+  "f": "F3",
+  "t": "Desnivel, sombra y fuentes en la ruta",
+  "src": [
+   {
+    "n": "Cubierta terrestre (sombra)",
+    "i": "BTA:IDEM_BTA_CUBIERTER_POL_17",
+    "o": "IDEM",
+    "l": [
+     [
+      "Ficha",
+      "https://idem.comunidad.madrid/catalogocartografia/srv/spa/catalog.search#/metadata/spacm_bta"
+     ]
+    ]
+   },
+   {
+    "n": "EIEL: parques (AGUA)",
+    "i": "CubiertaTerrestre:IDEM_EIEL_PARQUE_23",
+    "o": "IDEM",
+    "l": [
+     [
+      "Ficha",
+      "https://idem.comunidad.madrid/catalogocartografia/srv/spa/catalog.search#/metadata/spacm_eiel_parques2023"
+     ],
+     [
+      "GeoJSON",
+      "https://idem.comunidad.madrid/geoidem/wfs?service=WFS&version=2.0.0&request=GetFeature&outputFormat=application/json&typeNames=CubiertaTerrestre:IDEM_EIEL_PARQUE_23"
+     ]
+    ]
+   },
+   {
+    "n": "Áreas recreativas (IT_FUENTE)",
+    "i": "ServiciosPublicos:IDEM_MA_AREAS_RECREA",
+    "o": "IDEM",
+    "l": [
+     [
+      "Ficha",
+      "https://idem.comunidad.madrid/catalogocartografia/srv/spa/catalog.search#/metadata/spacm_areasrecrea"
+     ],
+     [
+      "GeoJSON",
+      "https://idem.comunidad.madrid/geoidem/wfs?service=WFS&version=2.0.0&request=GetFeature&outputFormat=application/json&typeNames=ServiciosPublicos:IDEM_MA_AREAS_RECREA"
+     ]
+    ]
+   },
+   {
+    "n": "OpenStreetMap amenity=drinking_water",
+    "i": "openstreetmap",
+    "o": "Externa",
+    "l": [
+     [
+      "Ficha",
+      "https://download.geofabrik.de/europe/spain/madrid.html"
+     ]
+    ]
+   },
+   {
+    "n": "IGN: modelo digital del terreno (por verificar)",
+    "i": "MDT05",
+    "o": "Externa",
+    "l": [
+     [
+      "Ficha",
+      "https://centrodedescargas.cnig.es/CentroDescargas/modelo-digital-terreno-mdt05"
+     ]
+    ]
+   },
+   {
+    "n": "Desfibriladores fuera del ámbito sanitario",
+    "i": "desfibriladores_externos_fuera_ambito_sanitario",
+    "o": "CKAN Comunidad",
+    "l": [
+     [
+      "Ficha",
+      "https://datos.comunidad.madrid/dataset/desfibriladores_externos_fuera_ambito_sanitario"
+     ]
+    ]
+   }
+  ],
+  "cov": "Comunidad; desfibriladores en toda la región",
+  "cap": [
+   {
+    "n": "Fuentes de agua para beber",
+    "i": "300051-0-fuentes",
+    "l": [
+     [
+      "Ficha",
+      "https://datos.madrid.es/dataset/300051-0-fuentes"
+     ]
+    ]
+   }
+  ]
+ },
+ {
+  "id": "RF-14",
+  "f": "F4",
+  "t": "Tiempo, distancia, interior o exterior",
+  "src": [],
+  "cov": "Filtros sobre RF-04",
+  "cap": []
+ },
+ {
+  "id": "RF-15",
+  "f": "F4",
+  "t": "Perfiles: mayor, carrito, sensible a la contaminación",
+  "src": [
+   {
+    "n": "EIEL: accesibilidad ACCESOSILL",
+    "i": "ServiciosPublicos:IDEM_EIEL_INSTAL_DEPORTIVA_23",
+    "o": "IDEM",
+    "l": [
+     [
+      "Ficha",
+      "https://idem.comunidad.madrid/catalogocartografia/srv/spa/catalog.search#/metadata/spacm_eiel_instdepor2023"
+     ],
+     [
+      "GeoJSON",
+      "https://idem.comunidad.madrid/geoidem/wfs?service=WFS&version=2.0.0&request=GetFeature&outputFormat=application/json&typeNames=ServiciosPublicos:IDEM_EIEL_INSTAL_DEPORTIVA_23"
+     ]
+    ]
+   },
+   {
+    "n": "Índice Nacional de Calidad del Aire (umbrales)",
+    "i": "MITECO",
+    "o": "Externa",
+    "l": [
+     [
+      "Ficha",
+      "https://www.miteco.gob.es/es/calidad-y-evaluacion-ambiental/temas/atmosfera-y-calidad-del-aire/calidad-del-aire/ica.html"
+     ]
+    ]
+   }
+  ],
+  "cov": "Comunidad",
+  "cap": [
+   {
+    "n": "Accesibilidad de polideportivos",
+    "i": "200186-0-polideportivos",
+    "l": [
+     [
+      "Ficha",
+      "https://datos.madrid.es/dataset/200186-0-polideportivos"
+     ]
+    ]
+   },
+   {
+    "n": "Accesibilidad de parques y jardines",
+    "i": "200761-0-parques-jardines",
+    "l": [
+     [
+      "Ficha",
+      "https://datos.madrid.es/dataset/200761-0-parques-jardines"
+     ]
+    ]
+   }
+  ]
+ },
+ {
+  "id": "RF-16",
+  "f": "F4",
+  "t": "Pesos ajustables por factor",
+  "src": [],
+  "cov": "Interfaz, sin fuente propia",
+  "cap": []
+ },
+ {
+  "id": "RF-17",
+  "f": "F5",
+  "t": "Vista de municipio: deporte, naturaleza, movilidad, salud, educación, conectividad",
+  "src": [
+   {
+    "n": "Centros sanitarios",
+    "i": "centros_servicios_establecimientos_sanitarios",
+    "o": "CKAN Comunidad",
+    "l": [
+     [
+      "Ficha",
+      "https://datos.comunidad.madrid/dataset/centros_servicios_establecimientos_sanitarios"
+     ]
+    ]
+   },
+   {
+    "n": "Farmacias",
+    "i": "oficinas_farmacia",
+    "o": "CKAN Comunidad",
+    "l": [
+     [
+      "Ficha",
+      "https://datos.comunidad.madrid/dataset/oficinas_farmacia"
+     ]
+    ]
+   },
+   {
+    "n": "Desfibriladores fuera del ámbito sanitario",
+    "i": "desfibriladores_externos_fuera_ambito_sanitario",
+    "o": "CKAN Comunidad",
+    "l": [
+     [
+      "Ficha",
+      "https://datos.comunidad.madrid/dataset/desfibriladores_externos_fuera_ambito_sanitario"
+     ]
+    ]
+   },
+   {
+    "n": "Centros educativos",
+    "i": "centros_educativos",
+    "o": "CKAN Comunidad",
+    "l": [
+     [
+      "Ficha",
+      "https://datos.comunidad.madrid/dataset/centros_educativos"
+     ]
+    ]
+   },
+   {
+    "n": "Centros de atención social",
+    "i": "atencion_social_registro_centros",
+    "o": "CKAN Comunidad",
+    "l": [
+     [
+      "Ficha",
+      "https://datos.comunidad.madrid/dataset/atencion_social_registro_centros"
+     ]
+    ]
+   },
+   {
+    "n": "Padrón por municipio",
+    "i": "padron_por_sexo",
+    "o": "CKAN Comunidad",
+    "l": [
+     [
+      "Ficha",
+      "https://datos.comunidad.madrid/dataset/padron_por_sexo"
+     ]
+    ]
+   },
+   {
+    "n": "Densidad de población",
+    "i": "1930748",
+    "o": "CKAN Comunidad",
+    "l": [
+     [
+      "Ficha",
+      "https://datos.comunidad.madrid/dataset/1930748"
+     ]
+    ]
+   },
+   {
+    "n": "Renta disponible bruta",
+    "i": "irpf_indicador_renta",
+    "o": "CKAN Comunidad",
+    "l": [
+     [
+      "Ficha",
+      "https://datos.comunidad.madrid/dataset/irpf_indicador_renta"
+     ]
+    ]
+   },
+   {
+    "n": "EIEL + planeamiento (deporte y naturaleza)",
+    "i": "—",
+    "o": "IDEM",
+    "l": []
+   },
+   {
+    "n": "EIEL: núcleos (conectividad)",
+    "i": "UnidadesAdministrativas:IDEM_EIEL_NUCLEOS_23",
+    "o": "IDEM",
+    "l": [
+     [
+      "Ficha",
+      "https://idem.comunidad.madrid/catalogocartografia/srv/spa/catalog.search#/metadata/spacm_eiel_nucelos2023"
+     ],
+     [
+      "GeoJSON",
+      "https://idem.comunidad.madrid/geoidem/wfs?service=WFS&version=2.0.0&request=GetFeature&outputFormat=application/json&typeNames=UnidadesAdministrativas:IDEM_EIEL_NUCLEOS_23"
+     ]
+    ]
+   },
+   {
+    "n": "Nomecalles: paradas de autobús",
+    "i": "Nomecalles · busparadas",
+    "o": "NMC",
+    "l": [
+     [
+      "Ficha",
+      "https://gestiona.comunidad.madrid/nomecalles_web/"
+     ],
+     [
+      "API",
+      "https://apiscm.comunidad.madrid/t/ciudadanos.comunidad.madrid/sector-publico/nomecalles-descargas/v1/paquetes/busparadas"
+     ]
+    ]
+   },
+   {
+    "n": "Nomecalles: estaciones de metro",
+    "i": "Nomecalles · estmetro",
+    "o": "NMC",
+    "l": [
+     [
+      "Ficha",
+      "https://gestiona.comunidad.madrid/nomecalles_web/"
+     ],
+     [
+      "API",
+      "https://apiscm.comunidad.madrid/t/ciudadanos.comunidad.madrid/sector-publico/nomecalles-descargas/v1/paquetes/estmetro"
+     ]
+    ]
+   },
+   {
+    "n": "Nomecalles: estaciones de cercanías",
+    "i": "Nomecalles · estcerca",
+    "o": "NMC",
+    "l": [
+     [
+      "Ficha",
+      "https://gestiona.comunidad.madrid/nomecalles_web/"
+     ],
+     [
+      "API",
+      "https://apiscm.comunidad.madrid/t/ciudadanos.comunidad.madrid/sector-publico/nomecalles-descargas/v1/paquetes/estcerca"
+     ]
+    ]
+   },
+   {
+    "n": "Bici pública (3 sistemas: BiciMAD, Rivas, Boadilla)",
+    "i": "bases_prestamo_bicicletas",
+    "o": "CKAN Comunidad",
+    "l": [
+     [
+      "Ficha",
+      "https://datos.comunidad.madrid/dataset/bases_prestamo_bicicletas"
+     ],
+     [
+      "Ficha",
+      "https://datos.crtm.es/maps/a303824bb41a45fb99f778d690e4d95b"
+     ]
+    ]
+   }
+  ],
+  "cov": "Comunidad. Movilidad: paradas de autobús en todos los municipios; metro, cercanías y bici pública donde existen. Conectividad solo en los 155 municipios de la EIEL",
+  "cap": [
+   {
+    "n": "Panel de indicadores de distritos y barrios",
+    "i": "300087-0-indicadores-distritos",
+    "l": [
+     [
+      "Ficha",
+      "https://datos.madrid.es/dataset/300087-0-indicadores-distritos"
+     ]
+    ]
+   },
+   {
+    "n": "Centros deportivos municipales",
+    "i": "200186-0-polideportivos",
+    "l": [
+     [
+      "Ficha",
+      "https://datos.madrid.es/dataset/200186-0-polideportivos"
+     ]
+    ]
+   }
+  ]
+ },
+ {
+  "id": "RF-18",
+  "f": "F5",
+  "t": "Encaje del municipio con las preferencias",
+  "src": [],
+  "cov": "Derivado de RF-17",
+  "cap": []
+ },
+ {
+  "id": "RF-20",
+  "f": "F6",
+  "t": "Pedir la ruta en texto libre; la IA la convierte en parámetros que se muestran y se pueden editar",
+  "src": [
+   {
+    "n": "Servicio de IA generativa (por decidir: OCI Generative AI de Oracle u otro)",
+    "i": "—",
+    "o": "Externa",
+    "l": []
+   }
+  ],
+  "cov": "No usa datos abiertos: solo interpreta el texto. No se envían ubicación ni datos personales",
+  "cap": []
+ },
+ {
+  "id": "RF-21",
+  "f": "F6",
+  "t": "Catálogo cerrado de condiciones: distancia o duración, actividad, circular o ida, pasar por (parque, fuente, banco, supermercado, área canina, juegos…) y evitar (tráfico, cuestas)",
+  "src": [
+   {
+    "n": "Nomecalles: hipermercados",
+    "i": "Nomecalles · hipermercados",
+    "o": "NMC",
+    "l": [
+     [
+      "Ficha",
+      "https://gestiona.comunidad.madrid/nomecalles_web/"
+     ],
+     [
+      "API",
+      "https://apiscm.comunidad.madrid/t/ciudadanos.comunidad.madrid/sector-publico/nomecalles-descargas/v1/paquetes/hipermercados"
+     ]
+    ]
+   },
+   {
+    "n": "Nomecalles: mercados de abastos",
+    "i": "Nomecalles · mercadoabastos",
+    "o": "NMC",
+    "l": [
+     [
+      "Ficha",
+      "https://gestiona.comunidad.madrid/nomecalles_web/"
+     ],
+     [
+      "API",
+      "https://apiscm.comunidad.madrid/t/ciudadanos.comunidad.madrid/sector-publico/nomecalles-descargas/v1/paquetes/mercadoabastos"
+     ]
+    ]
+   },
+   {
+    "n": "Nomecalles: galerías de alimentación",
+    "i": "Nomecalles · galimentacion",
+    "o": "NMC",
+    "l": [
+     [
+      "Ficha",
+      "https://gestiona.comunidad.madrid/nomecalles_web/"
+     ],
+     [
+      "API",
+      "https://apiscm.comunidad.madrid/t/ciudadanos.comunidad.madrid/sector-publico/nomecalles-descargas/v1/paquetes/galimentacion"
+     ]
+    ]
+   },
+   {
+    "n": "OpenStreetMap: shop=supermarket / convenience, amenity=bench / drinking_water",
+    "i": "openstreetmap",
+    "o": "Externa",
+    "l": [
+     [
+      "Ficha",
+      "https://download.geofabrik.de/europe/spain/madrid.html"
+     ]
+    ]
+   },
+   {
+    "n": "Parques, fuentes, desfibriladores y demás puntos de RF-04 y RF-13",
+    "i": "—",
+    "o": "IDEM",
+    "l": []
+   }
+  ],
+  "cov": "Comunidad. Comercio grande en Nomecalles; supermercados y tiendas pequeñas solo donde OSM los tiene",
+  "cap": [
+   {
+    "n": "Censo de locales y sus actividades",
+    "i": "200085-0-censo-locales",
+    "l": [
+     [
+      "Ficha",
+      "https://datos.madrid.es/dataset/200085-0-censo-locales"
+     ]
+    ]
+   },
+   {
+    "n": "Bancos (mobiliario urbano)",
+    "i": "300095-0-mobiliario-bancos",
+    "l": [
+     [
+      "Ficha",
+      "https://datos.madrid.es/dataset/300095-0-mobiliario-bancos"
+     ]
+    ]
+   },
+   {
+    "n": "Fuentes de agua para beber",
+    "i": "300051-0-fuentes",
+    "l": [
+     [
+      "Ficha",
+      "https://datos.madrid.es/dataset/300051-0-fuentes"
+     ]
+    ]
+   }
+  ]
+ },
+ {
+  "id": "RF-22",
+  "f": "F6",
+  "t": "Ruta por distancia objetivo (±10 %), circular o de ida, con puntos de paso obligatorios",
+  "src": [
+   {
+    "n": "OpenStreetMap: red peatonal",
+    "i": "openstreetmap",
+    "o": "Externa",
+    "l": [
+     [
+      "Ficha",
+      "https://download.geofabrik.de/europe/spain/madrid.html"
+     ]
+    ]
+   },
+   {
+    "n": "Planeamiento: zonas verdes",
+    "i": "UsoDelSuelo:VPLA_V_RED_REF_25",
+    "o": "IDEM",
+    "l": [
+     [
+      "Ficha",
+      "https://idem.comunidad.madrid/catalogocartografia/srv/spa/catalog.search#/metadata/spacm_redesref2025"
+     ]
+    ]
+   },
+   {
+    "n": "Cubierta terrestre",
+    "i": "BTA:IDEM_BTA_CUBIERTER_POL_17",
+    "o": "IDEM",
+    "l": [
+     [
+      "Ficha",
+      "https://idem.comunidad.madrid/catalogocartografia/srv/spa/catalog.search#/metadata/spacm_bta"
+     ]
+    ]
+   }
+  ],
+  "cov": "Municipios piloto (grafo peatonal precalculado)",
+  "cap": [
+   {
+    "n": "Tráfico en tiempo real (pm.xml)",
+    "i": "202087-0-trafico-intensidad",
+    "l": [
+     [
+      "Ficha",
+      "https://datos.madrid.es/dataset/202087-0-trafico-intensidad"
+     ]
+    ]
+   }
+  ]
+ },
+ {
+  "id": "RF-23",
+  "f": "F6",
+  "t": "Respuesta que dice qué condiciones se cumplen y cuáles no, redactada solo con los resultados del motor",
+  "src": [],
+  "cov": "Sale del motor de rutas; la IA solo redacta",
+  "cap": []
+ },
+ {
+  "id": "RF-24",
+  "f": "F6",
+  "t": "Pedir aclaración si la petición es ambigua; rechazar lo que sale del catálogo o es consejo médico",
+  "src": [],
+  "cov": "Reglas del asistente, sin fuente propia",
+  "cap": []
+ },
+ {
+  "id": "RF-19",
+  "f": "Transversal",
+  "t": "Fuente y fecha de cada dato",
+  "src": [
+   {
+    "n": "Metadatos CKAN (fecha) y marca de validación V/N",
+    "i": "—",
+    "o": "CKAN Comunidad",
+    "l": []
+   }
+  ],
+  "cov": "Comunidad",
+  "cap": [
+   {
+    "n": "Metadatos CKAN del Ayuntamiento",
+    "i": "—",
+    "l": []
+   }
+  ]
+ }
+]
