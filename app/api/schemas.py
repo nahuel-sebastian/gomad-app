@@ -1,8 +1,13 @@
 """Contrato de la API (arquitectura §4.1). Cambiarlo = regenerar openapi.json y los tipos del front."""
 from datetime import datetime
 from typing import Literal
+from zoneinfo import ZoneInfo
 
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
+
+# las horas del contrato son hora local de Madrid sin zona (como la prevision de AEMET y el motor)
+LOCAL_TZ = ZoneInfo("Europe/Madrid")
+LOCAL_TIME = "Hora local de Madrid sin zona horaria; si llega con zona, se convierte."
 
 Profile = Literal["general", "senior", "stroller", "sensitive"]
 Companion = Literal["dog", "kids"]
@@ -72,8 +77,8 @@ class LocationResponse(Strict):
 class RecommendRequest(Strict):
     origin: Coordinate
     activity: str | None = None       # None = «Sorpréndeme» (RF-03)
-    window_start: datetime
-    window_end: datetime
+    window_start: datetime = Field(description=LOCAL_TIME)
+    window_end: datetime = Field(description=LOCAL_TIME)
     duration_min: int = Field(ge=10, le=480)
     max_distance_m: int = Field(ge=200, le=50_000)
     setting: Setting = "any"
@@ -82,6 +87,14 @@ class RecommendRequest(Strict):
     weights: Weights | None = None    # None = por defecto (config/weights.yaml)
     limit: int = Field(default=3, ge=1, le=20)
     offset: int = Field(default=0, ge=0)   # «Ver más» (RF-05)
+
+    @field_validator("window_start", "window_end")
+    @classmethod
+    def to_local_time(cls, value: datetime) -> datetime:
+        # toISOString() del navegador manda UTC: sin esto, mezclar con hora sin zona daria un 500
+        if value.tzinfo is None:
+            return value
+        return value.astimezone(LOCAL_TZ).replace(tzinfo=None)
 
     @model_validator(mode="after")
     def check_window(self):
@@ -109,7 +122,7 @@ class FactorScore(Strict):
 
 
 class HourEvaluation(Strict):
-    hour: datetime
+    hour: datetime = Field(description=LOCAL_TIME)
     score: float | None = Field(ge=0, le=10)
     outdoor_ok: bool | None                    # None = sin datos para decidir
     reasons: list[str]
@@ -125,7 +138,7 @@ class Recommendation(Strict):
     duration_min: float
     score: float = Field(ge=0, le=10)
     factors: list[FactorScore]
-    best_hour: datetime | None
+    best_hour: datetime | None = Field(description=LOCAL_TIME)
     hours: list[HourEvaluation]
     indoor_alternative: bool                   # True si se propone por lluvia/calor/aire (RF-09)
     explanation: str                           # lenguaje llano, plantillas (RF-10)

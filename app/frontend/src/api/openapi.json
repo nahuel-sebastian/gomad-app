@@ -714,7 +714,8 @@
      "hour": {
       "type": "string",
       "format": "date-time",
-      "title": "Hour"
+      "title": "Hour",
+      "description": "Hora local de Madrid sin zona horaria; si llega con zona, se convierte."
      },
      "score": {
       "anyOf": [
@@ -1062,12 +1063,14 @@
      "window_start": {
       "type": "string",
       "format": "date-time",
-      "title": "Window Start"
+      "title": "Window Start",
+      "description": "Hora local de Madrid sin zona horaria; si llega con zona, se convierte."
      },
      "window_end": {
       "type": "string",
       "format": "date-time",
-      "title": "Window End"
+      "title": "Window End",
+      "description": "Hora local de Madrid sin zona horaria; si llega con zona, se convierte."
      },
      "duration_min": {
       "type": "integer",
@@ -1220,7 +1223,8 @@
         "type": "null"
        }
       ],
-      "title": "Best Hour"
+      "title": "Best Hour",
+      "description": "Hora local de Madrid sin zona horaria; si llega con zona, se convierte."
      },
      "hours": {
       "items": {
