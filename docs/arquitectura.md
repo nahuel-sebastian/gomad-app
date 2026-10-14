@@ -316,7 +316,7 @@ app/
 | A-03 | Nombre y dominio (D-10) | Equipo | Afecta al dominio del despliegue |
 | A-04 | Pesos por defecto y velocidades (D-07) | Motor, jue 15 | Velocidades con fuente citada o marcadas como criterio propio |
 | A-05 | Regla de aire por perfil (D-05) | Motor, jue 15 | Ver `umbrales.md` §1.5 |
-| A-06 | Umbrales de calor (D-06) | Bloqueado por P-03 (leer el plan de Sanidad) y por el esquema real de AEMET | |
+| A-06 | Umbrales de calor (D-06) | Desbloqueado: umbrales oficiales, tabla municipio → zona (`docs/assets/heat_zones.csv`) y propuesta en `docs/assets/umbrales.md` §2.3 | |
 | A-07 | Tabla actividad → destino definitiva (D-08) | Datos/Motor, jue 15 | |
 | A-08 | Indicadores de F5 (D-09) | Datos, vie 16 | |
 | A-09 | Usos de IA de CLAUDE.md §6.5 (D-11) | Equipo | Recomendado: solo el n.º 1 |
