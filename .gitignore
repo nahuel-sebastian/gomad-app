@@ -1,4 +1,4 @@
-# Datos descargados: se regeneran con scripts/descargar_fuentes.py
+# Datos descargados: se regeneran con scripts/download_sources.py
 data/
 
 # Secretos (clave de AEMET, claves de IA, credenciales de Oracle…)
@@ -10,6 +10,7 @@ data/
 # un entorno virtual por servicio (app/api/.venv, app/ingest/.venv)
 app/*/.venv/
 __pycache__/
+*.egg-info/
 *.pyc
 .venv/
 venv/
@@ -28,3 +29,4 @@ wallet/
 
 # Claude Code: ajustes personales (no compartir)
 .claude/settings.local.json
+.superpowers/

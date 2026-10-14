@@ -4,11 +4,11 @@
 Solo usa la biblioteca estándar de Python (3.9+).
 
 Uso:
-    python3 scripts/descargar_fuentes.py --listar
-    python3 scripts/descargar_fuentes.py                       # grupo "minimo"
-    python3 scripts/descargar_fuentes.py --grupo completo
-    python3 scripts/descargar_fuentes.py --solo eiel_deporte,nmc_deporte
-    python3 scripts/descargar_fuentes.py --grupo completo --incluir-pesadas
+    python3 scripts/download_sources.py --listar
+    python3 scripts/download_sources.py                       # grupo "minimo"
+    python3 scripts/download_sources.py --grupo completo
+    python3 scripts/download_sources.py --solo eiel_deporte,nmc_deporte
+    python3 scripts/download_sources.py --grupo completo --incluir-pesadas
 
 Cada fuente se guarda en data/raw/<id>/ y se registra en data/raw/manifest.json
 (URL, fecha de descarga y tamaño), para poder citar fuente y fecha (RF-19).

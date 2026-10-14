@@ -1,7 +1,7 @@
 # Informe de perfil de datos — GoMad
 
 **Generado:** 14/10/2026, de madrugada, sobre `data/raw/` (descarga del 14/10/2026 02:08, 46 fuentes, 222 MB).
-**Herramienta:** `scripts/perfilar_fuentes.py` (solo stdlib; se vuelve a ejecutar en ~5 s). Detalle completo por columna: `data/perfil/perfil.json` (no se sube: está en `data/`).
+**Herramienta:** `scripts/profile_sources.py` (solo stdlib; se vuelve a ejecutar en ~5 s). Detalle completo por columna: `data/perfil/perfil.json` (no se sube: está en `data/`).
 **Referencia de municipios:** los 179 de `municipios.geojson` (`CDMUNICIPIO` → INE `28` + 3 dígitos).
 
 > Lo que este informe **confirma** del CLAUDE.md va marcado ✔; lo que lo **corrige o añade**, ⚠. Las correcciones al CLAUDE.md no se han aplicado: están listadas en `docs/PENDIENTES.md`.

@@ -6,8 +6,8 @@ valores frecuentes en columnas de pocos valores, rango de coordenadas y cobertur
 municipios (códigos INE distintos frente a los 179 de la Comunidad).
 
 Uso:
-    python3 scripts/perfilar_fuentes.py                 # todo data/raw/
-    python3 scripts/perfilar_fuentes.py --solo eiel_deporte nmc_deporte
+    python3 scripts/profile_sources.py                 # todo data/raw/
+    python3 scripts/profile_sources.py --solo eiel_deporte nmc_deporte
 Salida: data/perfil/perfil.json (detalle completo) y resumen por pantalla.
 """
 import argparse

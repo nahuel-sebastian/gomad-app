@@ -24,13 +24,13 @@ Por qué DuckDB y no Oracle como almacén principal: el uso es de **solo lectura
 ## 2. Visión general
 
 ```
-                 ┌──────────── ingesta (Python, tareas programadas) ────────────┐
-portales ──► descargar ──► data/raw ──► normalizar ──► data/clean/*.parquet ──► construir
-(CKAN, IDEM,  (script        (+manifest)   (un módulo      (GeoParquet, EPSG:4326)   │
- Nomecalles,   existente)                   por fuente)                              ▼
+                 ┌──────────── ingest (Python, tareas programadas) ─────────────┐
+portales ──► download ──► data/raw ──► normalize ──► data/clean/*.parquet ──► build_db
+(CKAN, IDEM,  (download_     (+manifest)   (un módulo      (GeoParquet, EPSG:4326)   │
+ Nomecalles,   sources.py)                  por fuente)                              ▼
  Ayto, AEMET,                                                    data/gomad.duckdb       (referencia + diario)
- OSM)                                                            data/tiempo_real.duckdb (aire, previsión)
-                                                                 data/grafo/{nodos,tramos}.parquet
+ OSM)                                                            data/realtime.duckdb    (aire, previsión)
+                                                                 data/graph/<zona>/{nodes,edges}.parquet
                                                                                     │ solo lectura
                                                                                     ▼
                                                               API FastAPI (grafo en memoria) ◄── SPA (MapLibre)
@@ -43,14 +43,14 @@ portales ──► descargar ──► data/raw ──► normalizar ──► d
 ## 3. Ingesta y almacén
 
 ### 3.1 Descarga
-Se amplía `scripts/descargar_fuentes.py` (no se reescribe):
-- Campo `refresco` (`referencia|diario|horario|demanda`) en cada entrada de `FUENTES` y opción `--refresco <nivel>` (CLAUDE.md §6.4).
+Se amplía `app/ingest/scripts/download_sources.py` (no se reescribe):
+- Campo `refresh` (`reference|weekly|daily|hourly|on_demand`) en cada entrada de `FUENTES` y opción `--refresh <nivel>` (CLAUDE.md §6.4).
 - **Comprobación de cambios** antes de descargar (`metadata_modified` de CKAN, `Last-Modified`/`ETag`). Si no cambia, no se descarga ni se reprocesa.
 - Fuentes nuevas: **OSM** (extracto de Geofabrik de Madrid), **AEMET** (previsión horaria por municipio, clave en `.env`) y **`callejero_completo_2025`** (Nomecalles).
 - `data/raw/manifest.json` guarda la fecha de cada recarga (RF-19).
 
 ### 3.2 Normalización
-Un módulo por fuente con una función `normalizar(raw) → GeoParquet` en `data/clean/`. Aplica las trampas de `docs/informe-datos.md` §2 y §4:
+Un módulo por fuente en `app/ingest/normalize/` que escribe GeoParquet en `data/clean/`. Aplica las trampas de `docs/informe-datos.md` §2 y §4:
 - codificación (UTF-8 BOM / cp1252);
 - comas decimales en coordenadas y números;
 - reproyección EPSG:25830 → 4326, **ignorando los `.prj` de Nomecalles**;
@@ -61,13 +61,13 @@ Un módulo por fuente con una función `normalizar(raw) → GeoParquet` en `data
 Añadir una fuente = añadir un módulo.
 
 ### 3.3 Construcción
-Une los GeoParquet en las tablas del modelo de CLAUDE.md §6.1 (`municipio`, `destino`, `estacion_aire`, `lectura_aire`, `prevision`, `poi_ruta`, `servicio`, `indicador_municipio`).
+`app/ingest/build_db.py` une los GeoParquet en las tablas del modelo de CLAUDE.md §6.1 (`municipality`, `destination`, `air_station`, `air_reading`, `forecast`, `route_poi`, `service`, `municipality_indicator`).
 
 Dos ficheros según el ritmo de los datos:
 | Fichero | Contenido | Se reconstruye |
 |---|---|---|
 | `data/gomad.duckdb` | Referencia y diario | De madrugada (y al publicarse una versión nueva de las fuentes de referencia) |
-| `data/tiempo_real.duckdb` | `lectura_aire` (con medias móviles del ICA: O₃ 8 h, PM 24 h), `prevision` | Cada hora, en segundos |
+| `data/realtime.duckdb` | `air_reading` (con medias móviles del ICA: O₃ 8 h, PM 24 h), `forecast` | Cada hora, en segundos |
 
 - DuckDB admite un solo proceso escritor: **la ingesta escribe un fichero nuevo y lo sustituye de golpe** (`rename`). La API solo abre en lectura.
 - **Si una fuente falla, el fichero anterior se mantiene**; `manifest.json` lo apunta.
@@ -75,7 +75,7 @@ Dos ficheros según el ritmo de los datos:
 
 ### 3.4 Grafo peatonal
 - Construcción **semanal** desde el extracto de OSM con **pyrosm** (`get_network("walking")`); si se queda sin memoria con toda la región, filtrar antes con **osmium**.
-- Salida: `data/grafo/nodos.parquet` y `data/grafo/tramos.parquet` con **factores precalculados por tramo**: longitud, penalización por tipo de vía (`highway`), % de verde (VPLA en 166 municipios; parques de OSM / cubierta terrestre en los 13 sin VPLA, capital incluida), sombra si hay dato, fuente/banco/desfibrilador cerca.
+- `app/ingest/graph.py`. Salida: `data/graph/<zona>/nodes.parquet` y `data/graph/<zona>/edges.parquet` con **factores precalculados por tramo**: longitud, penalización por tipo de vía (`highway`), % de verde (VPLA en 166 municipios; parques de OSM / cubierta terrestre en los 13 sin VPLA, capital incluida), sombra si hay dato, fuente/banco/desfibrilador cerca.
 - Tamaño estimado (sin verificar): del orden de 1–pocos millones de tramos, unos cientos de MB en memoria. **Medir con el extracto.**
 
 ### 3.5 Oracle (opcional)
@@ -90,18 +90,18 @@ FastAPI **sin estado**: sin sesiones ni registro; **la ubicación nunca se escri
 ### 4.1 Endpoints
 | Endpoint | Entrada | Salida | RF |
 |---|---|---|---|
-| `GET /actividades` | — | Catálogo cerrado de actividades y perfiles | RF-02, RF-15 |
-| `GET /ubicacion?texto=…` | Dirección o municipio | Candidatos con coordenadas (buscador de Nomecalles + callejero) | RF-01 |
-| `POST /recomendar` | Ubicación, actividad o «sorpréndeme», ventana de tiempo, duración, distancia máx., interior/exterior, perfil, pesos | Top 3 (+ «ver más»), nota 0–10 por factor, mejor franja, motivo, fuente y fecha de cada dato | RF-03…RF-10, RF-14…RF-16, RF-19 |
-| `POST /ruta` | Origen, destino, perfil, pesos | Ruta directa y saludable: GeoJSON, distancia, tiempo, % verde, tramos con tráfico, fuentes/bancos/desfibriladores en ruta | RF-11…RF-13 |
-| `GET /municipio/{cod_ine}` | — | Indicadores por categoría (con «sin datos» explícito) y encaje con preferencias, sin ranking | RF-17, RF-18 |
-| `POST /asistente/interpretar` | Texto libre | Parámetros JSON validados contra esquema cerrado, editables | RF-20, RF-21, RF-24 |
-| `POST /asistente/ruta` | Parámetros | Ruta por distancia objetivo + condiciones cumplidas/no cumplidas + explicación redactada | RF-22, RF-23 |
-| `GET /fuentes` | — | Atribución, licencia y última recarga por fuente | RF-19 |
+| `GET /activities` | — | Catálogo cerrado de actividades y perfiles | RF-02, RF-15 |
+| `GET /location?texto=…` | Dirección o municipio | Candidatos con coordenadas (buscador de Nomecalles + callejero) | RF-01 |
+| `POST /recommend` | Ubicación, actividad o «sorpréndeme», ventana de tiempo, duración, distancia máx., interior/exterior, perfil, pesos | Top 3 (+ «ver más»), nota 0–10 por factor, mejor franja, motivo, fuente y fecha de cada dato | RF-03…RF-10, RF-14…RF-16, RF-19 |
+| `POST /route` | Origen, destino, perfil, pesos | Ruta directa y saludable: GeoJSON, distancia, tiempo, % verde, tramos con tráfico, fuentes/bancos/desfibriladores en ruta | RF-11…RF-13 |
+| `GET /municipality/{ine_code}` | — | Indicadores por categoría (con «sin datos» explícito) y encaje con preferencias, sin ranking | RF-17, RF-18 |
+| `POST /assistant/interpret` | Texto libre | Parámetros JSON validados contra esquema cerrado, editables | RF-20, RF-21, RF-24 |
+| `POST /assistant/route` | Parámetros | Ruta por distancia objetivo + condiciones cumplidas/no cumplidas + explicación redactada | RF-22, RF-23 |
+| `GET /sources` | — | Atribución, licencia y última recarga por fuente | RF-19 |
 
 La API llama al buscador de Nomecalles en nombre del navegador: el front no habla con terceros.
 
-### 4.2 Flujo de `/recomendar` (determinista, sin LLM)
+### 4.2 Flujo de `/recommend` (determinista, sin LLM)
 1. **Candidatos:** destinos de la actividad dentro de un radio en línea recta (consulta en DuckDB).
 2. **Distancia real a pie:** un **Dijkstra con límite** desde el origen (`scipy.sparse.csgraph.dijkstra` con `indices` y `limit`) da en una pasada la distancia a todos los candidatos; se descartan los que superan la distancia máxima.
 3. **Contexto:** previsión horaria del municipio (AEMET) y aire de la estación más cercana o de su zona.
@@ -113,13 +113,13 @@ La API llama al buscador de Nomecalles en nombre del navegador: el front no habl
 Cada uno se prueba por separado:
 | Módulo | Responsabilidad |
 |---|---|
-| `repositorio` | Todas las consultas SQL (único punto que conoce DuckDB) |
-| `reglas` | Filtros duros con umbrales leídos de configuración (ICA del BOE, calor, lluvia) |
-| `puntuacion` | Factores normalizados 0–1 × pesos → nota 0–10 |
-| `franja` | Evaluación hora a hora y mejor franja |
-| `explicacion` | Plantillas en lenguaje llano con fuente y fecha |
-| `rutas` | Grafo, A\*, Dijkstra con límite, ruta circular (F6) |
-| `ia` | Interfaz `interpretar` / `redactar` + adaptadores (OCI, plan B) |
+| `repository.py` | Todas las consultas SQL (único punto que conoce DuckDB) |
+| `engine/rules.py` | Filtros duros con umbrales leídos de configuración (ICA del BOE, calor, lluvia) |
+| `engine/scoring.py` | Factores normalizados 0–1 × pesos → nota 0–10 |
+| `engine/slots.py` | Evaluación hora a hora y mejor franja |
+| `engine/explanation.py` | Plantillas en lenguaje llano con fuente y fecha |
+| `routing/` | Grafo, A\*, Dijkstra con límite, ruta circular (F6) |
+| `ai/` | Interfaz `interpretar` / `redactar` + adaptadores (OCI, plan B) |
 
 ### 4.4 Rutas
 - **Grafo entero en memoria**, cargado una vez al arrancar. Nodo más cercano con **KD-tree** (`scipy.spatial.cKDTree`).
@@ -197,11 +197,12 @@ Cada uno se prueba por separado:
 **Docker Compose en una VM de OCI** (créditos del proyecto). Si la forma Always Free (Ampere A1) tiene capacidad en la región, usarla: no gasta créditos y sigue funcionando después del reto.
 
 ```
-caddy    HTTPS automático (Let's Encrypt); sirve el front estático y los PMTiles; proxy a la API
+frontend Caddy: HTTPS automático (Let's Encrypt); sirve el front estático y los PMTiles; proxy a la API
 api      FastAPI + grafo en memoria; DuckDB en solo lectura
-ingesta  cron: horario (aire, previsión), diario 04:00 (servicios, Nomecalles, Ayto.), semanal (OSM + grafo)
+ingest   cron: horario (aire, previsión), diario 04:00 (servicios, Nomecalles, Ayto.), semanal (OSM + grafo)
 ```
 
+- Un directorio por servicio en `app/` (`api/`, `ingest/`, `frontend/`) con su `Dockerfile`; `app/deploy/docker-compose.yml`; `app/config/` montado en solo lectura en `api` e `ingest`; `app/data/` como volumen compartido.
 - Necesidades: HTTPS (geolocalización), 1–2 GB de RAM para el grafo (a medir), disco persistente para `data/`.
 - Claves solo en `.env` en la VM, nunca en el repositorio ni en la imagen.
 - Dominio: depende del nombre (D-10); mientras tanto, subdominio gratuito.
@@ -250,27 +251,46 @@ ingesta  cron: horario (aire, previsión), diario 04:00 (servicios, Nomecalles, 
 
 ## 9b. Estructura del repositorio
 
+Nombres en inglés y un directorio por servicio desde el 14/10 (CLAUDE.md §2.1 y §3). Ningún servicio importa código de otro: lo compartido va por `app/data/`, `app/config/`, `app/.env` y el `openapi.json`.
+
 ```
-api/                 FastAPI
-  main.py            arranque: carga el grafo y abre DuckDB en solo lectura
-  esquemas.py        modelos Pydantic (contrato → OpenAPI → tipos del front)
-  motor/             reglas, puntuacion, franja, explicacion
-  rutas/             grafo, A*, Dijkstra con límite, ruta circular
-  repositorio.py     todas las consultas SQL
-  ia/                interfaz interpretar/redactar + adaptadores (oci, plan B)
-ingesta/
-  normalizar/        un módulo por fuente → data/clean/*.parquet
-  construir.py       GeoParquet → gomad.duckdb / tiempo_real.duckdb (sustitución atómica)
-  grafo.py           OSM → data/grafo/{nodos,tramos}.parquet
-scripts/             descargar_fuentes.py, perfilar_fuentes.py (existentes)
-config/              umbrales, actividades, pesos y perfiles por defecto (con cita a la fuente)
-web/                 React + Vite
-  src/styles/        main.css, icons.css
-  public/fonts/      Material Symbols y Figtree (servidas por nosotros)
-deploy/              docker-compose.yml, Caddyfile, Dockerfiles, cron
-tests/               pytest (motor, normalizadores, rutas, API)
-data/                no se versiona (raw, clean, *.duckdb, grafo, PMTiles)
+CLAUDE.md, docs/       raíz del repositorio
+app/
+  .env.example  .env   .env compartido por los servicios (no se sube)
+  api/                 servicio API (FastAPI); pyproject.toml, Dockerfile, .venv/ local
+    main.py            arranque: carga el grafo y abre DuckDB en solo lectura
+    schemas.py         modelos Pydantic (contrato → OpenAPI → tipos del front)
+    settings.py        rutas compartidas (GOMAD_DATA_DIR, GOMAD_CONFIG_DIR) y carga de config/*.yaml
+    engine/            rules, scoring, slots, explanation
+    routing/           grafo, A*, Dijkstra con límite, ruta circular
+    repository.py      todas las consultas SQL
+    ai/                interfaz interpretar/redactar + adaptadores (oci, plan B)
+    scripts/  tests/
+  ingest/              servicio de ingesta; pyproject.toml, Dockerfile, .venv/ local
+    common.py          utilidades de normalización
+    normalize/         un módulo por fuente → data/clean/*.parquet
+    build_db.py        GeoParquet → gomad.duckdb / realtime.duckdb (sustitución atómica)
+    graph.py           OSM → data/graph/<zona>/{nodes,edges}.parquet
+    scripts/           download_sources.py, profile_sources.py
+    tests/
+  frontend/            React + Vite, compilado y servido con Caddy
+    src/styles/        main.css, icons.css
+    public/fonts/      Material Symbols y Figtree (servidas por nosotros)
+  config/              umbrales, actividades, pesos y perfiles por defecto (con cita a la fuente); solo lectura
+  deploy/              docker-compose.yml
+  data/                volumen compartido, no se versiona (raw, clean, *.duckdb, graph, PMTiles)
 ```
+
+| Spec (español) | Código |
+|---|---|
+| scripts de descarga y perfilado (nombres en español hasta el 14/10) | `app/ingest/scripts/download_sources.py`, `profile_sources.py` |
+| campo `refresco`, niveles `referencia/diario/horario/demanda` | `refresh`: `reference/weekly/daily/hourly/on_demand` |
+| `ingesta/`, `normalizar/`, `construir.py`, `grafo.py` | `app/ingest/`, `normalize/`, `build_db.py`, `graph.py` |
+| `esquemas.py`, `motor/` (`reglas`, `puntuacion`, `franja`, `explicacion`), `rutas/`, `repositorio.py`, `ia/` | `app/api/schemas.py`, `engine/` (`rules`, `scoring`, `slots`, `explanation`), `routing/`, `repository.py`, `ai/` |
+| `web/` | `app/frontend/` |
+| `tiempo_real.duckdb`, `grafo/{nodos,tramos}` | `app/data/realtime.duckdb`, `app/data/graph/<zona>/{nodes,edges}` |
+| tablas `municipio`, `destino`, `estacion_aire`, `lectura_aire`, `prevision`, `tramo`, `poi_ruta`, `servicio`, `indicador_municipio` | `municipality`, `destination`, `air_station`, `air_reading`, `forecast`, `edge`, `route_poi`, `service`, `municipality_indicator` |
+| `/recomendar`, `/ruta`, `/municipio/{cod_ine}`, `/asistente/*`, `/fuentes`, `/actividades`, `/ubicacion` | `/recommend`, `/route`, `/municipality/{ine_code}`, `/assistant/*`, `/sources`, `/activities`, `/location` |
 
 ---
 
