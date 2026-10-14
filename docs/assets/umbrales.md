@@ -80,15 +80,61 @@ Traducir eso a reglas («a partir de X, proponer cubierto u otra franja») es un
 
 ## 2. Calor
 
-**Estado: ⏳ PENDIENTE. No hay ningún umbral verificado todavía.** No se han inventado valores.
+**Estado: ✅ umbrales oficiales verificados** contra el PDF del plan de Sanidad 2026 (14/10/2026). La regla que usará el motor está **pendiente de decisión (DEC-06)**: abajo solo hay una propuesta.
 
-Fuentes oficiales localizadas:
+**Fuente:** Ministerio de Sanidad — *Plan Nacional de Actuaciones Preventivas de los Efectos del Exceso de Temperaturas sobre la Salud 2026* (aprobado el 28/04/2026). PDF de 55 páginas: <https://www.sanidad.gob.es/areas/sanidadAmbiental/riesgosAmbientales/calorExtremo/publicaciones/docs/planNacionalExcesoTemperaturas_2026.pdf>. Copia local (no versionada): `app/data/raw/calor/plan2026.pdf` y su texto `plan2026.txt` (`pdftotext -layout`). Las páginas citadas son las del PDF, que coinciden con el número impreso al pie.
 
-1. **Ministerio de Sanidad — Plan Nacional de Actuaciones Preventivas de los Efectos del Exceso de Temperaturas sobre la Salud 2026** (aprobado el 28/04/2026; vigente del 16 de mayo al 30 de septiembre, con vigilancia antes y después). PDF de 55 páginas: <https://www.sanidad.gob.es/areas/sanidadAmbiental/riesgosAmbientales/calorExtremo/publicaciones/docs/planNacionalExcesoTemperaturas_2026.pdf>. Según la nota de prensa, **actualiza umbrales** con la mortalidad de 2012–2023, y el nivel de riesgo se calcula con la diferencia entre la máxima prevista y el umbral de la zona meteosalud, con persistencia de 3 días. **No se ha podido leer:** falta `pdftotext` en el equipo (ver PENDIENTES P-03).
-2. **AEMET — Meteoalerta** (avisos amarillo, naranja y rojo por temperatura máxima, por zona de aviso). Un aviso CAP oficial de AEMET para la Sierra de Madrid cita «amarillo, máxima 36 ºC», pero **no se ha localizado aún el documento de umbrales por zona**, así que no se usa.
-3. **Comunidad de Madrid** tiene su propio plan de calor (activa niveles por zonas). No localizado aún.
+### 2.1 Umbrales de la Comunidad de Madrid (Anexo I, pág. 41)
 
-**Nota de diseño (para decidir, no decidido):** el plan de Sanidad está pensado para alertas de salud pública por días, no para elegir una franja horaria. Para F2 («mejor hora») probablemente haga falta además la **sensación térmica horaria** de AEMET (`sensTermica`). Ver D-06.
+Copiados **literalmente** de la tabla «Zonas de Meteosalud. Umbrales de temperatura máxima de impacto en salud. Comunidad de Madrid» (la tabla es una imagen en el PDF; `pdftotext` no la extrae y se leyó sobre la página renderizada a 600 ppp):
+
+| Provincia | Zona meteosalud | UMBRAL TMÁX (°C) | PERCENTIL |
+|---|---|---|---|
+| Madrid | Sierra de Madrid | 35,8 | 94,8 |
+| Madrid | Metropolitana y Henares | 37,4 | 88,9 |
+| Madrid | Sur, Vegas y Oeste | 39,2 | 95,4 |
+
+- **Unidad:** °C de **temperatura máxima diaria** (no horaria, no sensación térmica).
+- **Códigos de zona** (leyenda del mapa de la misma página): `722801` Sierra de Madrid, `722802` Metropolitana y Henares, `722803` Sur, Vegas y Oeste.
+- **Municipio → zona:** el plan solo lo da como **mapa** con el código INE de 3 dígitos de cada municipio dentro de su zona; no hay lista en texto. Comprobado sobre el mapa solo para los pilotos: **079 Madrid → 722802**, **065 Getafe → 722802**, **131 San Lorenzo de El Escorial → 722801**. La tabla completa de los 179 municipios **no se ha transcrito** (los números del mapa son demasiado pequeños para copiarlos sin riesgo de error): hay que obtenerla de una fuente en datos (zonas de aviso de AEMET) o transcribirla con doble comprobación → `docs/PENDIENTES.md` P-03.
+- **Periodo de activación** (pág. 11): «Con carácter general, el Plan Nacional se activa el 16 de mayo hasta el 30 de septiembre de cada año», con seguimiento del 1 al 15 de mayo y del 1 al 15 de octubre (criterio de flexibilidad).
+
+### 2.2 Regla oficial de niveles (págs. 22–24)
+
+Texto del plan (pág. 23): el nivel se asigna con un algoritmo de decisión basado en
+
+- «La diferencia de temperatura máxima prevista y la temperatura umbral (solo cuando la temperatura máxima prevista sea mayor a la temperatura umbral establecida), con una persistencia en el tiempo de 3 días.»
+- «El valor resultante se multiplicará por un “factor de riesgo” en función de la zona de meteosalud.» Nota al pie 3: «Para este año el factor de riesgo será 1 para todos los días y todas las zonas de meteosalud.»
+- «Finalmente se suma el valor resultante de los tres días y el resultado obtenido decidirá el nivel de riesgo.»
+
+Ecuación 1 (pág. 23): Σ (Tmáx Día *i* − Tumbral) × Factor riesgo Día *i*, para *i* = 1, 2, 3 (solo los días con Tmáx > Tumbral).
+
+| Resultado del algoritmo (pág. 23) | Nivel (Tabla 2, pág. 24) | Denominación | Color |
+|---|---|---|---|
+| 0 | Nivel 0 | Ausencia de riesgo | verde |
+| > 0 y ≤ 3,5 | Nivel 1 | Bajo riesgo | amarillo |
+| > 3,5 y ≤ 7 | Nivel 2 | Riesgo medio | naranja |
+| > 7 | Nivel 3 | Alto riesgo | rojo |
+
+- Los límites 3,5 y 7 son el escenario E4 de la Tabla 1 (pág. 22), «de forma provisional a la espera de establecer los factores de riesgo específicos para cada provincia».
+- Tmáx prevista: la de AEMET «en los observatorios de referencia establecidos para cada día y los dos futuros días consecutivos» (pág. 22).
+
+**Interpretación oficial por grupos** (Anexo V, págs. 52–53; extracto literal):
+- Amarillo: «riesgo leve para personas mayores de 65 años con otros factores de riesgo».
+- Naranja: «riesgo leve en población general sin factores de riesgo»; «riesgo moderado para personas mayores de 65 años o menores de 65 años con múltiples factores de riesgo»; «riesgo elevado para mayores de 65 años con otros factores de riesgo adicionales».
+- Rojo: «riesgo moderado en población general sin factores de riesgo»; «riesgo elevado para personas mayores de 65 años y menores de 65 años con algún factor de riesgo»; «riesgo extremo para mayores de 65 años con otros factores de riesgo adicionales».
+- Entre los factores de riesgo (pág. 52): «Lactantes y menores de 4 años, personas mayores de 65 años, mujeres gestantes, personas con enfermedades cardiovasculares, respiratorias o crónicas» y la «exposición excesiva al calor por razones laborales, deportivas o de ocio (especialmente entre las 14:00h y las 19:00h)».
+
+### 2.3 Propuesta para DEC-06 (no es decisión)
+
+Datos disponibles de AEMET (esquema real comprobado en Task 4, CLAUDE.md §7.1): predicción **horaria** por municipio con `temperatura` y `sensTermica` (valores en cadena, por hora), ~48 h: hoy desde las 08–09 h, mañana completo y pasado mañana solo hasta las 07 h.
+
+1. **Nivel de calor del día (regla oficial):** Tmáx prevista del día = máximo de `temperatura` horaria de ese día; se compara con el umbral de la zona del municipio (§2.1) y se aplica la Ecuación 1 con factor 1. **Limitación:** la horaria no cubre el día 3 completo, así que con ella sola el sumatorio es de 2 días (nivel igual o **inferior** al oficial). Opciones: (a) aceptar 2 días y decirlo en la app; (b) usar además la predicción **diaria** por municipio de AEMET (`/prediccion/especifica/municipio/diaria/{ine}`, trae máxima por día) — **sin verificar y sería una petición más por municipio** (cuota), así que exige aprobación del equipo antes de añadirla.
+2. **Efecto en la recomendación:** con nivel ≥ 1 (≥ 2 para población general, según la lectura del Anexo V) → proponer instalación cubierta o franja temprana/tardía (RF-09). El perfil «mayor» y «Salgo con… niños» endurecerían un nivel (Anexo V cita mayores de 65 y menores de 4 como factores de riesgo).
+3. **Elegir la hora (F2, criterio propio):** dentro del día, preferir la hora con menor `sensTermica` y evitar 14:00–19:00 en días de nivel ≥ 1, citando el Anexo V. El plan **no** da ningún umbral horario ni de sensación térmica: un `max_feels_like_c` en `config/rules.yaml` sería criterio propio (`own_criterion: true`), no oficial.
+4. **Encaje con `config/rules.yaml`:** el contrato actual (`heat.max_feels_like_c`) no puede expresar umbrales por zona. Si se acepta la propuesta, `heat` necesitaría los tres umbrales por código de zona, los límites de nivel (3,5 y 7) y la tabla municipio → zona; cambio de contrato a decidir en DEC-06.
+
+**Otras fuentes no usadas (sin localizar o sin verificar):** AEMET Meteoalerta (avisos por zona; documento de umbrales no localizado) y el plan de calor propio de la Comunidad de Madrid (el plan nacional, pág. 11, admite que las comunidades con plan propio usen «otros ámbitos de desagregación»).
 
 ---
 
