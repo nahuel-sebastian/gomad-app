@@ -2,7 +2,13 @@
 
 **Fecha:** 14/10/2026 · **Auditado:** `app/frontend/` en `main`, commit `4e875de` (último cambio del front: `aa5102f` «Frontend: ajustes interfaz»).
 **Sustituye a:** Task 10 de `docs/plan-implementacion.md` como guía de ejecución. Las Tasks 23–25 y las filas de Front de viernes a domingo se hacen **a mano** siguiendo §3 de este documento (ver la nota **[manual guiado]** en el plan).
-**Especificación de pantallas:** `docs/pantallas.md` (qué lleva cada pantalla, campos del contrato, estados y accesibilidad).
+**Especificación de pantallas:** `app/frontend/docs/pantallas.md` (qué lleva cada pantalla, campos del contrato, estados y accesibilidad). **Lista de trabajo:** `app/frontend/docs/pendientes.md`.
+
+> **Decisiones del equipo (14/10, tras la auditoría):**
+> 1. **Se mantienen las versiones** React 19 / Vite 8 / TypeScript 6. Lo que esté mal se corrige sobre ellas (no se baja nada).
+> 2. **Barra de navegación inferior** «Mi entorno · Municipios · Perfil» en móvil (sustituye a la hamburguesa). Especificación en `pantallas.md` §9.
+> 3. **Iconos: Google Material Symbols servidos desde un fichero de fuente propio** (`.woff`/`.woff2` en `public/fonts/`, sin pedir nada a Google). **Aplazado:** de momento no se trabaja en iconos.
+> 4. **La parte de API** (tipos del contrato, cliente, MSW, TanStack Query y conectar pantallas a datos) **se hace en la siguiente sesión**. Hasta entonces se trabaja con los datos de ejemplo actuales.
 
 > Esta guía **no programa la interfaz**: da el estado, los desajustes, el orden de trabajo, la configuración (que no es UI) y los criterios para dar cada paso por terminado. Los componentes de pantalla los escribe la persona del front.
 
@@ -50,7 +56,7 @@ Hechas el 14/10 en un *worktree* temporal de `main` (`/tmp/gomad-front-audit`, y
 | `npm ci` | OK |
 | `npm run build` | ✅ OK: `dist/index.html` 0,87 kB, CSS 11,2 kB, JS 229,7 kB (71,8 kB gzip) |
 | `npm run lint` (oxlint) | ✅ sin avisos |
-| axe (Vitest 4.1.11 + jsdom 26.1.0 + vitest-axe 0.1.0, prueba temporal) | ✅ 0 violaciones en Inicio y en Resultados. **Ojo:** jsdom no calcula contraste; el contraste se midió aparte (ver `docs/pantallas.md` §0.1) |
+| axe (Vitest 4.1.11 + jsdom 26.1.0 + vitest-axe 0.1.0, prueba temporal) | ✅ 0 violaciones en Inicio y en Resultados. **Ojo:** jsdom no calcula contraste; el contraste se midió aparte (ver `app/frontend/docs/pantallas.md` §0.1) |
 | `h1` | 1 en Inicio («Hoy es un gran día para moverte»), 1 en Resultados («Correr cerca de ti») |
 | `document.title` / regiones `aria-live` | Título vacío en la prueba (no se gestiona) / 0 regiones |
 | `docker build` con el `Dockerfile` actual sin `dist/` | ❌ `failed to compute cache key: … "/dist": not found` |
@@ -80,7 +86,7 @@ El plan (cabecera y Task 10) y la arquitectura dicen **Node 20, React 18, Vite 5
 Consecuencias:
 - **Los comandos de instalación de la Task 10 (paso 2) no sirven**: fijan versiones para Vite 5/React 18 (`vitest@2.1.1`, `react-map-gl@7.1.7`, `maplibre-gl@4.7.1`, `msw@2.4.9`…). Usar las de la tabla.
 - **Node:** Vite 8 necesita Node ≥ 20.19 (o ≥ 22.12). Node 20 dejó de tener soporte el 30/04/2026. Recomendación: **Node 22 LTS** en el Dockerfile (`node:22-alpine`, comprobado) y en local (`nvm install 22`); Node 20.20 también funciona.
-- **Recomendación: no bajar versiones.** Todo el stack encaja salvo `openapi-typescript`, que tiene un rodeo sencillo; bajar a React 18/Vite 5 costaría tiempo y rompería el trabajo en curso. Si el equipo prefiere evitar el rodeo, bajar **solo TypeScript a 5.9** (pregunta Q-01).
+- **Decidido (14/10): no se bajan versiones.** Todo el stack encaja salvo `openapi-typescript`, que se usa con `npx` (§4.2).
 - React 19: `forwardRef` ya no hace falta y `ref` es una prop; las guías de React 18 siguen valiendo en lo demás.
 
 ### 2.2 Tabla de desajustes
@@ -91,12 +97,12 @@ Consecuencias:
 | D2 | 🔴 | **Sin capa de datos**: ni tipos del contrato, ni cliente, ni MSW, ni TanStack Query; todo fijo en los componentes | Ninguna pantalla puede enseñar datos reales; el criterio 1.1 del jurado («tratamiento de datos abiertos») depende de ello | `App.tsx:29-33`, `Home.tsx:5-13`, `Results.tsx:15-55` | Paso 1 |
 | D3 | 🔴 | **Sin router**: navegación por `useState` | El «atrás» del móvil cierra la app; no hay URL por pantalla; no se puede enlazar Fuentes desde el pie; 8 pantallas no caben en un `if` | `App.tsx:9` | Paso 0 |
 | D4 | 🟠 | **Fuentes de Google** (`fonts.googleapis.com`, `fonts.gstatic.com`) | Cada visita envía la IP a Google (RGPD; arquitectura §5.1 lo prohíbe expresamente) | `index.html:10-14` | Paso 0 |
-| D5 | 🟠 | **Iconos inexistentes**: `.gomad-icon` no tiene estilos; `icons.css` es un comentario sin cerrar; las pastillas no pintan icono | El botón de menú se ve **vacío** en móvil; los indicadores incumplen «icono + color + texto» (CLAUDE.md §2.10) | `Header.tsx:9-14,51`, `Hero.tsx:8-12,76-84`, `Results.tsx:213-220`, `icons.css:1` | Paso 0 |
+| D5 | 🟠 | **Iconos inexistentes**: `.gomad-icon` no tiene estilos; `icons.css` es un comentario sin cerrar; las pastillas no pintan icono | El botón de menú se ve **vacío** en móvil; los indicadores incumplen «icono + color + texto» (CLAUDE.md §2.10) | `Header.tsx:9-14,51`, `Hero.tsx:8-12,76-84`, `Results.tsx:213-220`, `icons.css:1` | **Aplazado** (decisión 3) |
 | D6 | 🟠 | **Sin pruebas**: ni Vitest, ni axe, ni script `test` | El plan exige Vitest + axe en cada pantalla y `npx vitest run` en el cierre de cada día y en la congelación (D-X) | `package.json` | Paso 0 |
 | D7 | 🟠 | **Piezas del stack que faltan**: React Router, TanStack Query, react-map-gl/MapLibre, Radix (deslizador, diálogo), MSW, `openapi-typescript`, Vitest + axe | Arquitectura §5.1 | `package.json` | Pasos 0 y 1 |
 | D8 | 🟠 | **Accesibilidad**: resultados en `div` (no `ul`/`li`); nota sin «sobre 10»; sin `aria-live`; al cambiar de vista no se mueve el foco ni cambia el título; `aria-current` fijo en «Mi entorno»; chips de filtro de 40 px; veredicto a 11 px; asa de la hoja con contraste 1,28:1 | WCAG 2.1 AA (CLAUDE.md §2.10; arquitectura §5.3) | `Results.tsx:200-231`, `App.tsx:17`, `Header.tsx:63`, `main.css:633,737,580` | Pasos 2–3 |
 | D9 | 🟠 | **Aviso médico solo en Inicio**; sin fuente ni fecha en ningún dato | CLAUDE.md §2.9; RF-19 | `App.tsx:46-55` | Pasos 3 y 8 |
-| D10 | 🟠 | **Navegación superior / hamburguesa** en vez de barra inferior | Arquitectura §5 y PDF de interfaz §2 dicen barra inferior; decidir con la maquetadora (Q-05) | `Header.tsx:43-68`, `main.css:164-215` | Paso 0 o al maquetar |
+| D10 | 🟠 | **Navegación superior / hamburguesa** en vez de barra inferior | Arquitectura §5 y PDF de interfaz §2 dicen barra inferior. **Decidido (14/10): barra inferior** | `Header.tsx:43-68`, `main.css:164-215` | Paso 0 |
 | D11 | 🟡 | Sin tema oscuro en las variables | Arquitectura §5.4: las variables claro/oscuro del prototipo deberían estar desde el principio (el modo oscuro en sí está fuera del MVP) | `main.css:1-21` | Cuando sobre tiempo |
 | D12 | 🟡 | Nombres reales de parques con notas inventadas | El plan pide nombres **ficticios marcados «(ejemplo)»** en los datos simulados (Task 23, paso 3) para no parecer datos oficiales | `Results.tsx:18,31,44` | Paso 1 (al pasar a MSW) |
 | D13 | 🟡 | `h1` «Hoy es un gran día para moverte» fijo | Contradice a Carmen (36 °C, «Ahora no») si no depende de los datos | `Hero.tsx:75` | Paso 2 (P-01) |
@@ -161,7 +167,7 @@ Cada paso: objetivo · ficheros · qué hacer · terminado cuando · cómo proba
    ```
    Scripts en `package.json`: `"test": "vitest run"`. Si `tsc -b` se queja de `test` en la configuración, mover la parte de Vitest a un `vitest.config.ts` aparte (en la auditoría se usó así y funcionó).
 4. Prueba base `src/App.test.tsx` (la de la Task 10, paso 5: un `h1` y `axe` sin violaciones).
-5. **Router:** `BrowserRouter` con las rutas de `docs/pantallas.md` (`/`, `/resultados`, `/resultados/:id`, `/ruta/:id`, `/municipios`, `/municipios/:ine_code`, `/perfil`, `/asistente`, `/fuentes`); las que aún no existan, con una página «Próximamente» que tenga su `h1`. Un componente de diseño común que, al cambiar de ruta, ponga `document.title` y mueva el foco al `h1`. Caddy ya hace `try_files {path} /index.html`, así que las URLs profundas funcionan en producción.
+5. **Router:** `BrowserRouter` con las rutas de `app/frontend/docs/pantallas.md` (`/`, `/resultados`, `/resultados/:id`, `/ruta/:id`, `/municipios`, `/municipios/:ine_code`, `/perfil`, `/asistente`, `/fuentes`); las que aún no existan, con una página «Próximamente» que tenga su `h1`. Un componente de diseño común que, al cambiar de ruta, ponga `document.title` y mueva el foco al `h1`. Caddy ya hace `try_files {path} /index.html`, así que las URLs profundas funcionan en producción.
 6. **Fuentes propias** (quitar `index.html:10-14`):
    - Figtree (OFL 1.1): copiar `figtree-latin-{400,500,600,700}-normal.woff2` y `figtree-latin-ext-…` a `public/fonts/` con su `LICENSE` (por ejemplo, del paquete `@fontsource/figtree` 5.3.0 o del repositorio oficial). Cada `.woff2` latino pesa ~11 KB.
    - `@font-face` en `main.css`:
@@ -176,7 +182,7 @@ Cada paso: objetivo · ficheros · qué hacer · terminado cuando · cómo proba
      }
      /* repetir para 500, 600 y 700 (y latin-ext con su unicode-range) */
      ```
-   - **Iconos:** Material Symbols Rounded completo pesa **5,4 MB** (`material-symbols` 0.48.0) — demasiado para móvil. Opciones (Q-04): (a) **SVG sueltos** de Material Symbols (Apache 2.0) en `public/icons/` y `icons.css` con `mask-image` por clase, que encaja con las clases `gomad-icon--<nombre>` que ya usa el código (recomendada); (b) la fuente recortada con `pyftsubset` a los ~30 iconos usados. En cualquier caso, cerrar el comentario de `icons.css` y definir `.gomad-icon` (tamaño con `--gomad-icon-size`, `display:inline-block`, `background-color: currentColor`).
+   - **Iconos (aplazado; decidido: Material Symbols con un fichero de fuente propio).** Cuando se retome: el fichero en `public/fonts/` con su licencia (Apache 2.0), `@font-face` + clase `.icon` en `icons.css`, ligaduras (`<span class="icon" aria-hidden="true">directions_run</span>`). Ojo al peso: Material Symbols Rounded completo es **5,4 MB** en `.woff2` (`material-symbols` 0.48.0; el `.woff` pesa más). Conviene recortarlo a los iconos usados (p. ej. con `pyftsubset` de fonttools) o aceptar la carga sabiendo que penaliza el móvil. Mientras tanto, solo **cerrar el comentario de `icons.css`** (`/* … */`), que hoy está abierto.
 7. **Dockerfile multi-stage** (comprobado con `docker build` el 14/10):
    ```dockerfile
    # 1) compila la SPA
@@ -196,6 +202,7 @@ Cada paso: objetivo · ficheros · qué hacer · terminado cuando · cómo proba
    ```
    node_modules/
    dist/
+   docs/
    .env*
    ```
 8. Logo: exportar a WebP o SVG (objetivo < 50 KB) y poner `width`/`height` en el `<img>`.
@@ -206,6 +213,8 @@ Cada paso: objetivo · ficheros · qué hacer · terminado cuando · cómo proba
 **Depende de:** nada. Avisar a Motor antes de fusionar (cambia el Dockerfile del Compose).
 
 ### Paso 1 — Tipos del contrato, cliente y MSW (jue 15, desde las 11:00) · Task 23
+> **Siguiente sesión** (decisión 4). Igual las partes «con datos» de los pasos 2 y 3; lo que no depende de la API (accesibilidad, estructura, estados, barra inferior) se puede hacer ya: ver `pendientes.md`.
+
 **Objetivo:** el front habla con la API a través de tipos generados y puede trabajar sin ella.
 **Ficheros:** `src/api/openapi.json` (lo genera y versiona **Motor** en la Task 11; no crearlo a mano), `src/api/types.ts` (generado), `src/api/client.ts`, `src/mocks/handlers.ts`, `src/mocks/browser.ts`, `src/mocks/server.ts`, `src/mocks/data/*.json`, `src/mocks/data.test.ts`, `public/mockServiceWorker.js` (generado), `src/main.tsx`, `package.json`.
 **Qué hacer:** según la Task 23 del plan y §4 de esta guía: scripts `types`/`contract`, cliente (el de la Task 23, paso 2, vale tal cual), datos simulados por endpoint **tipados con `satisfies`**, con nombres ficticios «(ejemplo)», un factor `green` a `null` y un resultado con `indoor_alternative: true`; `npx msw init public/ --save`; arrancar el *worker* solo con `VITE_MOCK=1`. Envolver la app en `QueryClientProvider`.
@@ -213,21 +222,21 @@ Cada paso: objetivo · ficheros · qué hacer · terminado cuando · cómo proba
 **Depende de:** Task 11 fusionada (`openapi.json` en `main`, previsto jue 15 a las 11:00).
 
 ### Paso 2 — Inicio con datos (jue 15) · Task 24
-**Objetivo:** Inicio según `docs/pantallas.md` §1: actividades de `/activities`, Sorpréndeme, ubicación por GPS o texto, resumen de preferencias.
+**Objetivo:** Inicio según `app/frontend/docs/pantallas.md` §1: actividades de `/activities`, Sorpréndeme, ubicación por GPS o texto, resumen de preferencias.
 **Ficheros:** los de la Task 24 (`src/screens/Home.tsx`, `src/components/LocationPicker.tsx`, `src/state/preferences.tsx`, `src/screens/Home.test.tsx`), reutilizando `Hero`, `Home` y `main.css` actuales.
 **Terminado cuando:** las pruebas de la Task 24 en verde (`renders activities as buttons`, `has one h1`, `navigates to /results after activity + location`, `has no axe violations`, `never stores lat/lon in localStorage`); Inicio → Resultados en ≤ 3 toques con datos simulados.
-**Depende de:** paso 1; P-01, P-04 (`docs/pantallas.md` §10) para el `h1` y «Otra».
+**Depende de:** paso 1; P-01, P-04 (`app/frontend/docs/pantallas.md` §10) para el `h1` y «Otra».
 
 ### Paso 3 — Resultados con datos, sin mapa (jue 15) · Task 25
-**Objetivo:** `docs/pantallas.md` §2 sin el mapa: `useQuery(["recommend", request])`, lista `ul/li`, nota accesible, mejor hora, «Ver más» con `offset`, `warnings`, `medical_disclaimer`, `aria-live`, estados cargando/error/vacío.
+**Objetivo:** `app/frontend/docs/pantallas.md` §2 sin el mapa: `useQuery(["recommend", request])`, lista `ul/li`, nota accesible, mejor hora, «Ver más» con `offset`, `warnings`, `medical_disclaimer`, `aria-live`, estados cargando/error/vacío.
 **Ficheros:** los de la Task 25 (`src/screens/Results.tsx`, `src/components/ResultCard.tsx`, `src/components/Indicator.tsx`, `src/screens/Results.test.tsx`), reutilizando la hoja inferior actual.
 **Terminado cuando:** las pruebas de la Task 25 en verde (`renders 3 list items`, `shows 'Verde: sin datos' when green is null`, `'Ver más' requests offset=3`, `updates the aria-live region`, `has no axe violations`, `Indicator always has visible text`).
 **Depende de:** paso 2; P-02, P-03, P-06.
 
 ### Paso 4 — Mapa, Detalle y Ajustes (vie 16) · V-F1, V-F2, V-F3
 - **Mapa (V-F1):** `src/components/Map.tsx` con `react-map-gl/maplibre`, OpenFreeMap en desarrollo, marcadores numerados sincronizados con la lista; el mapa nunca tiene información que no esté en la lista. Importar `maplibre-gl/dist/maplibre-gl.css`. Cargarlo con `React.lazy` para no engordar la primera carga. **Terminado:** Vitest «seleccionar tarjeta cambia el marcador activo» (simular el mapa en jsdom, que no tiene WebGL).
-- **Detalle (V-F2):** `src/screens/Detail.tsx` según `docs/pantallas.md` §3. **Terminado:** Vitest + axe; contraste de las pastillas del ICA según la tabla de `docs/pantallas.md` §0.1.
-- **Ajustes (V-F3):** `src/components/SettingsSheet.tsx` (Radix Dialog + Slider) según `docs/pantallas.md` §6. **Terminado:** Vitest «soltar un peso lanza una sola petición»; mover un peso cambia el orden sin recargar.
+- **Detalle (V-F2):** `src/screens/Detail.tsx` según `app/frontend/docs/pantallas.md` §3. **Terminado:** Vitest + axe; contraste de las pastillas del ICA según la tabla de `app/frontend/docs/pantallas.md` §0.1.
+- **Ajustes (V-F3):** `src/components/SettingsSheet.tsx` (Radix Dialog + Slider) según `app/frontend/docs/pantallas.md` §6. **Terminado:** Vitest «soltar un peso lanza una sola petición»; mover un peso cambia el orden sin recargar.
 - **Depende de:** paso 3; DEC-07 (pesos por defecto, los da `/activities`).
 
 ### Paso 5 — Primer despliegue HTTPS (vie 16, con Motor) · V-F4
@@ -237,13 +246,13 @@ Cada paso: objetivo · ficheros · qué hacer · terminado cuando · cómo proba
 **Depende de:** paso 0 (D1), VM (Task 6), dominio (DEC-10).
 
 ### Paso 6 — Ruta y Municipio (sáb 17) · S-F1, S-F2
-- **Ruta (S-F1):** `src/screens/Route.tsx` según `docs/pantallas.md` §4. **Terminado:** descripción en texto completa sin mirar el mapa; aviso si `approximate`; Vitest + axe.
-- **Municipio (S-F2):** `src/screens/Municipality.tsx` según `docs/pantallas.md` §5. **Terminado:** Getafe (28065), Madrid (28079) y Patones con «sin datos» visibles; Vitest + axe.
+- **Ruta (S-F1):** `src/screens/Route.tsx` según `app/frontend/docs/pantallas.md` §4. **Terminado:** descripción en texto completa sin mirar el mapa; aviso si `approximate`; Vitest + axe.
+- **Municipio (S-F2):** `src/screens/Municipality.tsx` según `app/frontend/docs/pantallas.md` §5. **Terminado:** Getafe (28065), Madrid (28079) y Patones con «sin datos» visibles; Vitest + axe.
 - **Depende de:** `/route` (V-R1) y `/municipality` (S-M1) o sus simulaciones; P-08, P-09, P-10.
 
 ### Paso 7 — Asistente y Fuentes (dom 18) · D-F1, D-F2
-- **Asistente (D-F1):** `src/screens/Assistant.tsx` según `docs/pantallas.md` §7; funciona solo con el formulario. **Primer recorte** si no hay tiempo.
-- **Fuentes y aviso (D-F2):** `src/screens/Sources.tsx` según `docs/pantallas.md` §8, enlazada desde el pie de todas las pantallas.
+- **Asistente (D-F1):** `src/screens/Assistant.tsx` según `app/frontend/docs/pantallas.md` §7; funciona solo con el formulario. **Primer recorte** si no hay tiempo.
+- **Fuentes y aviso (D-F2):** `src/screens/Sources.tsx` según `app/frontend/docs/pantallas.md` §8, enlazada desde el pie de todas las pantallas.
 - **Terminado:** Vitest + axe en ambas.
 - **23:59 — congelación (D-X):** lo que no esté en `main` con `npm test` en verde no entra.
 
@@ -259,7 +268,7 @@ Revisión con `a11y-architect`, recorrido completo con teclado y con lector de p
 2. `app/api/scripts/export_openapi.py` escribe **`app/frontend/src/api/openapi.json`** y se versiona. Es el único fichero de `app/frontend/` que toca otro rol: **no crearlo a mano** para evitar conflictos.
 3. La prueba `test_versioned_openapi_is_up_to_date` (en `app/api/tests/test_contract.py`) falla si el `openapi.json` versionado no coincide con la API. Si falla: `cd app/api && .venv/bin/python scripts/export_openapi.py` y regenerar los tipos del front.
 
-Mientras no exista: los modelos de la Task 11 en `docs/plan-implementacion.md` son la referencia (resumen por pantalla en `docs/pantallas.md`).
+Mientras no exista: los modelos de la Task 11 en `docs/plan-implementacion.md` son la referencia (resumen por pantalla en `app/frontend/docs/pantallas.md`).
 
 ### 4.2 Generar los tipos
 Como `openapi-typescript` 7.13.0 no declara compatibilidad con TypeScript 6 (§2.1), no se añade a `package.json`; se ejecuta con `npx` y versión fija (comprobado: el resultado compila con `tsc` 6.0.3):
@@ -357,10 +366,10 @@ Decisiones que **no** toma esta guía.
 
 | ID | Pregunta | Recomendación | Quién |
 |---|---|---|---|
-| Q-01 | ¿Se mantienen React 19 / Vite 8 / TS 6 (y se actualiza el plan) o se baja algo? | Mantener; si molesta el rodeo de `openapi-typescript`, bajar solo TS a 5.9 | Front + equipo |
+| Q-01 | ~~¿Se mantienen React 19 / Vite 8 / TS 6?~~ | ✅ **Decidido 14/10: se mantienen** | — |
 | Q-02 | ¿Node 22 LTS en el Dockerfile y en local? (Node 20 sin soporte desde el 30/04/2026) | Sí, `node:22-alpine` | Front + Motor |
-| Q-03 | Navegación: ¿barra inferior (arquitectura, PDF) o la hamburguesa actual? | Barra inferior en móvil, superior en escritorio | Maquetadora |
-| Q-04 | Iconos: ¿SVG sueltos con `mask-image` o la fuente Material Symbols recortada? (completa: 5,4 MB) | SVG sueltos | Front |
+| Q-03 | ~~Navegación: ¿barra inferior o hamburguesa?~~ | ✅ **Decidido 14/10: barra inferior** (en escritorio, a validar con la maquetadora) | — |
+| Q-04 | ~~Iconos~~ | ✅ **Decidido 14/10: Google Material Symbols con fichero `.woff` propio**; aplazado. Pendiente: ¿recortar la fuente? (completa 5,4 MB) | Front |
 | Q-05 | ¿El `h1` de Inicio depende del tiempo y el aire? ¿De dónde sale el estado del momento? (P-01) | Endpoint pequeño en la API o derivarlo de `/recommend` | Motor + maquetadora |
 | Q-06 | Veredictos en texto y sus cortes (P-02) | Que los mande la API con la nota (el motor decide, CLAUDE.md §2.4) | Motor |
 | Q-07 | Tráfico y filtros del prototipo sin campo en `/recommend` (P-03) | Quitar los filtros; tráfico solo en Ruta | Motor + maquetadora |

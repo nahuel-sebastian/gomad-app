@@ -157,7 +157,7 @@ Cada uno se prueba por separado:
 | Datos del servidor | **TanStack Query** | Caché, reintentos, estado de carga/error y descarte de respuestas viejas al mover los pesos |
 | Estado local | Contexto de React + `localStorage` | Perfil, pesos y preferencias; sin cuenta |
 | Estilos | **Dos ficheros globales:** `main.css` (variables de diseño del prototipo + clases de apoyo: rejilla, espaciados, tarjetas, botones, tipografía) e `icons.css` (clases de iconos) | Se aprovecha el CSS del prototipo; cambiar la identidad = cambiar variables |
-| Iconos | **Google Material Symbols**, **fuente servida desde nuestro servidor** (Apache 2.0) | No cargar de `fonts.googleapis.com`: enviaría la IP de cada visitante a Google (RGPD). Igual con Figtree |
+| Iconos | **Google Material Symbols**, **fuente servida desde nuestro servidor** (fichero `.woff` propio; Apache 2.0; decidido 14/10, aplazado) | No cargar de `fonts.googleapis.com`: enviaría la IP de cada visitante a Google (RGPD). Igual con Figtree |
 | Componentes accesibles | **Radix UI** solo para deslizador, hoja inferior y diálogo | Teclado, foco y lector de pantalla resueltos |
 | Desarrollo en paralelo | **MSW** con respuestas simuladas a partir de los tipos | El front avanza sin esperar a la API |
 | Pruebas | **Vitest** (lógica) + **axe** (pantallas principales) | |

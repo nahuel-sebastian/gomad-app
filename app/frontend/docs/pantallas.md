@@ -1,13 +1,15 @@
 # Pantallas — GoMad (especificación para construir a mano)
 
 **Fecha:** 14/10/2026 · **Sustituye a:** Task 9 de `docs/plan-implementacion.md` (bocetos). **Estado:** propuesta del equipo de documentación, **pendiente de validar con la maquetadora** (cada sección acaba con lo que hay que validar).
-**Quién lo usa:** la persona que programa el frontend (`app/frontend/`) y la maquetadora. La guía técnica (stack, configuración, plan por días, contrato) está en **`docs/frontend-guia.md`**.
+**Quién lo usa:** la persona que programa el frontend (`app/frontend/`) y la maquetadora. La guía técnica (stack, configuración, plan por días, contrato) está en **`app/frontend/docs/guia.md`**.
 
 **Fuentes de esta especificación:** CLAUDE.md §2 y §5 · `docs/arquitectura.md` §4.1, §5 · contrato de la Task 11 (`docs/plan-implementacion.md`, `schemas.py`) · prototipo `docs/idea/muevete-cerca-prototipo.html` · `docs/idea/pdf/3_GoMAD_Interfaz_de_usuario.pdf` (en adelante, «PDF de interfaz») · `docs/assets/umbrales.md` §1.3–1.5 · código de `app/frontend/` en `main` (commit `4e875de`).
 
 > **Sobre los campos de la API.** El contrato todavía **no existe en `main`** (`app/api/schemas.py` no está; lo crea la Task 11 el jueves 15 a las 9:00). Los nombres de este documento son los modelos Pydantic de la Task 11 tal como están en el plan. Cuando se fusione, la fuente de verdad será `app/frontend/src/api/openapi.json` y los tipos generados (`src/api/types.ts`); si algo no coincide, manda el `openapi.json` y hay que corregir este documento.
 >
 > Todas las rutas de la API van con el prefijo `/api` desde el navegador (Caddy lo quita antes de pasar a FastAPI): `GET /api/activities` llega a la API como `GET /activities`.
+
+> **Decisiones del 14/10:** se mantienen React 19 / Vite 8 / TS 6; **barra de navegación inferior** (§9.1); iconos con **Google Material Symbols desde un fichero de fuente propio**, **aplazados** (mientras, los indicadores van con color + texto, y el icono se añade después); la conexión con la API se hace en la **siguiente sesión** (hasta entonces, datos de ejemplo). Lista de trabajo: `pendientes.md`.
 
 **Leyenda de estado:** ✅ hecho · 🟡 parcial (existe la maqueta, falta lógica, datos reales o accesibilidad) · ⬜ falta.
 
@@ -377,15 +379,30 @@ Tres bloques siempre visibles:
 | Elemento | Spec | Estado actual |
 |---|---|---|
 | Barra «Mi entorno · Municipios · Perfil» | arquitectura §5 y PDF de interfaz §2: **barra inferior** en móvil | 🟡 menú hamburguesa desplegable en móvil y barra superior en escritorio (`Header.tsx:43-68`, `main.css:164-215`); enlaces `#hash` sin destino; `aria-current="page"` siempre en el primero (`Header.tsx:63`) |
-| Icono del botón de menú | — | ⬜ la clase `gomad-icon` no tiene estilos y `icons.css` es un comentario sin cerrar: **el botón de menú se ve vacío en móvil** (`Header.tsx:51`, `src/styles/icons.css:1`) |
+| Icono del botón de menú | Desaparece con la barra inferior | ⬜ hoy se ve vacío (`Header.tsx:51`, `icons.css:1`); deja de importar al quitar la hamburguesa |
 | Logo | `docs/idea/logo_gomad.png` | 🟡 `public/images/logo.png` pesa **516 KB** (lento en móvil; convertir a WebP/SVG o reducir) |
 | Título del documento | Cambia con cada pantalla | ⬜ fijo «GoMAD · Muévete cerca» (`index.html:17`); nombre final pendiente (DEC-10) |
+
+### 9.1 Barra de navegación inferior (decidida el 14/10)
+
+Sustituye al menú hamburguesa en móvil. **Pendiente de construir** (ver `pendientes.md`).
+
+- **Destinos:** «Mi entorno» (`/`), «Municipios» (`/municipios`), «Perfil» (`/perfil`). Con router son enlaces reales (`a`/`NavLink`), no anclas `#`. Hasta que haya router, pueden cambiar la vista con el estado actual, pero deben ser `button` si no navegan a una URL.
+- **Marcado:** `<nav aria-label="Principal">` con `ul` > `li` > enlace; el activo con `aria-current="page"` **según la pantalla actual** (hoy está fijo en el primero, `Header.tsx:63`).
+- **Cada destino: icono + texto visible** (nunca solo icono). Mientras los iconos estén aplazados, solo texto; cuando lleguen, el icono va con `aria-hidden="true"` encima del texto.
+- **Tamaño:** cada destino ocupa un tercio del ancho y ≥ 44 px de alto (`--tap-min`); altura de la barra ~56–64 px.
+- **Posición:** `position: fixed; bottom: 0` con `padding-bottom: env(safe-area-inset-bottom)` (ya hay `viewport-fit=cover` en `index.html:7`). El contenido (`main` y el pie) necesita `padding-bottom` igual a la altura de la barra para no quedar tapado.
+- **Conflicto con la hoja inferior de Resultados** (`Results.tsx:117-189`, `main.css:536-560`, también `bottom: 0`): la hoja debe quedar **encima de la barra** (su `bottom` = altura de la barra) o la barra se oculta en Resultados. A validar con la maquetadora.
+- **Activo:** además del color, otra marca visible (negrita, subrayado o fondo), para no depender solo del color; contraste ≥ 3:1 del indicador.
+- **Orden de foco:** la barra va en el DOM **después** de `main` (o al final del `body`), para que «Saltar al contenido» y el orden de lectura tengan sentido; o antes de `main` si se acepta el orden de cabecera. Recomendación: después de `main`.
+- **Escritorio (≥ 768 px):** la misma `nav` arriba, en la cabecera (como ahora). A validar con la maquetadora.
+- **Qué se elimina:** botón hamburguesa y `nav--open` (`Header.tsx:23,43-52`, `main.css:152-181`).
 
 ---
 
 ## 10. Preguntas abiertas de esta especificación
 
-Se repiten, con contexto, en `docs/frontend-guia.md` §6.
+Se repiten, con contexto, en `app/frontend/docs/guia.md` §6.
 
 | ID | Pregunta | Afecta |
 |---|---|---|
