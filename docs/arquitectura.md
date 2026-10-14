@@ -221,6 +221,23 @@ ingest   cron: horario (aire, previsión), diario 04:00 (servicios, Nomecalles, 
 - Dominio: depende del nombre (D-10); mientras tanto, subdominio gratuito.
 - **Demo sin red:** el mismo Compose en un portátil con datos congelados y respuestas de IA grabadas.
 
+### 6.1 VM de despliegue (A-10, creada el 15/10/2026)
+
+| Campo | Valor |
+|---|---|
+| Nombre | `gomad-vm` |
+| Región | `eu-madrid-1` |
+| Forma | **VM.Standard.E5.Flex** (AMD, de pago con créditos), 2 OCPU, 16 GB, 2 Gbps, solo *block storage* |
+| Sistema | Canonical Ubuntu 24.04 (x86_64) |
+| IP pública | `<SERVER_IP>` (efímera: cambia si se termina la instancia) |
+| Red | VCN `gomad-vcn` (asistente «VCN with Internet Connectivity»), subred pública; entrada TCP 22, 80 y 443 desde `0.0.0.0/0` en la *security list* y en iptables (antes del `REJECT`) |
+| Repositorio | `~/GoMad`, clonado con una *deploy key* de solo lectura (`~/.ssh/gomad_deploy`, `core.sshCommand`); actualizar con `git pull` |
+| Configuración | `app/.env` creado a mano (`chmod 600`); `app/deploy/.env` con `DOMAIN=:80` hasta tener dominio (V-F4) |
+
+**Motivo de la forma:** la Always Free `VM.Standard.A1.Flex` daba «out of capacity» en la región y E5.Flex era la única con capacidad. 16 GB dejan sitio para la API (~1–1,5 GB) y para construir el grafo regional (~3,1 GB, §3.4). Coste aproximado ~2,2 $/día encendida (precios de lista, sin verificar); al terminar el reto, parar o terminar la instancia.
+
+**Comprobado el 15/10:** `curl http://<SERVER_IP>/api/health` → `{"status":"ok"}` desde fuera. El front sirve una página de prueba (`app/frontend/dist/index.html` creado a mano en la VM) hasta que el Dockerfile multi-stage de la Task 10 compile el front. Solo HTTP: el HTTPS llega con el dominio (V-F4).
+
 ---
 
 ## 7. Fiabilidad
@@ -320,7 +337,7 @@ app/
 | A-07 | Tabla actividad → destino definitiva (D-08) | Datos/Motor, jue 15 | |
 | A-08 | Indicadores de F5 (D-09) | Datos, vie 16 | |
 | A-09 | Usos de IA de CLAUDE.md §6.5 (D-11) | Equipo | Recomendado: solo el n.º 1 |
-| A-10 | Forma de la VM de OCI (Always Free o de pago con créditos) | Mié 14, al crearla | Depende de la capacidad de la región |
+| A-10 | ✅ Forma de la VM de OCI | Decidido el 15/10 | `VM.Standard.E5.Flex` 2 OCPU / 16 GB en `eu-madrid-1` (A1 sin capacidad), §6.1 |
 | A-11 | Tamaño real del grafo regional y latencia en la capital | Rutas, jue 15–sáb 17 | Si no llega: CH por perfiles fijos |
 
 ### Ideas para después de la demo (no se hacen ahora)
