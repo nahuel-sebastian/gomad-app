@@ -11,8 +11,10 @@ services:
     ports:
       - "80:80"
       - "443:443"
-    # DOMAIN se lee de app/.env (sin DOMAIN, el Caddyfile usa :80, solo HTTP)
-    env_file: ../.env
+    # solo DOMAIN, interpolado desde app/deploy/.env (sin claves): Caddy es el contenedor expuesto
+    # y no debe recibir las de app/.env. Sin definir o vacio, compose no arranca
+    environment:
+      DOMAIN: ${DOMAIN:?Falta DOMAIN en app/deploy/.env (":80" en local, el dominio en la VM)}
     volumes:
       - caddy_data:/data
     depends_on:

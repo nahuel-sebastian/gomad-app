@@ -1,4 +1,5 @@
-# DOMAIN=:80 sirve HTTP (pruebas); con un dominio real Caddy saca el certificado de Let's Encrypt
+# DOMAIN llega de app/deploy/.env via Compose: ":80" sirve solo HTTP (local); con el dominio real
+# Caddy saca el certificado de Let's Encrypt. {$DOMAIN::80} es red de seguridad si se arranca sin Compose
 {
 	# el log de errores (p. ej. 502 mientras arranca la api) incluye la peticion:
 	# se quitan la consulta de la URL, las IP y las cabeceras (Referer) para no guardar ubicaciones
