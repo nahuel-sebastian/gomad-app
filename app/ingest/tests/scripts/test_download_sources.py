@@ -163,3 +163,30 @@ def test_aemet_all_reads_179_municipalities(dl):
 def test_read_env_reads_app_env(dl):
     (dl.APP_DIR / ".env").write_text("AEMET_API_KEY=abc\n# comentario\n", encoding="utf-8")
     assert dl.read_env()["AEMET_API_KEY"] == "abc"
+
+
+def test_unchanged_clears_last_failure(dl, monkeypatch):
+    # un fallo de ayer no debe quedarse pegado si hoy la fuente responde bien (304 / sin cambios)
+    monkeypatch.setattr(dl, "fetch_conditional", lambda url, previous, timeout=300: (None, {}))
+    previous = {"etag": '"v1"', "sha256": "abc", "files": ["osm/madrid-latest.osm.pbf"],
+                "last_failure": {"date": "2026-10-13T04:00:00", "error": "portal caído"}}
+    entry = dl.download_source("osm", dl.SOURCES["osm"], previous, force=False)
+    assert "last_failure" not in entry
+
+
+def test_concurrent_run_keeps_other_entries(dl, monkeypatch):
+    # dos ejecuciones solapadas (cron diario y horario): ninguna borra lo que escribio la otra
+    dl.RAW_DIR.mkdir(parents=True)
+    manifest_path = dl.RAW_DIR / "manifest.json"
+    manifest_path.write_text(json.dumps({"farmacias": {"sha256": "old"}}), encoding="utf-8")
+
+    def other_run_writes(key, src, previous, force, aemet_municipalities=None):
+        # mientras esta ejecucion descarga, otra actualiza farmacias en el manifiesto
+        manifest_path.write_text(json.dumps({"farmacias": {"sha256": "new"}}), encoding="utf-8")
+        return {"sha256": "x", "changed": True, "bytes": 0}
+
+    monkeypatch.setattr(dl, "download_source", other_run_writes)
+    assert dl.run(args(only="ay_trafico")) == 0
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    assert manifest["farmacias"]["sha256"] == "new"
+    assert manifest["ay_trafico"]["sha256"] == "x"

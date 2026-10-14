@@ -33,8 +33,10 @@ import urllib.parse
 import urllib.request
 import zipfile
 import hashlib
+import fcntl
 import os
 import re
+import tempfile
 import time
 import urllib.error
 from collections import namedtuple
@@ -279,7 +281,9 @@ def now():
 def download_source(key, src, previous, force, aemet_municipalities=None):
     """Descarga una fuente si ha cambiado. Devuelve la entrada nueva del manifiesto."""
     folder = RAW_DIR / key
-    unchanged = {**previous, "refresh": src.refresh, "checked": now(), "changed": False}
+    # si responde bien (aunque sin cambios), el fallo anterior ya no vale
+    unchanged = {**{k: v for k, v in previous.items() if k != "last_failure"},
+                 "refresh": src.refresh, "checked": now(), "changed": False}
     extra, digest = {}, None
     # CKAN de referencia/diario: metadata_modified (las horarias cambian el recurso sin tocar el paquete)
     if src.kind in ("ckan_cm", "ckan_ay") and src.refresh in ("reference", "daily") and not force:
@@ -315,6 +319,28 @@ def download_source(key, src, previous, force, aemet_municipalities=None):
             **{k: v for k, v in extra.items() if v}}
 
 
+def read_manifest(manifest_path):
+    return json.loads(manifest_path.read_text(encoding="utf-8")) if manifest_path.exists() else {}
+
+
+def save_entry(manifest_path, key, entry):
+    """Escribe una entrada del manifiesto de forma atomica y con cerrojo.
+
+    Relee el manifiesto dentro del cerrojo para no pisar lo que haya escrito otra
+    ejecucion solapada (p. ej. los cron diario y horario), y se llama tras cada fuente
+    para que una ejecucion interrumpida no pierda lo ya descargado.
+    """
+    RAW_DIR.mkdir(parents=True, exist_ok=True)
+    with open(manifest_path.with_suffix(".lock"), "w") as lock:
+        fcntl.flock(lock, fcntl.LOCK_EX)
+        manifest = read_manifest(manifest_path)
+        manifest[key] = entry
+        fd, tmp = tempfile.mkstemp(dir=RAW_DIR, prefix="manifest.", suffix=".tmp")
+        with os.fdopen(fd, "w", encoding="utf-8") as f:
+            json.dump(manifest, f, ensure_ascii=False, indent=1)
+        os.replace(tmp, manifest_path)
+
+
 def run(args):
     if args.list:
         for key, s in SOURCES.items():
@@ -326,24 +352,20 @@ def run(args):
         print("ids desconocidos:", ", ".join(unknown), file=sys.stderr)
         return 2
     manifest_path = RAW_DIR / "manifest.json"
-    manifest = json.loads(manifest_path.read_text(encoding="utf-8")) if manifest_path.exists() else {}
     failures = 0
     for key in keys:
         src = SOURCES[key]
         print(f"-> {key} [{src.refresh}]: {src.desc}", flush=True)
-        previous = manifest.get(key, {})
+        previous = read_manifest(manifest_path).get(key, {})
         try:
-            manifest[key] = download_source(key, src, previous, args.force, args.aemet_municipalities)
-            state = "cambiado" if manifest[key]["changed"] else "sin cambios"
-            print(f"   ok, {state} ({manifest[key].get('bytes', 0) / 1e6:.1f} MB)")
+            entry = download_source(key, src, previous, args.force, args.aemet_municipalities)
+            state = "cambiado" if entry["changed"] else "sin cambios"
+            print(f"   ok, {state} ({entry.get('bytes', 0) / 1e6:.1f} MB)")
         except Exception as e:  # una fuente caida no debe parar el resto (RNF-08)
             failures += 1
-            manifest[key] = {**previous, "last_failure": {"date": now(), "error": str(e)[:300]}}
+            entry = {**previous, "last_failure": {"date": now(), "error": str(e)[:300]}}
             print(f"   ERROR: {e}", file=sys.stderr)
-    RAW_DIR.mkdir(parents=True, exist_ok=True)
-    tmp = manifest_path.with_suffix(".tmp")
-    tmp.write_text(json.dumps(manifest, ensure_ascii=False, indent=1), encoding="utf-8")
-    os.replace(tmp, manifest_path)
+        save_entry(manifest_path, key, entry)
     print(f"\nHecho: {len(keys) - failures} correctas, {failures} con error. Manifiesto: {manifest_path}")
     return 1 if failures else 0
 
