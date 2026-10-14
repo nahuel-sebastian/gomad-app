@@ -239,7 +239,11 @@ def read_env(path=None):
 def aemet_municipalities(value):
     if value and value != "todos":
         return [c.strip() for c in value.split(",") if c.strip()]
-    geo = json.loads((RAW_DIR / "municipios" / "municipios.geojson").read_text(encoding="utf-8"))
+    path = RAW_DIR / "municipios" / "municipios.geojson"
+    if not path.exists():
+        raise RuntimeError("Falta municipios.geojson: ejecuta antes --only municipios "
+                           "(o indica códigos INE en --aemet-municipalities)")
+    geo = json.loads(path.read_text(encoding="utf-8"))
     return sorted("28" + str(f["properties"]["CDMUNICIPIO"]).zfill(3) for f in geo["features"])
 
 
@@ -311,11 +315,14 @@ def download_source(key, src, previous, force, aemet_municipalities=None):
             return unchanged
         paths, urls = [save(folder, filename_from_url(src.ident), content)], [src.ident]
     digest = digest or file_hash(paths)
+    changed = force or digest != previous.get("sha256")
+    # sin cambios por sha256: se conserva la fecha de descarga anterior (RF-19: cuando cambio el dato)
+    downloaded = previous.get("downloaded") if not changed and previous.get("downloaded") else now()
     return {"kind": src.kind, "identifier": src.ident, "refresh": src.refresh, "urls": urls,
-            "downloaded": now(), "checked": now(),
+            "downloaded": downloaded, "checked": now(),
             "files": [str(p.relative_to(RAW_DIR)) for p in paths],
             "bytes": sum(p.stat().st_size for p in paths), "sha256": digest,
-            "changed": force or digest != previous.get("sha256"),
+            "changed": changed,
             **{k: v for k, v in extra.items() if v}}
 
 

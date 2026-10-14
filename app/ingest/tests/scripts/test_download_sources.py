@@ -190,3 +190,22 @@ def test_concurrent_run_keeps_other_entries(dl, monkeypatch):
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
     assert manifest["farmacias"]["sha256"] == "new"
     assert manifest["ay_trafico"]["sha256"] == "x"
+
+
+def test_aemet_all_without_municipalities_gives_clear_error(dl):
+    # sin municipios.geojson, "todos" debe explicar que hacer, no un FileNotFoundError suelto
+    with pytest.raises(RuntimeError, match="--only municipios"):
+        dl.aemet_municipalities("todos")
+
+
+def test_unchanged_hash_keeps_downloaded(dl, monkeypatch):
+    # RF-19: "actualizado hace..." es cuando cambio el dato, no cuando se comprobo
+    monkeypatch.setattr(dl, "fetch_conditional", lambda url, previous, timeout=300: (b"<xml/>", {}))
+    e1 = dl.download_source("ay_trafico", dl.SOURCES["ay_trafico"], {}, force=False)
+    e1 = {**e1, "downloaded": "2026-10-01T10:00:00", "checked": "2026-10-01T10:00:00"}
+    e2 = dl.download_source("ay_trafico", dl.SOURCES["ay_trafico"], e1, force=False)
+    assert e2["changed"] is False
+    assert e2["downloaded"] == "2026-10-01T10:00:00"
+    assert e2["checked"] != "2026-10-01T10:00:00"
+    e3 = dl.download_source("ay_trafico", dl.SOURCES["ay_trafico"], e1, force=True)
+    assert e3["downloaded"] != "2026-10-01T10:00:00"           # con --force cuenta como descarga nueva
