@@ -1,0 +1,17 @@
+# DOMAIN=:80 sirve HTTP (pruebas); con un dominio real Caddy saca el certificado de Let's Encrypt
+{$DOMAIN} {
+	encode gzip
+	handle /api/* {
+		uri strip_prefix /api
+		reverse_proxy api:8000
+	}
+	handle {
+		root * /srv/web
+		try_files {path} /index.html
+		file_server
+	}
+	# sin log de acceso: no guardar URLs con ubicacion
+	log {
+		output discard
+	}
+}
