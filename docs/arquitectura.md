@@ -135,22 +135,60 @@ Cada uno se prueba por separado:
 
 ## 5. Frontend
 
-**SPA móvil primero con MapLibre GL.** Navegación inferior «Mi entorno · Municipios · Perfil». Framework y pantallas **pendientes** de la maquetadora (§10).
+**SPA móvil primero en React + Vite**, partiendo del prototipo `docs/idea/muevete-cerca-prototipo.html` (flujo, estilo, fuente Figtree, variables de color claro/oscuro). Navegación inferior «Mi entorno · Municipios · Perfil». Compila a estáticos que sirve Caddy.
 
-Propuesta de pantallas (a revisar con la maquetadora):
-| Pantalla | Contenido |
-|---|---|
-| Inicio «¿Qué quieres hacer?» | Botones de actividad + «Sorpréndeme»; ubicación por GPS o texto. Primera recomendación en ≤3 toques |
-| Resultados | Mapa y lista sincronizados, top 3 + «Ver más»; panel «Ajustar» (pesos, tiempo, distancia, interior/exterior) con recálculo al soltar (con retardo) |
-| Detalle | Nota por factor, «¿Por qué?», línea horaria con mejor franja, aire y tiempo con icono + color + texto, fuente y fecha |
-| Ruta | Directa vs. saludable, métricas, fuentes/bancos/desfibriladores en el mapa |
-| Municipio | Indicadores por categoría, «sin datos» explícito, encaje con preferencias |
-| Asistente (F6) | Texto → parámetros en chips editables → ruta + condiciones cumplidas/no cumplidas |
-| Fuentes y aviso | Licencias, fechas de recarga, «no es consejo médico», privacidad |
+### 5.1 Stack técnico
+| Pieza | Elección | Motivo |
+|---|---|---|
+| Lenguaje | **TypeScript**, tipos generados del OpenAPI (`openapi-typescript`) | Si cambia el contrato de la API, el front no compila |
+| Mapa | **react-map-gl** (modo MapLibre) | Capas GeoJSON para rutas y puntos |
+| Navegación | **React Router** | URL por pantalla; el «atrás» del móvil funciona |
+| Datos del servidor | **TanStack Query** | Caché, reintentos, estado de carga/error y descarte de respuestas viejas al mover los pesos |
+| Estado local | Contexto de React + `localStorage` | Perfil, pesos y preferencias; sin cuenta |
+| Estilos | **Dos ficheros globales:** `main.css` (variables de diseño del prototipo + clases de apoyo: rejilla, espaciados, tarjetas, botones, tipografía) e `icons.css` (clases de iconos) | Se aprovecha el CSS del prototipo; cambiar la identidad = cambiar variables |
+| Iconos | **Google Material Symbols**, **fuente servida desde nuestro servidor** (Apache 2.0) | No cargar de `fonts.googleapis.com`: enviaría la IP de cada visitante a Google (RGPD). Igual con Figtree |
+| Componentes accesibles | **Radix UI** solo para deslizador, hoja inferior y diálogo | Teclado, foco y lector de pantalla resueltos |
+| Desarrollo en paralelo | **MSW** con respuestas simuladas a partir de los tipos | El front avanza sin esperar a la API |
+| Pruebas | **Vitest** (lógica) + **axe** (pantallas principales) | |
 
+### 5.2 Pantallas (partiendo del prototipo; detalle con la maquetadora)
+| Pantalla | En el prototipo | Falta |
+|---|---|---|
+| Inicio «¿Qué te apetece hacer?» | Sí (actividades, Sorpréndeme) | Ubicación por GPS o texto (`/ubicacion`) |
+| Resultados | Sí (lista, «Ver más») | Mapa MapLibre sincronizado; panel «Ajustar» con deslizadores de pesos (recálculo al soltar) |
+| Detalle «¿Por qué te recomendamos este lugar?» | Sí | Nota por factor, línea horaria con mejor franja, aire y tiempo con icono + color + texto, fuente y fecha |
+| Ruta | Sí | Directa vs. saludable reales, métricas, fuentes/bancos/desfibriladores, descripción en texto |
+| Municipio | Sí (Getafe) | Datos reales, «sin datos» explícito, encaje con preferencias |
+| Perfil (hoja de preferencias) | Sí (interior/exterior) | Perfil (mayor, carrito, sensible…), «Salgo con…», tiempo, distancia |
+| Asistente (F6) | No | Texto → chips editables → ruta + condiciones cumplidas/no cumplidas |
+| Fuentes y aviso | No | Licencias, fechas, «no es consejo médico», privacidad |
+
+### 5.3 Accesibilidad (WCAG 2.1 AA)
+**Diseño visual y contraste**
+- Texto ≥ 4,5:1; texto grande, iconos, bordes de controles y gráficos ≥ 3:1.
+- Nunca solo color: semáforo = icono + color + texto; colores del ICA (umbrales.md §1.3) como fondo de pastilla con texto de contraste suficiente.
+- Foco siempre visible; legible al 200 % y a 320 px sin desplazamiento horizontal; objetivos táctiles de 44 px; respeta `prefers-reduced-motion`.
+
+**Navegación por teclado**
+- Todo operable sin ratón, orden de foco lógico, enlace «Saltar al contenido», sin trampas de foco; hojas y diálogos devuelven el foco al cerrar.
+- **La lista es el equivalente completo del mapa**: todo lo que muestra el mapa está en la lista y en el resumen de ruta.
+
+**Lectores de pantalla**
+- Iconos con `aria-hidden="true"` (si no, se lee la ligadura, p. ej. «directions_run»); el significado va en texto visible o `aria-label`.
+- Recalcular resultados o ruta → anuncio `aria-live="polite"` («3 resultados actualizados»).
+- Ruta descrita en texto («2,4 km, 30 min, 68 % por zona verde, 2 fuentes»); notas completas («Nota 8,2 sobre 10»).
+
+**HTML semántico**
+- `lang="es"`; `header`, `nav`, `main`, `footer`; un `h1` por pantalla y encabezados en orden; `button` para acciones y `a` para navegar; formularios con `label`; resultados en `ul`/`li`.
+- Al cambiar de pantalla se actualiza el título del documento y el foco va al `h1`.
+
+**Verificación:** axe en las pruebas; revisión con `a11y-architect` antes del ensayo del lunes; prueba manual con teclado y lector de pantalla (NVDA o TalkBack) en el flujo principal.
+
+### 5.4 Otros
 - **Perfil y preferencias:** solo en `localStorage`; nada sale del dispositivo salvo la consulta.
-- **Mapa base:** OpenFreeMap (sin clave) para desarrollar; **PMTiles de la Comunidad** servido como fichero estático para la demo y la entrega (sin dependencia externa).
-- **Accesibilidad:** WCAG 2.1 AA; colores del ICA (umbrales.md §1.3) siempre con icono y texto; objetivos táctiles de 44 px; revisión con `a11y-architect`.
+- **Mapa base:** OpenFreeMap (sin clave) para desarrollar; **PMTiles de la Comunidad** servido como fichero estático para la demo y la entrega.
+- **Modo oscuro (secundario, fuera del MVP):** interruptor en «Perfil», guardado en `localStorage`, por defecto la preferencia del sistema. Las variables de color claro/oscuro del prototipo se mantienen en `main.css` desde el principio, así que activarlo cuesta poco; al hacerlo hay que volver a comprobar el contraste en el tema oscuro.
+- **Fuera del MVP:** PWA, modo sin conexión, otros idiomas.
 
 ---
 
@@ -210,12 +248,38 @@ ingesta  cron: horario (aire, previsión), diario 04:00 (servicios, Nomecalles, 
 
 ---
 
+## 9b. Estructura del repositorio
+
+```
+api/                 FastAPI
+  main.py            arranque: carga el grafo y abre DuckDB en solo lectura
+  esquemas.py        modelos Pydantic (contrato → OpenAPI → tipos del front)
+  motor/             reglas, puntuacion, franja, explicacion
+  rutas/             grafo, A*, Dijkstra con límite, ruta circular
+  repositorio.py     todas las consultas SQL
+  ia/                interfaz interpretar/redactar + adaptadores (oci, plan B)
+ingesta/
+  normalizar/        un módulo por fuente → data/clean/*.parquet
+  construir.py       GeoParquet → gomad.duckdb / tiempo_real.duckdb (sustitución atómica)
+  grafo.py           OSM → data/grafo/{nodos,tramos}.parquet
+scripts/             descargar_fuentes.py, perfilar_fuentes.py (existentes)
+config/              umbrales, actividades, pesos y perfiles por defecto (con cita a la fuente)
+web/                 React + Vite
+  src/styles/        main.css, icons.css
+  public/fonts/      Material Symbols y Figtree (servidas por nosotros)
+deploy/              docker-compose.yml, Caddyfile, Dockerfiles, cron
+tests/               pytest (motor, normalizadores, rutas, API)
+data/                no se versiona (raw, clean, *.duckdb, grafo, PMTiles)
+```
+
+---
+
 ## 10. Pendientes
 
 | # | Pendiente | Quién / cuándo | Notas |
 |---|---|---|---|
-| A-01 | **Framework del frontend** (React + Vite, Svelte + Vite o HTML + JS) | Con la maquetadora, mié 14 | Recomendación previa: React + Vite (más ejemplos con MapLibre, más probable que el equipo lo conozca) |
-| A-02 | **Pantallas y flujo del front** (§5) | Con la maquetadora | La tabla de §5 es una propuesta |
+| A-01 | ~~Framework del frontend~~ | ✅ 14/10 | React + Vite sobre el prototipo (§5) |
+| A-02 | Detalle de cada pantalla (§5.2) | Con la maquetadora, al maquetar | No cambia la arquitectura |
 | A-03 | Nombre y dominio (D-10) | Equipo | Afecta al dominio del despliegue |
 | A-04 | Pesos por defecto y velocidades (D-07) | Motor, jue 15 | Velocidades con fuente citada o marcadas como criterio propio |
 | A-05 | Regla de aire por perfil (D-05) | Motor, jue 15 | Ver `umbrales.md` §1.5 |
