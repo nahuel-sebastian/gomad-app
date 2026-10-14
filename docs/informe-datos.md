@@ -103,4 +103,4 @@ Cobertura = municipios distintos reconocidos sobre 179. «Vía» = cómo se iden
 - Municipio: código INE de 5 dígitos; si solo hay nombre, unión por nombre normalizado (sin tildes, artículos «(La)»/«, El» reordenados) contra `municipios.geojson`.
 - Filtrar puntos fuera de la Comunidad y coordenadas a 0.
 - Ayuntamiento: `COORD_GIS_X/Y` en bancos y áreas caninas.
-- Aire: fecha por fila; aceptar `T` y `V`, descartar `N`; códigos de magnitud y estación según la descripción oficial (ver `docs/referencia/umbrales.md`).
+- Aire: fecha por fila; aceptar `T` y `V`, descartar `N`; códigos de magnitud y estación según la descripción oficial (ver `docs/assets/umbrales.md`).

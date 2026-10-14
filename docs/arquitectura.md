@@ -1,7 +1,7 @@
 # Arquitectura técnica — GoMad
 
 **Fecha:** 14/10/2026 · **Estado:** aprobada por secciones en la sesión de diseño del 14/10 (pendientes al final, §10).
-**Contexto:** `CLAUDE.md` (fuente de verdad del proyecto), `docs/referencia/requisitos_fuentes.json`, `docs/informe-datos.md`, `docs/referencia/umbrales.md`, `docs/decisiones-pendientes.md`.
+**Contexto:** `CLAUDE.md` (fuente de verdad del proyecto), `docs/assets/requisitos_fuentes.json`, `docs/informe-datos.md`, `docs/assets/umbrales.md`, `docs/decisiones-pendientes.md`.
 **Prioridad:** sacar la app adelante para la demo del **martes 20/10/2026** con un equipo de hasta 4 personas. Ante la duda, lo simple.
 
 ---
