@@ -29,6 +29,21 @@
       "https://idem.comunidad.madrid/geoidem/wfs?service=WFS&version=2.0.0&request=GetFeature&outputFormat=application/json&typeNames=RedesTransporte:IDEM_GDIE_G_CALLES"
      ]
     ]
+   },
+   {
+    "n": "Nomecalles: callejero completo (portales con coordenadas) + buscador de direcciones",
+    "i": "Nomecalles · callejero_completo_2025",
+    "o": "NMC",
+    "l": [
+     [
+      "API",
+      "https://apiscm.comunidad.madrid/t/ciudadanos.comunidad.madrid/sector-publico/nomecalles-descargas/v1/paquetes/callejero_completo_2025"
+     ],
+     [
+      "Buscador",
+      "https://apiscm.comunidad.madrid/t/ciudadanos.comunidad.madrid/sector-publico/nomecalles-buscador/v1/direcciones?busqueda=calle%20madrid%2010%20getafe"
+     ]
+    ]
    }
   ],
   "cov": "179 municipios",
