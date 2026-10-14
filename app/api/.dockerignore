@@ -1,0 +1,9 @@
+.venv/
+**/__pycache__/
+tests/
+scripts/
+.pytest_cache/
+*.egg-info/
+# por si alguien deja un .env aqui: las claves nunca van en la imagen
+.env
+.env.*

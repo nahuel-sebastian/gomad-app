@@ -1,0 +1,35 @@
+# DOMAIN llega de app/deploy/.env via Compose: ":80" sirve solo HTTP (local); con el dominio real
+# Caddy saca el certificado de Let's Encrypt. {$DOMAIN::80} es red de seguridad si se arranca sin Compose
+{
+	# el log de errores (p. ej. 502 mientras arranca la api) incluye la peticion:
+	# se quitan la consulta de la URL, las IP y las cabeceras (Referer) para no guardar ubicaciones
+	log default {
+		format filter {
+			wrap json
+			fields {
+				request>uri regexp \?.* ?[redacted]
+				request>remote_ip delete
+				request>client_ip delete
+				request>remote_port delete
+				request>headers delete
+			}
+		}
+	}
+}
+
+{$DOMAIN::80} {
+	encode gzip
+	handle /api/* {
+		uri strip_prefix /api
+		reverse_proxy api:8000
+	}
+	handle {
+		root * /srv/web
+		try_files {path} /index.html
+		file_server
+	}
+	# sin log de acceso: no guardar URLs con ubicacion
+	log {
+		output discard
+	}
+}

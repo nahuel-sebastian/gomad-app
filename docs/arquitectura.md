@@ -74,9 +74,20 @@ Dos ficheros según el ritmo de los datos:
 - Tráfico de la capital (cada 5 min): **no se guarda**; caché en memoria de la API (5–15 min).
 
 ### 3.4 Grafo peatonal
-- Construcción **semanal** desde el extracto de OSM con **pyrosm** (`get_network("walking")`); si se queda sin memoria con toda la región, filtrar antes con **osmium**.
+- Construcción **semanal** desde el extracto de OSM con **pyrosm** (`get_network("walking")`) o, como pyrosm no instala en 3.12 (medición de abajo), con el **respaldo pyosmium**; si se queda sin memoria con toda la región, filtrar antes con **osmium**.
 - `app/ingest/graph.py`. Salida: `data/graph/<zona>/nodes.parquet` y `data/graph/<zona>/edges.parquet` con **factores precalculados por tramo**: longitud, penalización por tipo de vía (`highway`), % de verde (VPLA en 166 municipios; parques de OSM / cubierta terrestre en los 13 sin VPLA, capital incluida), sombra si hay dato, fuente/banco/desfibrilador cerca.
-- Tamaño estimado (sin verificar): del orden de 1–pocos millones de tramos, unos cientos de MB en memoria. **Medir con el extracto.**
+- Tamaño: medido el 14/10, ver abajo.
+- **Medido el 14/10 (Task 8, `app/ingest/scripts/probe_pyrosm.py`, extracto Geofabrik `madrid-latest.osm.pbf` de 85 MB, Python 3.12, WSL2 con 12 núcleos y 16 GB):**
+  - **pyrosm 0.6.2 no instala en Python 3.12:** su dependencia de compilación `pyrobuf` falla con setuptools moderno (`'PyrobufDistribution' object has no attribute 'dry_run'`), y una restricción `setuptools<75` no llega a ese entorno anidado. Se usa el **respaldo con pyosmium 3.7.0** (Task 20 paso 3b): un tramo por par de nodos consecutivos de cada `way` con `highway` en `footway, path, pedestrian, living_street, residential, service, steps, track, unclassified, tertiary, secondary, primary, cycleway, tertiary_link, secondary_link, primary_link`, sin `foot=no` ni `access=no/private` (salvo `foot=yes/designated/permissive`); entra si algún extremo cae en la caja. pyosmium 3.7 no tiene `osmium.filter`: lee el extracto completo en cada pasada.
+  - | Caja | Nodos | Tramos | Segundos | Pico de memoria |
+    |---|---|---|---|---|
+    | Getafe (28065) | 59.751 | 68.000 | 15 | 443 MB |
+    | Madrid capital (28079, caja: incluye parte de los municipios vecinos) | 980.138 | 1.129.705 | 30 | 1.467 MB |
+    | Comunidad entera (caja de los 179 municipios, `probe_pyrosm.py all`) | 2.402.102 | 2.643.587 | 50 | 3.129 MB |
+  - Tramos más frecuentes en Getafe: `footway` 21.410, `residential` 11.853, `service` 8.321, `track` 7.555, `path` 5.979, `tertiary` 3.977, `cycleway` 3.531, `pedestrian` 2.348 (lista completa para `routing.yaml` en Task 20). Red regional: 58.221 km de tramos.
+  - Hallazgos de la sonda para Task 20: hay **tramos duplicados** {u, v} (69 en Getafe, 1.037 en la región) → deduplicar al construir el grafo; la longitud de la sonda es haversine, el grafo usará `length_m` en EPSG:25830; en Getafe entran 65 ways con `area=yes` (plazas peatonales), solo como perímetro.
+  - El pico de memoria es de la **construcción** (un objeto Python y una `LineString` por tramo), no del grafo servido. Estimación para la API con el grafo regional: 2,6 M tramos × (`u`, `v`, longitud y ~7 factores en arrays numpy, ~80 B) ≈ 200–300 MB, geometría en WKB para dibujar rutas (~80–100 B/tramo, ~260 MB), igraph (~100 MB), la matriz CSR simétrica (~80 MB) y el cKDTree de 2,4 M nodos (~60–100 MB) → **~1 GB en régimen y ~1,5 GB de pico al arrancar** (carga de los parquet con pandas).
+  - **¿Cabe en la VM de Task 6?** La VM aún no existe (Task 6 [manual], pendiente). Con la forma prevista A1.Flex de 12 GB cabe todo (construcción regional ~3,2 GB + API ~1,5 GB de pico). Con la alternativa de pago de 4 GB **la API y la construcción regional no caben a la vez**: construir por cajas (`osmium extract`), con la API parada o fuera de la VM. **Primera entrada de DEC-A11**; se cierra el sáb 17 con latencia medida.
 
 ### 3.5 Oracle (opcional)
 Script que carga los mismos `data/clean/*.parquet` en Autonomous DB y pantalla de administración en APEX (+ Select AI). Solo si F1–F5 están terminados.
@@ -204,7 +215,9 @@ ingest   cron: horario (aire, previsión), diario 04:00 (servicios, Nomecalles, 
 
 - Un directorio por servicio en `app/` (`api/`, `ingest/`, `frontend/`) con su `Dockerfile`; `app/deploy/docker-compose.yml`; `app/config/` montado en solo lectura en `api` e `ingest`; `app/data/` como volumen compartido.
 - Necesidades: HTTPS (geolocalización), 1–2 GB de RAM para el grafo (a medir), disco persistente para `data/`.
-- Claves solo en `.env` en la VM, nunca en el repositorio ni en la imagen.
+- Claves solo en `app/.env` en la VM, nunca en el repositorio ni en la imagen. Solo las recibe la `api` (`env_file`).
+- `DOMAIN` de Caddy en `app/deploy/.env` (copia de `app/deploy/.env.example`: `:80` en local, el dominio en la VM). Compose lo lee solo para interpolar y el contenedor `frontend`, el expuesto a Internet, recibe **solo** `DOMAIN`, sin claves. Sin definir o vacío, Compose no arranca (evita quedarse sin HTTPS sin aviso).
+- Logs sin ubicación: la API corre con `--no-access-log` y Caddy descarta el log de acceso y filtra el de errores (consulta de la URL, IP y cabeceras fuera).
 - Dominio: depende del nombre (D-10); mientras tanto, subdominio gratuito.
 - **Demo sin red:** el mismo Compose en un portátil con datos congelados y respuestas de IA grabadas.
 
@@ -277,7 +290,7 @@ app/
     src/styles/        main.css, icons.css
     public/fonts/      Material Symbols y Figtree (servidas por nosotros)
   config/              umbrales, actividades, pesos y perfiles por defecto (con cita a la fuente); solo lectura
-  deploy/              docker-compose.yml
+  deploy/              docker-compose.yml, .env.example (solo DOMAIN; copiar a deploy/.env, no se sube)
   data/                volumen compartido, no se versiona (raw, clean, *.duckdb, graph, PMTiles)
 ```
 
