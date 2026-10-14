@@ -7,6 +7,8 @@ data/
 !.env.example
 
 # Python
+# entorno virtual de la app (python3 -m venv app/.venv)
+app/.venv/
 __pycache__/
 *.pyc
 .venv/
