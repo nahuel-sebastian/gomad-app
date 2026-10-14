@@ -1,0 +1,119 @@
+"""Pruebas del descargador. No tocan la red: se sustituye fetch."""
+import argparse
+import importlib.util
+import json
+import pathlib
+
+import pytest
+
+ROOT = pathlib.Path(__file__).resolve().parents[2]      # app/ingest
+
+
+@pytest.fixture
+def dl(tmp_path, monkeypatch):
+    spec = importlib.util.spec_from_file_location("download_sources", ROOT / "scripts" / "download_sources.py")
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    monkeypatch.setattr(mod, "RAW_DIR", tmp_path / "raw")
+    monkeypatch.setattr(mod, "APP_DIR", tmp_path)
+    return mod
+
+
+def args(**kw):
+    base = dict(list=False, group="minimal", only=None, include_heavy=False, refresh=None, force=False,
+                aemet_municipalities=None)
+    base.update(kw)
+    return argparse.Namespace(**base)
+
+
+def test_every_source_has_level(dl):
+    for key, src in dl.SOURCES.items():
+        assert src.refresh in dl.REFRESH_LEVELS, key
+
+
+def test_select_hourly_level(dl):
+    assert set(dl.select(args(refresh="hourly"))) == {"aire_dia", "ay_aire", "ay_meteo", "aemet"}
+
+
+def test_select_level_excludes_heavy_unless_flag(dl):
+    assert "osm" not in dl.select(args(refresh="weekly"))
+    assert dl.select(args(refresh="weekly", include_heavy=True)) == ["osm"]
+
+
+def test_osm_and_street_directory_registered(dl):
+    assert dl.SOURCES["osm"].ident == "https://download.geofabrik.de/europe/spain/madrid-latest.osm.pbf"
+    assert dl.SOURCES["callejero"].ident == "callejero_completo_2025"
+    assert dl.SOURCES["callejero"].kind == "nmc"
+
+
+def test_unchanged_ckan_is_not_downloaded(dl, monkeypatch):
+    calls = []
+    monkeypatch.setattr(dl, "ckan_modified", lambda base, ident: "2026-10-01T10:00:00")
+    monkeypatch.setattr(dl, "fetch", lambda *a, **k: calls.append(a) or b"x")
+    previous = {"modified": "2026-10-01T10:00:00", "sha256": "abc", "files": []}
+    entry = dl.download_source("padron", dl.SOURCES["padron"], previous, force=False)
+    assert entry["changed"] is False
+    assert calls == []
+
+
+def test_force_skips_change_check(dl, monkeypatch):
+    monkeypatch.setattr(dl, "ckan_modified", lambda base, ident: "2026-10-01T10:00:00")
+    monkeypatch.setattr(dl, "download_ckan", lambda base, ident, folder, heavy: (
+        [dl.save(folder, "a.csv", b"1;2")], ["https://x/a.csv"], "2026-10-01T10:00:00"))
+    previous = {"modified": "2026-10-01T10:00:00", "sha256": "abc", "files": []}
+    entry = dl.download_source("padron", dl.SOURCES["padron"], previous, force=True)
+    assert entry["changed"] is True
+
+
+def test_same_content_is_not_a_change(dl, monkeypatch):
+    monkeypatch.setattr(dl, "fetch_conditional", lambda url, previous, timeout=300: (b"<xml/>", {}))
+    e1 = dl.download_source("ay_trafico", dl.SOURCES["ay_trafico"], {}, force=False)
+    e2 = dl.download_source("ay_trafico", dl.SOURCES["ay_trafico"], e1, force=False)
+    assert e1["changed"] is True and e2["changed"] is False
+    assert e1["files"] == ["ay_trafico/pm.xml"]                  # relativas a RAW_DIR
+
+
+def test_304_is_not_downloaded(dl, monkeypatch):
+    monkeypatch.setattr(dl, "fetch_conditional", lambda url, previous, timeout=300: (None, {}))
+    previous = {"etag": '"v1"', "sha256": "abc", "files": ["osm/madrid-latest.osm.pbf"]}
+    entry = dl.download_source("osm", dl.SOURCES["osm"], previous, force=False)
+    assert entry["changed"] is False and entry["etag"] == '"v1"'
+
+
+def test_failure_keeps_manifest(dl, monkeypatch):
+    dl.RAW_DIR.mkdir(parents=True)
+    (dl.RAW_DIR / "manifest.json").write_text(json.dumps({"aire_dia": {"sha256": "old"}}), encoding="utf-8")
+
+    def broken(*a, **k):
+        raise OSError("portal caído")
+
+    monkeypatch.setattr(dl, "download_ckan", broken)
+    monkeypatch.setattr(dl, "ckan_modified", lambda *a: None)
+    rc = dl.run(args(only="aire_dia"))
+    manifest = json.loads((dl.RAW_DIR / "manifest.json").read_text(encoding="utf-8"))
+    assert rc == 1
+    assert manifest["aire_dia"]["sha256"] == "old"
+    assert "error" in manifest["aire_dia"]["last_failure"]
+
+
+def test_wfs_timestamp_is_not_a_change(dl, monkeypatch):
+    # GeoServer pone un timeStamp distinto en cada respuesta y no manda ETag ni Last-Modified
+    bodies = iter([b'{"type":"FeatureCollection","features":[],"timeStamp":"2026-10-14T13:41:11.102Z","crs":null}',
+                   b'{"type":"FeatureCollection","features":[],"timeStamp":"2026-10-14T13:41:12.181Z","crs":null}'])
+    monkeypatch.setattr(dl, "fetch_conditional", lambda url, previous, timeout=300: (next(bodies), {}))
+    e1 = dl.download_source("municipios", dl.SOURCES["municipios"], {}, force=False)
+    e2 = dl.download_source("municipios", dl.SOURCES["municipios"], e1, force=False)
+    assert e1["changed"] is True and e2["changed"] is False
+
+
+def test_wfs_generated_fid_is_not_a_change(dl, monkeypatch):
+    # capas sin clave primaria: GeoServer inventa un id "<capa>.fid-<uuid>_<n>" en cada peticion
+    bodies = iter([b'{"features":[{"type":"Feature","id":"CAPA.fid-4fcc7590_1a13aa0262d_-1802","properties":{"MUN":"001"}}]}',
+                   b'{"features":[{"type":"Feature","id":"CAPA.fid-5721aa4e_1a13a9ff168_277","properties":{"MUN":"001"}}]}',
+                   b'{"features":[{"type":"Feature","id":"CAPA.fid-5721aa4e_1a13a9ff168_277","properties":{"MUN":"002"}}]}'])
+    monkeypatch.setattr(dl, "fetch_conditional", lambda url, previous, timeout=300: (next(bodies), {}))
+    e1 = dl.download_source("eiel_deporte", dl.SOURCES["eiel_deporte"], {}, force=False)
+    e2 = dl.download_source("eiel_deporte", dl.SOURCES["eiel_deporte"], e1, force=False)
+    e3 = dl.download_source("eiel_deporte", dl.SOURCES["eiel_deporte"], e2, force=False)
+    assert e2["changed"] is False
+    assert e3["changed"] is True                                  # un cambio real si se detecta
