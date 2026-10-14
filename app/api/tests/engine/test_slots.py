@@ -1,7 +1,7 @@
 from datetime import datetime
 
 from engine.rules import HourContext
-from engine.slots import best_hour, evaluate_hours, needs_indoor, window_hours
+from engine.slots import MAX_WINDOW_HOURS, best_hour, evaluate_hours, needs_indoor, window_hours
 
 RULES = {"air": {"general": "poor"}, "heat": {"max_feels_like_c": 30.0}, "rain": {"max_precip_prob": 50}}
 WEIGHTS = {"proximity": 0.2, "suitability": 0.2, "green": 0.2, "air": 0.2, "weather": 0.2}
@@ -54,3 +54,22 @@ def test_worse_air_lowers_score():
     contexts = {c.hour: c for c in [ctx(8, aqi="good"), ctx(9, aqi="moderate")]}
     res = evaluate_hours(contexts, list(contexts), False, "general", RULES, FIXED, WEIGHTS)
     assert res[0].score > res[1].score
+
+
+def test_no_weighted_factor_available_is_not_a_silent_zero():
+    """Cubierto con todo el peso en aire: no hay factor evaluable -> sin nota y con motivo, no 0."""
+    contexts = {c.hour: c for c in [ctx(17)]}
+    only_air = {"proximity": 0.0, "suitability": 0.0, "green": 0.0, "air": 1.0, "weather": 0.0}
+    res = evaluate_hours(contexts, list(contexts), True, "general", RULES, FIXED, only_air)
+    assert res[0].score is None and res[0].reasons
+    assert best_hour(res) is None
+
+
+def test_past_hours_are_not_offered():
+    w = window_hours(datetime(2026, 7, 15, 9), datetime(2026, 7, 15, 21), now=datetime(2026, 7, 15, 19, 20))
+    assert w == [datetime(2026, 7, 15, 19), datetime(2026, 7, 15, 20)]
+
+
+def test_window_is_capped():
+    w = window_hours(datetime(2026, 7, 15, 0), datetime(9999, 1, 1))
+    assert len(w) == MAX_WINDOW_HOURS

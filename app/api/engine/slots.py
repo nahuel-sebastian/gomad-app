@@ -5,6 +5,9 @@ from datetime import datetime, timedelta
 from engine.rules import HourContext, evaluate_outdoor
 from engine.scoring import air_factor, compute_score, weather_factor
 
+# tope de la ventana: la prevision horaria de AEMET cubre ~48 h (3 dias); mas alla no hay datos
+MAX_WINDOW_HOURS = 72
+
 
 @dataclass
 class HourResult:
@@ -15,10 +18,13 @@ class HourResult:
     ctx: HourContext | None = None
 
 
-def window_hours(start, end):
+def window_hours(start, end, now=None):
+    # con now, las horas ya pasadas no se ofrecen (la hora en curso si)
+    if now is not None and now > start:
+        start = now
     h = start.replace(minute=0, second=0, microsecond=0)
     hours = []
-    while h < end:
+    while h < end and len(hours) < MAX_WINDOW_HOURS:
         hours.append(h)
         h += timedelta(hours=1)
     return hours
@@ -42,7 +48,12 @@ def evaluate_hours(contexts, window, covered, profile, rules, fixed_factors, wei
         factors = {**fixed_factors,
                    "air": None if covered else air_factor(c.aqi_category),
                    "weather": None if covered else weather_factor(c.precip_prob)}
-        results.append(HourResult(hour, compute_score(factors, weights).value, ok, reasons, c))
+        score = compute_score(factors, weights)
+        if not score.effective_weights:
+            # ningun factor con peso tiene datos: sin nota, nunca un 0 silencioso
+            results.append(HourResult(hour, None, ok, ["Sin datos para los factores que has priorizado"], c))
+            continue
+        results.append(HourResult(hour, score.value, ok, reasons, c))
     return results
 
 
