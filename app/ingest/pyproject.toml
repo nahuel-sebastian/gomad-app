@@ -19,7 +19,7 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-routing = ["pyrosm==0.6.2"]
+routing = ["osmium==3.7.0"]  # pyrosm 0.6.2 no compila en 3.12 (Task 8): respaldo pyosmium
 dev = ["pytest==8.3.3"]
 
 [tool.setuptools]
