@@ -1,0 +1,31 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "gomad-ingest"
+version = "0.1.0"
+requires-python = ">=3.12"
+dependencies = [
+  "duckdb==1.1.1",            # misma version que api (test_shared_versions)
+  "numpy==2.1.1",
+  "pandas==2.2.3",
+  "pyarrow==17.0.0",
+  "geopandas==1.0.1",
+  "pyogrio==0.10.0",
+  "shapely==2.0.6",
+  "pyproj==3.7.0",
+  "pyyaml==6.0.2",
+]
+
+[project.optional-dependencies]
+routing = ["pyrosm==0.6.2"]
+dev = ["pytest==8.3.3"]
+
+[tool.setuptools]
+packages = []
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+markers = ["slow: necesita datos reales en app/data (se salta si faltan)"]
