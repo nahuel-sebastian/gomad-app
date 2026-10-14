@@ -91,7 +91,7 @@ FastAPI **sin estado**: sin sesiones ni registro; **la ubicación nunca se escri
 | Endpoint | Entrada | Salida | RF |
 |---|---|---|---|
 | `GET /activities` | — | Catálogo cerrado de actividades y perfiles | RF-02, RF-15 |
-| `GET /location?texto=…` | Dirección o municipio | Candidatos con coordenadas (buscador de Nomecalles + callejero) | RF-01 |
+| `GET /location?text=…` | Dirección o municipio | Candidatos con coordenadas (buscador de Nomecalles + callejero) | RF-01 |
 | `POST /recommend` | Ubicación, actividad o «sorpréndeme», ventana de tiempo, duración, distancia máx., interior/exterior, perfil, pesos | Top 3 (+ «ver más»), nota 0–10 por factor, mejor franja, motivo, fuente y fecha de cada dato | RF-03…RF-10, RF-14…RF-16, RF-19 |
 | `POST /route` | Origen, destino, perfil, pesos | Ruta directa y saludable: GeoJSON, distancia, tiempo, % verde, tramos con tráfico, fuentes/bancos/desfibriladores en ruta | RF-11…RF-13 |
 | `GET /municipality/{ine_code}` | — | Indicadores por categoría (con «sin datos» explícito) y encaje con preferencias, sin ranking | RF-17, RF-18 |
@@ -119,7 +119,7 @@ Cada uno se prueba por separado:
 | `engine/slots.py` | Evaluación hora a hora y mejor franja |
 | `engine/explanation.py` | Plantillas en lenguaje llano con fuente y fecha |
 | `routing/` | Grafo, A\*, Dijkstra con límite, ruta circular (F6) |
-| `ai/` | Interfaz `interpretar` / `redactar` + adaptadores (OCI, plan B) |
+| `ai/` | Interfaz `interpret` / `write_up` + adaptadores (OCI, plan B) |
 
 ### 4.4 Rutas
 - **Grafo entero en memoria**, cargado una vez al arrancar. Nodo más cercano con **KD-tree** (`scipy.spatial.cKDTree`).
@@ -264,7 +264,7 @@ app/
     engine/            rules, scoring, slots, explanation
     routing/           grafo, A*, Dijkstra con límite, ruta circular
     repository.py      todas las consultas SQL
-    ai/                interfaz interpretar/redactar + adaptadores (oci, plan B)
+    ai/                interfaz interpret/write_up + adaptadores (oci, plan B)
     scripts/  tests/
   ingest/              servicio de ingesta; pyproject.toml, Dockerfile, .venv/ local
     common.py          utilidades de normalización
