@@ -5,6 +5,7 @@ Usa pyrosm si esta instalado; si no (pyrosm no compila en Python 3.12, Task 8),
 el respaldo con pyosmium de Task 20 paso 3b: un tramo por par de nodos consecutivos.
 
 Uso: python scripts/probe_pyrosm.py 28065
+     python scripts/probe_pyrosm.py all    (caja de los 179 municipios)
 """
 import json
 import math
@@ -33,6 +34,8 @@ FOOT_ALLOWED = {"yes", "designated", "permissive"}
 def municipality_bbox(ine_code):
     muni = gpd.read_file(DATA_DIR / "raw" / "municipios" / "municipios.geojson")
     muni = muni.set_crs(25830, allow_override=True).to_crs(4326)
+    if ine_code == "all":
+        return [float(v) for v in muni.total_bounds]
     row = muni[("28" + muni["CDMUNICIPIO"].astype(str).str.zfill(3)) == ine_code]
     if row.empty:
         sys.exit(f"Municipio {ine_code} no encontrado")
