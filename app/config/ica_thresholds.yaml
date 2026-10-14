@@ -1,0 +1,13 @@
+# Indice Nacional de Calidad del Aire. Resolucion de 2 de septiembre de 2020 (BOE-A-2020-10426),
+# que sustituye el anexo de la Orden TEC/351/2019. Tabla: https://www.boe.es/datos/imagenes/disp/2020/242/10426_5606.png
+# Limite SUPERIOR (ug/m3) de cada categoria, de mejor a peor. Por encima del ultimo: dato erroneo (se descarta).
+# Valores no enteros: se redondean al entero mas proximo antes de comparar (la tabla del BOE es de enteros).
+source: "BOE-A-2020-10426"
+categories: [good, fair, moderate, poor, very_poor, extremely_poor]
+bands:
+  NO2:   [40, 90, 120, 230, 340, 1000]
+  O3:    [50, 100, 130, 240, 380, 800]
+  PM10:  [20, 40, 50, 100, 150, 1200]
+  PM2_5: [10, 20, 25, 50, 75, 800]
+  SO2:   [100, 200, 350, 500, 750, 1250]
+period_hours: {NO2: 1, SO2: 1, O3: 8, PM10: 24, PM2_5: 24}
