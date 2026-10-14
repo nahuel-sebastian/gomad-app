@@ -215,7 +215,9 @@ ingest   cron: horario (aire, previsión), diario 04:00 (servicios, Nomecalles, 
 
 - Un directorio por servicio en `app/` (`api/`, `ingest/`, `frontend/`) con su `Dockerfile`; `app/deploy/docker-compose.yml`; `app/config/` montado en solo lectura en `api` e `ingest`; `app/data/` como volumen compartido.
 - Necesidades: HTTPS (geolocalización), 1–2 GB de RAM para el grafo (a medir), disco persistente para `data/`.
-- Claves solo en `.env` en la VM, nunca en el repositorio ni en la imagen.
+- Claves solo en `app/.env` en la VM, nunca en el repositorio ni en la imagen. Solo las recibe la `api` (`env_file`).
+- `DOMAIN` de Caddy en `app/deploy/.env` (copia de `app/deploy/.env.example`: `:80` en local, el dominio en la VM). Compose lo lee solo para interpolar y el contenedor `frontend`, el expuesto a Internet, recibe **solo** `DOMAIN`, sin claves. Sin definir o vacío, Compose no arranca (evita quedarse sin HTTPS sin aviso).
+- Logs sin ubicación: la API corre con `--no-access-log` y Caddy descarta el log de acceso y filtra el de errores (consulta de la URL, IP y cabeceras fuera).
 - Dominio: depende del nombre (D-10); mientras tanto, subdominio gratuito.
 - **Demo sin red:** el mismo Compose en un portátil con datos congelados y respuestas de IA grabadas.
 
@@ -288,7 +290,7 @@ app/
     src/styles/        main.css, icons.css
     public/fonts/      Material Symbols y Figtree (servidas por nosotros)
   config/              umbrales, actividades, pesos y perfiles por defecto (con cita a la fuente); solo lectura
-  deploy/              docker-compose.yml
+  deploy/              docker-compose.yml, .env.example (solo DOMAIN; copiar a deploy/.env, no se sube)
   data/                volumen compartido, no se versiona (raw, clean, *.duckdb, graph, PMTiles)
 ```
 
