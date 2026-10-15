@@ -147,3 +147,28 @@ describe("Inicio", () => {
         ).toHaveAttribute("href", "/asistente");
     });
 });
+
+function liveRegion(text: RegExp) {
+    return screen.getAllByRole("status").find((el) => text.test(el.textContent ?? ""));
+}
+
+describe("Inicio: region viva", () => {
+    afterEach(() => vi.restoreAllMocks());
+
+    it("existe desde el primer render y anuncia la carga y el momento", async () => {
+        renderAt("/", { origin: SAMPLE_ORIGIN });
+        const live = liveRegion(/Cargando actividades…/);
+        expect(live).toBeDefined();
+        expect(live).toHaveAttribute("aria-live", "polite");
+        await waitFor(() => expect(live).toHaveTextContent("Actividades cargadas"));
+        await waitFor(() => expect(live).toHaveTextContent(/Ahora en Getafe/));
+    });
+
+    it("si falla el momento, la pastilla dice «Tiempo y aire: sin datos»", async () => {
+        const recommendApi = await import("../data/recommend");
+        vi.spyOn(recommendApi, "recommend").mockRejectedValue(new Error("red"));
+        renderAt("/", { origin: SAMPLE_ORIGIN });
+        const chips = screen.getByRole("list", { name: "Ahora en tu zona" });
+        expect(await within(chips).findByText("Tiempo y aire: sin datos")).toBeInTheDocument();
+    });
+});

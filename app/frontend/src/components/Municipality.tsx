@@ -115,7 +115,10 @@ export default function Municipality() {
                 {m?.name ?? "Municipio"}
             </PageHeading>
 
-            {data.status === "loading" && !m && <p className="muted" role="status">Cargando municipio…</p>}
+            <p className="sr-only" role="status" aria-live="polite">
+                {data.status === "loading" && !m ? "Cargando municipio…" : m ? `${m.name}: datos cargados.` : ""}
+            </p>
+            {data.status === "loading" && !m && <p className="muted">Cargando municipio…</p>}
             {data.status === "error" && (
                 <ErrorMessage message="No se pudo cargar el municipio." onRetry={data.reload} />
             )}

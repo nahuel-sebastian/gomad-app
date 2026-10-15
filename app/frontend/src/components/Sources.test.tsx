@@ -67,3 +67,13 @@ describe("Fuentes y aviso", () => {
         expect(await screen.findByText("Alternativa cubierta")).toBeInTheDocument();
     });
 });
+
+describe("Fuentes: region viva", () => {
+    it("existe desde el primer render y cambia al cargar", async () => {
+        renderAt("/fuentes");
+        const live = screen.getAllByRole("status").find((el) => /Cargando fuentes…/.test(el.textContent ?? ""));
+        expect(live).toBeDefined();
+        expect(live).toHaveAttribute("aria-live", "polite");
+        await vi.waitFor(() => expect(live).toHaveTextContent(/Fuentes cargadas/));
+    });
+});

@@ -88,3 +88,13 @@ describe("Vista de municipio", () => {
         expect(await screen.findByRole("heading", { level: 1, name: "Getafe" })).toBeInTheDocument();
     });
 });
+
+describe("Municipio: region viva", () => {
+    it("existe desde el primer render y cambia al cargar", async () => {
+        renderAt("/municipios/28065");
+        const live = screen.getAllByRole("status").find((el) => /Cargando municipio…/.test(el.textContent ?? ""));
+        expect(live).toBeDefined();
+        expect(live).toHaveAttribute("aria-live", "polite");
+        await waitFor(() => expect(live).toHaveTextContent(/Getafe/));
+    });
+});

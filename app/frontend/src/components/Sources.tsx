@@ -114,11 +114,14 @@ export default function Sources() {
                 <h2 className="panel__title" id="tabla-fuentes">
                     De dónde salen los datos
                 </h2>
-                {sources.status === "loading" && !sources.data && (
-                    <p className="muted" role="status">
-                        Cargando fuentes…
-                    </p>
-                )}
+                <p className="sr-only" role="status" aria-live="polite">
+                    {sources.status === "loading" && !sources.data
+                        ? "Cargando fuentes…"
+                        : sources.data
+                          ? "Fuentes cargadas."
+                          : ""}
+                </p>
+                {sources.status === "loading" && !sources.data && <p className="muted">Cargando fuentes…</p>}
                 {sources.status === "error" && (
                     <ErrorMessage message="No se pudieron cargar las fuentes." onRetry={sources.reload} />
                 )}

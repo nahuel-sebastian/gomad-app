@@ -1,9 +1,10 @@
 import { useRef, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router";
-import type { Activity } from "../api/types";
+import type { Activity, HourEvaluation } from "../api/types";
 import { getActivities } from "../data/activities";
 import { recommend } from "../data/recommend";
 import { useAsync } from "../data/useAsync";
+import { aqiLabel } from "../lib/labels";
 import { buildRecommendRequest, preferencesKey, preferencesSummary } from "../lib/request";
 import { useAppState } from "../state/context";
 import Chip, { AqiChip } from "./Chip";
@@ -13,8 +14,10 @@ import Icon from "./Icon";
 import LocationPicker from "./LocationPicker";
 import PreferencesDialog from "./PreferencesDialog";
 
+type MomentHour = HourEvaluation | undefined;
+
 // Estado del momento (P-01): primera hora de la recomendacion de la zona
-function MomentChips() {
+function useMoment() {
     const { origin, preferences } = useAppState();
     const moment = useAsync(
         () =>
@@ -23,7 +26,18 @@ function MomentChips() {
                 : Promise.resolve(null),
         [preferencesKey(null, preferences, origin?.coordinate ?? null)],
     );
-    const hour = moment.data?.results[0]?.hours[0];
+    return { failed: moment.status === "error", hour: moment.data?.results[0]?.hours[0] as MomentHour };
+}
+
+// Texto para la region viva: lo mismo que dicen las pastillas
+function momentText(municipality: string, hour: MomentHour): string {
+    if (!hour) return "";
+    const temp = hour.temperature_c === null ? "temperatura sin datos" : `${hour.temperature_c} °C`;
+    return `Ahora en ${municipality}: ${temp}, aire ${aqiLabel(hour.aqi_category).toLowerCase()}.`;
+}
+
+function MomentChips({ hour, failed }: { hour: MomentHour; failed: boolean }) {
+    const { origin } = useAppState();
 
     return (
         <ul className="chips" aria-label="Ahora en tu zona">
@@ -32,7 +46,14 @@ function MomentChips() {
                     {origin ? origin.municipality : "Sin ubicación todavía"}
                 </Chip>
             </li>
-            {origin && hour && (
+            {origin && failed && (
+                <li>
+                    <Chip tone="nodata" icon="cloud_off">
+                        Tiempo y aire: sin datos
+                    </Chip>
+                </li>
+            )}
+            {origin && !failed && hour && (
                 <>
                     <li>
                         <Chip tone={hour.temperature_c === null ? "nodata" : "info"} icon="thermostat">
@@ -56,6 +77,17 @@ export default function Home() {
     const [pending, setPending] = useState<{ activity: string | null; label?: string } | null>(null);
     const askRef = useRef<HTMLParagraphElement>(null);
     const notice = (location.state as { notice?: string } | null)?.notice;
+    const moment = useMoment();
+    const live = [
+        activities.status === "loading" && !activities.data
+            ? "Cargando actividades…"
+            : activities.data
+              ? "Actividades cargadas."
+              : "",
+        origin && !moment.failed ? momentText(origin.municipality, moment.hour) : "",
+    ]
+        .filter(Boolean)
+        .join(" ");
 
     const go = (activity: string | null, label?: string) => {
         if (!origin) {
@@ -71,10 +103,13 @@ export default function Home() {
     return (
         <>
             <Hero title="¿Qué te apetece hacer hoy?">
-                <MomentChips />
+                <MomentChips hour={moment.hour} failed={moment.failed} />
             </Hero>
 
             <div className="container home">
+                <p className="sr-only" role="status" aria-live="polite">
+                    {live}
+                </p>
                 {notice && (
                     <p className="notice notice--info" role="note">
                         {notice}
@@ -104,7 +139,7 @@ export default function Home() {
                         Elige una actividad
                     </h2>
                     {activities.status === "loading" && !activities.data && (
-                        <p className="muted" role="status">
+                        <p className="muted">
                             Cargando actividades…
                         </p>
                     )}
