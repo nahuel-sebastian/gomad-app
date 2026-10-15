@@ -1,7 +1,7 @@
 import type { RouteVariant } from "../api/types";
 
-// El contrato declara `geometry` como objeto sin campos (Record<string, never>):
-// aqui se construye y se lee como GeoJSON LineString, comprobando la forma.
+// El contrato tipa `geometry` como GeoJSON LineString (desde el 16/10); aqui se construye
+// y se lee comprobando la forma, por si llega algo inesperado.
 
 export type LonLat = [number, number];
 

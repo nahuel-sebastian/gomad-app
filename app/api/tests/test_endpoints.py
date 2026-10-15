@@ -107,3 +107,35 @@ def test_surprise_me_three_distinct_activities(real):
     print(f"\n/recommend Sorpréndeme: {time.perf_counter() - t0:.2f} s")
     labels = [r["explanation"].split("Para ")[1].split(":")[0] for r in data["results"]]
     assert len(labels) == 3 and len(set(labels)) == 3
+
+
+def test_route_outside_graph_is_approximate(mini):
+    r = mini.post("/route", json={"origin": GETAFE, "destination": {"lat": 40.95, "lon": -3.47}})
+    assert r.status_code == 200
+    data = r.json()
+    assert data["direct"]["approximate"] and data["healthy"]["approximate"]
+    assert data["direct"]["geometry"]["type"] == "LineString"
+
+
+@pytest.mark.slow
+def test_route_getafe(real):
+    payload = {"origin": GETAFE, "destination": {"lat": 40.3120, "lon": -3.7230}}
+    t0 = time.perf_counter()
+    r = real.post("/route", json=payload)
+    elapsed = time.perf_counter() - t0
+    assert r.status_code == 200, r.text
+    data = r.json()
+    print(f"\n/route Getafe: {elapsed:.2f} s · {data['direct']['description']} · {data['healthy']['description']}")
+    assert elapsed < 5.0
+    assert not data["direct"]["approximate"] and not data["healthy"]["approximate"]
+    assert data["healthy"]["distance_m"] >= data["direct"]["distance_m"] - 1
+    assert len(data["healthy"]["geometry"]["coordinates"]) > 2
+
+
+@pytest.mark.slow
+def test_route_capital(real):
+    t0 = time.perf_counter()
+    r = real.post("/route", json={"origin": SOL, "destination": {"lat": 40.4153, "lon": -3.6845}})   # Sol -> Retiro
+    elapsed = time.perf_counter() - t0
+    print(f"\n/route capital: {elapsed:.2f} s · {r.json()['healthy']['description']}")
+    assert r.status_code == 200 and elapsed < 5.0

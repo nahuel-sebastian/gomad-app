@@ -165,9 +165,15 @@ class RoutePoi(Strict):
     source: str
 
 
+class LineString(Strict):
+    """GeoJSON LineString en EPSG:4326: [[lon, lat], ...]."""
+    type: Literal["LineString"]
+    coordinates: list[list[float]] = Field(min_length=2)
+
+
 class RouteVariant(Strict):
     kind: Literal["direct", "healthy"]
-    geometry: dict                             # GeoJSON LineString en EPSG:4326
+    geometry: LineString
     distance_m: float
     duration_min: float
     green_pct: float | None = Field(ge=0, le=100)

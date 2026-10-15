@@ -13,6 +13,7 @@ from engine.scoring import validate_weights
 from repository import DataUnavailable, Repository
 from routing.store import GraphStore
 from services import recommend as recommend_service
+from services import route as route_service
 
 log = logging.getLogger("gomad.api")
 if not log.handlers:
@@ -94,8 +95,11 @@ def location(text: str = Query(min_length=3, max_length=200)):
 
 
 @app.post("/route", response_model=s.RouteResponse)
-def route(request: s.RouteRequest):
-    _not_implemented()
+def route(request: s.RouteRequest, repo: Repository = Depends(get_repo), graphs: GraphStore = Depends(get_graphs)):
+    try:
+        return route_service.route(request, repo, graphs)
+    except DataUnavailable as e:
+        raise HTTPException(status_code=503, detail=str(e))
 
 
 @app.get("/municipality/{ine_code}", response_model=s.MunicipalityResponse)

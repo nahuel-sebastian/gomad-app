@@ -38,23 +38,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/location": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Location */
-        get: operations["location_location_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/recommend": {
         parameters: {
             query?: never;
@@ -66,6 +49,23 @@ export interface paths {
         put?: never;
         /** Recommend */
         post: operations["recommend_recommend_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/location": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Location */
+        get: operations["location_location_get"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -351,6 +351,20 @@ export interface components {
             /** Rejection */
             rejection: string | null;
         };
+        /**
+         * LineString
+         * @description GeoJSON LineString en EPSG:4326: [[lon, lat], ...].
+         */
+        LineString: {
+            /**
+             * Type
+             * @constant
+             * @enum {string}
+             */
+            type: "LineString";
+            /** Coordinates */
+            coordinates: number[][];
+        };
         /** LocationCandidate */
         LocationCandidate: {
             /** Label */
@@ -509,8 +523,7 @@ export interface components {
              * @enum {string}
              */
             kind: "direct" | "healthy";
-            /** Geometry */
-            geometry: Record<string, never>;
+            geometry: components["schemas"]["LineString"];
             /** Distance M */
             distance_m: number;
             /** Duration Min */
@@ -631,37 +644,6 @@ export interface operations {
             };
         };
     };
-    location_location_get: {
-        parameters: {
-            query: {
-                text: string;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["LocationResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
     recommend_recommend_post: {
         parameters: {
             query?: never;
@@ -682,6 +664,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["RecommendResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    location_location_get: {
+        parameters: {
+            query: {
+                text: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LocationResponse"];
                 };
             };
             /** @description Validation Error */
