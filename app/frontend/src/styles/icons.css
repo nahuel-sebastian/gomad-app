@@ -1,1 +1,8 @@
-/* Iconos de GoMAD.
+/* Iconos de GoMad (aplazados, decision del 14/10).
+   Cuando llegue la fuente propia de Material Symbols (public/fonts/), anadir aqui
+   su @font-face y el estilo de .icon (ligaduras); el componente Icon ya pinta
+   <span class="icon" aria-hidden="true" data-icon="...">. Mientras tanto, el
+   hueco no ocupa sitio. */
+.icon:empty {
+    display: none;
+}

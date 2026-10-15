@@ -1,7 +1,7 @@
 import { useRef, useState } from "react";
 
 interface ResultsProps {
-    activity: string;
+    activity: string | null;
     onBack: () => void;
     onSelectResult: () => void;
 }
@@ -60,9 +60,7 @@ export default function Results({
     ];
 
     const title =
-        activity === "Sorpréndeme"
-            ? "Planes para ti hoy"
-            : `${activity} cerca de ti`;
+        activity === null ? "Planes para ti hoy" : `${activity} cerca de ti`;
 
     return (
         <section className="results-screen">

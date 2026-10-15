@@ -1,42 +1,62 @@
+import { Link, useLocation } from "react-router";
+
 const LINKS = [
-    { href: "#entorno", label: "Mi entorno" },
-    { href: "#municipios", label: "Municipios" },
-    { href: "#perfil", label: "Perfil" },
+    { to: "/", label: "Mi entorno", icon: "near_me" },
+    { to: "/municipios", label: "Municipios", icon: "location_city" },
+    { to: "/perfil", label: "Perfil", icon: "person" },
 ];
 
+// Seccion de la barra a la que pertenece cada ruta
+function sectionOf(pathname: string): string {
+    if (pathname.startsWith("/municipios")) return "/municipios";
+    if (pathname.startsWith("/perfil")) return "/perfil";
+    if (
+        pathname === "/" ||
+        pathname.startsWith("/resultados") ||
+        pathname.startsWith("/ruta") ||
+        pathname.startsWith("/asistente")
+    ) {
+        return "/";
+    }
+    return "";
+}
+
 export default function Header() {
+    const { pathname } = useLocation();
+    const current = sectionOf(pathname);
+
     return (
         <header className="header">
             <div className="container header__inner">
-                <a
-                    href="#entorno"
-                    className="logo"
-                    aria-label="GoMAD, ir al inicio">
-                    {/* 2. Imagen del logo reemplazando al componente Icon */}
+                <Link to="/" className="logo" aria-label="GoMad, ir al inicio">
                     <img
                         src="/images/logo.png"
-                        alt="Logo de GoMAD"
+                        alt=""
+                        width="40"
+                        height="40"
                         className="logo__mark"
                     />
-                    <span>
-                        <span className="logo__go">Go</span>MAD
+                    <span aria-hidden="true">
+                        <span className="logo__go">Go</span>Mad
                     </span>
-                </a>
+                </Link>
 
-                <nav
-                    id="menu-principal"
-                    className="nav"
-                    aria-label="Navegación principal">
-                    {LINKS.map((link, i) => (
-                        <a
-                            key={link.href}
-                            href={link.href}
-                            className="nav__link"
-                            aria-current={i === 0 ? "page" : undefined}
-                            >
-                            {link.label}
-                        </a>
-                    ))}
+                {/* En movil es la barra inferior (fija); en >= 768 px va aqui arriba */}
+                <nav className="nav" aria-label="Principal">
+                    <ul className="nav__list">
+                        {LINKS.map((link) => (
+                            <li key={link.to}>
+                                <Link
+                                    to={link.to}
+                                    className="nav__link"
+                                    aria-current={
+                                        current === link.to ? "page" : undefined
+                                    }>
+                                    {link.label}
+                                </Link>
+                            </li>
+                        ))}
+                    </ul>
                 </nav>
             </div>
         </header>

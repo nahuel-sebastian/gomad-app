@@ -1,5 +1,5 @@
 interface HomeProps {
-    onSelectActivity: (activity: string) => void;
+    onSelectActivity: (activity: string | null) => void;
 }
 
 const ACTIVITIES = [
@@ -26,7 +26,7 @@ export default function Home({ onSelectActivity }: HomeProps) {
                             <button
                                 type="button"
                                 className="activity"
-                                onClick={() => onSelectActivity(a.label)}>
+                                onClick={() => onSelectActivity(a.id)}>
                                 <span className="activity__tile"></span>
                                 <span>{a.label}</span>
                             </button>
@@ -40,7 +40,7 @@ export default function Home({ onSelectActivity }: HomeProps) {
                 <button
                     type="button"
                     className="panel panel--action surprise"
-                    onClick={() => onSelectActivity("Sorpréndeme")}>
+                    onClick={() => onSelectActivity(null)}>
                     <span className="surprise__tile"></span>
                     <span className="surprise__text">
                         <span className="panel__title">Sorpréndeme</span>
