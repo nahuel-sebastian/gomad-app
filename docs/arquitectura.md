@@ -350,6 +350,7 @@ app/
 | A-09 | ✅ Usos de IA de CLAUDE.md §6.5 (D-11) | Decidido el 15/10 | N.º 1 (deporte por instalación en lote) y n.º 2 (Select AI + APEX, administración); recortables antes que F1–F5 |
 | A-10 | ✅ Forma de la VM de OCI | Decidido el 15/10 | `VM.Standard.E5.Flex` 2 OCPU / 16 GB en `eu-madrid-1` (A1 sin capacidad), §6.1 |
 | A-11 | Tamaño real del grafo regional y latencia en la capital | Rutas, jue 15–sáb 17 | Si no llega: CH por perfiles fijos |
+| A-12 | ✅ Desnivel (D-12) | Decidido el 15/10: **sí, Should** | IGN MDT05 → altura por nodo y pendiente por tramo, con el grafo regional (S-R1, sáb 17). Antes: verificar la descarga. Recorte justo después de F6 |
 
 ### Ideas para después de la demo (no se hacen ahora)
 - **Núcleo fijo y bordes configurables para la entrega a la organización:** fuentes, umbrales (con cita), pesos, perfiles, actividades y municipios con ruta en ficheros de configuración; repositorio con contrato para poder sustituir DuckDB por Oracle u otro almacén (DDL de Oracle con `SDO_GEOMETRY`, script de carga desde GeoParquet, pruebas de contrato que cualquier implementación debe pasar); `README` de entrega.
