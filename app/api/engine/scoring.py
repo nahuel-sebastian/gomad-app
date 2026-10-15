@@ -49,3 +49,14 @@ def compute_score(factors, weights):
     effective = {f: weights[f] / total for f in available}
     value = 10.0 * sum(effective[f] * available[f] for f in available)
     return Score(round(value, 2), {f: factors.get(f) for f in FACTORS}, effective)
+
+
+def validate_weights(defaults):
+    """Comprueba los pesos por defecto al cargarlos: todos los factores, numeros >= 0 y suma > 0."""
+    if set(defaults) != set(FACTORS):
+        raise ValueError(f"weights: los pesos por defecto deben tener exactamente los factores {FACTORS}")
+    for f, w in defaults.items():
+        if isinstance(w, bool) or not isinstance(w, (int, float)) or w < 0:
+            raise ValueError(f"weights: el peso de {f} debe ser un número >= 0, no {w!r}")
+    if sum(defaults.values()) <= 0:
+        raise ValueError("weights: los pesos por defecto no pueden sumar 0")

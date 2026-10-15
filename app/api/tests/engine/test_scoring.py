@@ -1,7 +1,7 @@
 import pytest
 
 from engine.scoring import (FACTORS, air_factor, compute_score, normalize_weights, proximity_factor,
-                            weather_factor)
+                            validate_weights, weather_factor)
 
 # Pesos de PRUEBA (los reales salen de DEC-07 -> config/weights.yaml)
 DEFAULTS = {"proximity": 0.2, "suitability": 0.2, "green": 0.2, "air": 0.2, "weather": 0.2}
@@ -60,3 +60,19 @@ def test_two_people_same_place_different_answer():
 def test_no_factor_available():
     s = compute_score({f: None for f in FACTORS}, DEFAULTS)
     assert s.value == 0.0 and s.effective_weights == {}
+
+
+def test_valid_default_weights_pass_validation():
+    validate_weights(DEFAULTS)
+
+
+@pytest.mark.parametrize("weights", [
+    {"proximity": 0.5, "suitability": 0.5},
+    {f: 0.0 for f in FACTORS},
+    {**DEFAULTS, "air": -0.1},
+    {**DEFAULTS, "air": "mucho"},
+    {**DEFAULTS, "unknown": 0.2},
+])
+def test_invalid_default_weights_fail_validation(weights):
+    with pytest.raises(ValueError):
+        validate_weights(weights)

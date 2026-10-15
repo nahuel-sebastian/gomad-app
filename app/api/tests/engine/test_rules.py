@@ -2,7 +2,8 @@ from datetime import datetime
 
 import pytest
 
-from engine.rules import CATEGORIES, HourContext, aqi_category, evaluate_outdoor, pollutant_category
+from engine.rules import (CATEGORIES, HourContext, aqi_category, evaluate_outdoor, pollutant_category,
+                          validate_rules)
 from settings import load
 
 BANDS = load("ica_thresholds")["bands"]
@@ -91,3 +92,39 @@ def test_no_data_at_all_is_undetermined():
 
 def test_categories_in_order():
     assert CATEGORIES[0] == "good" and CATEGORIES[-1] == "extremely_poor"
+
+
+def test_half_rounds_up():
+    # la tabla del BOE es de enteros: 40,5 se redondea a 41 (no al par, como hace round())
+    assert pollutant_category("NO2", 40.5, BANDS) == "fair"
+    assert pollutant_category("NO2", 120.5, BANDS) == "poor"
+
+
+def test_profile_with_null_air_rule_disables_it():
+    rules = {**RULES, "air": {"general": "poor", "stroller": None}}
+    assert evaluate_outdoor(ctx(aqi_category="poor"), "stroller", rules).outdoor_ok is True
+    assert evaluate_outdoor(ctx(aqi_category="poor"), "general", rules).outdoor_ok is False
+
+
+def test_air_metadata_keys_are_not_profiles():
+    rules = {**RULES, "air": {"general": "poor", "source": "BOE-A-2020-10426"}}
+    assert evaluate_outdoor(ctx(aqi_category="poor"), "source", rules).outdoor_ok is False
+
+
+def test_valid_rules_pass_validation():
+    validate_rules(RULES)
+    validate_rules({"air": {"general": "poor", "senior": None, "source": "BOE"},
+                    "heat": {"max_feels_like_c": None, "source": None, "own_criterion": False},
+                    "rain": {"max_precip_prob": None, "own_criterion": True}})
+
+
+@pytest.mark.parametrize("rules", [
+    {"air": {"general": "bad"}},
+    {"air": {"general": "poor", "senior": "Desfavorable"}},
+    {"heat": {"max_feels_like_c": "treinta"}},
+    {"rain": {"max_precip_prob": 150}},
+    {"rain": {"max_precip_prob": -1}},
+])
+def test_invalid_rules_fail_validation(rules):
+    with pytest.raises(ValueError):
+        validate_rules(rules)
