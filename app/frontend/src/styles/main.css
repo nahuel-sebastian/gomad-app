@@ -305,7 +305,8 @@ button {
     background: var(--bg);
 }
 
-.nav__link[aria-current="page"] {
+/* misma marca en la pantalla exacta ("page") y en sus subpantallas ("true") */
+.nav__link[aria-current] {
     background: var(--green-tint);
     color: var(--green-dark);
     font-weight: 700;

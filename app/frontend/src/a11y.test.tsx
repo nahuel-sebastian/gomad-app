@@ -55,6 +55,12 @@ describe("navegacion global", () => {
     it("Inicio queda marcado tambien en Resultados, Ruta y Asistente", () => {
         renderAt("/asistente");
         const nav = screen.getByRole("navigation", { name: "Principal" });
+        expect(within(nav).getByRole("link", { name: "Mi entorno" })).toHaveAttribute("aria-current", "true");
+    });
+
+    it("en Inicio, Mi entorno lleva aria-current=page", () => {
+        renderAt("/");
+        const nav = screen.getByRole("navigation", { name: "Principal" });
         expect(within(nav).getByRole("link", { name: "Mi entorno" })).toHaveAttribute("aria-current", "page");
     });
 

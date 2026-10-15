@@ -6,7 +6,7 @@ const LINKS = [
     { to: "/perfil", label: "Perfil", icon: "person" },
 ];
 
-// Seccion de la barra a la que pertenece cada ruta
+// Seccion de la barra a la que pertenece cada ruta: "page" en la ruta exacta, "true" en sus subpantallas
 function sectionOf(pathname: string): string {
     if (pathname.startsWith("/municipios")) return "/municipios";
     if (pathname.startsWith("/perfil")) return "/perfil";
@@ -50,7 +50,7 @@ export default function Header() {
                                     to={link.to}
                                     className="nav__link"
                                     aria-current={
-                                        current === link.to ? "page" : undefined
+                                        pathname === link.to ? "page" : current === link.to ? "true" : undefined
                                     }>
                                     {link.label}
                                 </Link>

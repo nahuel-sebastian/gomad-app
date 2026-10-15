@@ -28,12 +28,21 @@ describe("diseno comun", () => {
     it("marca en la navegacion principal la seccion actual", () => {
         renderAt("/municipios/28065");
         const nav = screen.getByRole("navigation", { name: "Principal" });
+        // subpantalla de la seccion: aria-current="true", no "page"
         expect(
             within(nav).getByRole("link", { name: "Municipios" }),
-        ).toHaveAttribute("aria-current", "page");
+        ).toHaveAttribute("aria-current", "true");
         expect(
             within(nav).getByRole("link", { name: "Mi entorno" }),
         ).not.toHaveAttribute("aria-current");
+    });
+
+    it("aria-current=page solo en la ruta exacta del enlace", () => {
+        renderAt("/municipios");
+        const nav = screen.getByRole("navigation", { name: "Principal" });
+        expect(
+            within(nav).getByRole("link", { name: "Municipios" }),
+        ).toHaveAttribute("aria-current", "page");
     });
 
     it("pone el titulo del documento a partir del h1", async () => {
