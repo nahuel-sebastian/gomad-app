@@ -47,3 +47,27 @@ def test_getafe_graph_exists():
     assert len(e) > 1000 and (e["length_m"] > 0).all()
     assert e[["u", "v"]].max().max() < len(n)
     assert e["green_pct"].notna().mean() > 0.9          # Getafe esta en VPLA
+
+
+def test_overlapping_green_zones_count_once():
+    # VPLA tiene poligonos solapados: el tramo que cruza dos a la vez no cuenta doble
+    edges = gpd.GeoDataFrame({"highway": ["footway"]},
+                             geometry=[LineString([(-3.7300, 40.3050), (-3.7288, 40.3050)])], crs=4326)
+    square = [(-3.7300, 40.3040), (-3.7294, 40.3040), (-3.7294, 40.3060), (-3.7300, 40.3060)]
+    zones = gpd.GeoDataFrame(geometry=[Polygon(square), Polygon(square)], crs=4326)
+    f = edge_factors(edges, zones, gpd.GeoDataFrame({"type": []}, geometry=[], crs=4326), CONFIG, has_green=True)
+    assert f.loc[0, "green_pct"] == pytest.approx(0.5, abs=0.05)
+
+
+def test_green_pct_uses_spatial_index(monkeypatch):
+    # sin indice espacial, la caja de Madrid capital (zonas de los vecinos) tardaba > 25 min
+    def no_union(*args, **kwargs):
+        raise AssertionError("union_all de todas las zonas: sin indice espacial")
+    monkeypatch.setattr(gpd.GeoSeries, "union_all", no_union)
+    monkeypatch.setattr(gpd.GeoDataFrame, "union_all", no_union)
+    e = gpd.GeoDataFrame({"highway": ["footway"]}, geometry=[LineString([(-3.73, 40.305), (-3.7288, 40.305)])], crs=4326)
+    park = gpd.GeoDataFrame(geometry=[Polygon([(-3.7300, 40.3040), (-3.7294, 40.3040),
+                                               (-3.7294, 40.3060), (-3.7300, 40.3060)])], crs=4326)
+    f = edge_factors(e, park, gpd.GeoDataFrame({"type": []}, geometry=[], crs=4326), CONFIG, has_green=True)
+    assert f.loc[0, "green_pct"] == pytest.approx(0.5, abs=0.05)
+

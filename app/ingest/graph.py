@@ -13,6 +13,7 @@ import time
 import geopandas as gpd
 import numpy as np
 import pandas as pd
+import shapely
 import yaml
 from shapely.geometry import LineString, Point, Polygon
 
@@ -48,8 +49,7 @@ def edge_factors(edges, green, poi, config, has_green):
     e["traffic"] = (e["highway"].astype(str).map(config["traffic_by_highway"])
                     .fillna(config["default_traffic"]).astype(float))
     if has_green and len(green):
-        zones = green.to_crs(25830).union_all()
-        e["green_pct"] = (e.geometry.intersection(zones).length / e["length_m"]).clip(0, 1)
+        e["green_pct"] = (_green_length(e, green.to_crs(25830)) / e["length_m"]).clip(0, 1)
     else:
         e["green_pct"] = np.nan
     p = poi.to_crs(25830)
@@ -62,6 +62,29 @@ def edge_factors(edges, green, poi, config, has_green):
         else:
             e[column] = False
     return e.to_crs(4326)
+
+
+def _green_length(e, zones):
+    """Metros de cada tramo dentro de zona verde, con indice espacial.
+
+    Cruzar cada tramo con la union de todas las zonas tardaba > 25 min en la caja de Madrid capital.
+    Solo se intersecan los pares tramo-zona que se tocan; si un tramo toca varias zonas (VPLA tiene
+    poligonos solapados) se unen sus trozos antes de medir, para no contar dos veces.
+    """
+    zones = zones[["geometry"]].reset_index(drop=True)
+    pairs = gpd.sjoin(e[["geometry"]], zones, how="inner", predicate="intersects")
+    result = pd.Series(0.0, index=e.index)
+    if pairs.empty:
+        return result
+    pieces = shapely.intersection(e.geometry.loc[pairs.index].to_numpy(),
+                                  zones.geometry.loc[pairs["index_right"]].to_numpy())
+    pieces = pd.Series(pieces, index=pairs.index)
+    repeated = pieces.index.duplicated(keep=False)
+    result.loc[pieces.index[~repeated]] = shapely.length(pieces[~repeated].to_numpy())
+    if repeated.any():
+        merged = pieces[repeated].groupby(level=0).agg(lambda parts: shapely.union_all(parts.to_numpy()))
+        result.loc[merged.index] = shapely.length(merged.to_numpy())
+    return result
 
 
 def _haversine_m(lon1, lat1, lon2, lat2):
