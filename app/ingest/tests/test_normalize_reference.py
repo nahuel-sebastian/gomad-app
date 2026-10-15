@@ -83,12 +83,19 @@ def test_destination_raw_names_and_flags():
     assert not eiel.loc[outdoor, "covered"].any()
 
 
-def test_poi_only_working_fountains():
+def test_poi_keeps_broken_fountains_flagged():
+    # las fuentes cerradas se guardan marcadas (mapa en gris, informe de averias); la ruta usa solo working
     from common import RAW, latest_csv, read_csv
-    raw = read_csv(latest_csv(RAW / "ay_fuentes", ["ID", "ESTADO"]))
-    working = set("ay_fuentes:" + raw.loc[raw.ESTADO == "OPERATIVO", "ID"])
-    fountains = set(read("poi").query("source == 'ay_fuentes'")["id"])
-    assert fountains and fountains <= working
+    raw = read_csv(latest_csv(RAW / "ay_fuentes", ["ID", "ESTADO"])).set_index("ID")
+    p = read("poi")
+    assert str(p["working"].dtype) == "boolean"
+    fountains = p[p.source == "ay_fuentes"].set_index("id")
+    assert len(fountains) == len(raw)                                     # ninguna se pierde
+    status = raw.loc[fountains.index.str.removeprefix("ay_fuentes:"), "ESTADO"].to_numpy()
+    assert (fountains["status"].to_numpy() == status).all()
+    assert (fountains["working"].to_numpy(dtype=bool) == (status == "OPERATIVO")).all()
+    assert (~fountains["working"]).sum() == 1_045
+    assert p.loc[p.source == "desfibriladores", "working"].isna().all()   # sin estado en origen: no se sabe
 
 
 def test_population_write_is_atomic(tmp_path, monkeypatch):
