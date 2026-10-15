@@ -884,7 +884,7 @@
     "l": [
      [
       "Ficha",
-      "https://www.miteco.gob.es/es/calidad-y-evaluacion-ambiental/temas/atmosfera-y-calidad-del-aire/calidad-del-aire/ica.html"
+      "https://www.miteco.gob.es/es/calidad-y-evaluacion-ambiental/temas/atmosfera-y-calidad-del-aire/calidad-del-aire/visualizacion-datos-calidad-del-aire/ica.html"
      ]
     ]
    }
@@ -1320,7 +1320,7 @@
   "t": "Fuente y fecha de cada dato",
   "src": [
    {
-    "n": "Metadatos CKAN (fecha) y marca de validación V/N",
+    "n": "Metadatos CKAN (fecha) y marca de validación V/T/N",
     "i": "—",
     "o": "CKAN Comunidad",
     "l": []

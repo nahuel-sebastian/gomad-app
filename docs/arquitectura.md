@@ -341,13 +341,13 @@ app/
 |---|---|---|---|
 | A-01 | ~~Framework del frontend~~ | ✅ 14/10 | React + Vite sobre el prototipo (§5) |
 | A-02 | Detalle de cada pantalla (§5.2) | Con la maquetadora, al maquetar | No cambia la arquitectura |
-| A-03 | Nombre y dominio (D-10) | Equipo | Afecta al dominio del despliegue |
+| A-03 | Nombre y dominio (D-10) | Nombre ✅ **GoMad** (15/10); dominio pendiente (V-F4) | Afecta al dominio del despliegue |
 | A-04 | ✅ Pesos por defecto y velocidades (D-07) | Decidido el 15/10 | `app/config/weights.yaml`: cercanía 30 · adecuación 25 · verde 20 · aire 15 · meteo 10; caminar 4,5, correr 9, mayor/carrito 3,5 km/h; ruta: `routing.yaml` sin cambios. Todo criterio propio |
 | A-05 | ✅ Regla de aire por perfil (D-05) | Decidido el 15/10 | `app/config/rules.yaml`: general y carrito desde Desfavorable, sensible y mayor desde Regular (BOE; mayor = criterio propio). Lluvia (D-07b): desde el 50 % |
 | A-06 | Umbrales de calor (D-06) | Desbloqueado: umbrales oficiales, tabla municipio → zona (`docs/assets/heat_zones.csv`) y propuesta en `docs/assets/umbrales.md` §2.3 | |
 | A-07 | ✅ Tabla actividad → destino (D-08) | Decidido el 15/10 | `app/config/activities.yaml`: 8 actividades (caminar, correr, nadar, pádel, tenis, fútbol, baloncesto, gimnasio y cubierto) |
 | A-08 | Indicadores de F5 (D-09) | Datos, vie 16 | |
-| A-09 | Usos de IA de CLAUDE.md §6.5 (D-11) | Equipo | Recomendado: solo el n.º 1 |
+| A-09 | ✅ Usos de IA de CLAUDE.md §6.5 (D-11) | Decidido el 15/10 | N.º 1 (deporte por instalación en lote) y n.º 2 (Select AI + APEX, administración); recortables antes que F1–F5 |
 | A-10 | ✅ Forma de la VM de OCI | Decidido el 15/10 | `VM.Standard.E5.Flex` 2 OCPU / 16 GB en `eu-madrid-1` (A1 sin capacidad), §6.1 |
 | A-11 | Tamaño real del grafo regional y latencia en la capital | Rutas, jue 15–sáb 17 | Si no llega: CH por perfiles fijos |
 
