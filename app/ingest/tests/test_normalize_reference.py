@@ -64,9 +64,13 @@ def test_green():
 
 
 def test_poi():
+    # graph.py anade el mobiliario OSM a poi.parquet: la recarga de normalize no debe borrarlo
+    before = set(read("poi").query("source == 'osm'")["id"]) if (CLEAN / "poi.parquet").exists() else set()
     R["poi"]()
     p = read("poi")
     check_points(p)
+    assert set(p.loc[p.source == "osm", "id"]) == before
+    p = p[p.source != "osm"]                                                 # el mobiliario OSM lo anade graph.py
     assert (p["type"] == "bench").sum() >= 76_000                             # ay_bancos por COORD_GIS (76.627)
     assert (p["type"] == "dog_area").sum() == 112
     assert (p["type"] == "aed").sum() > 12_000

@@ -1194,7 +1194,7 @@
     ]
    },
    {
-    "n": "OpenStreetMap: shop=supermarket / convenience, amenity=bench / drinking_water",
+    "n": "OpenStreetMap: shop=supermarket / convenience, amenity=bench / drinking_water / waste_basket, leisure=dog_park / playground",
     "i": "openstreetmap",
     "o": "Externa",
     "l": [

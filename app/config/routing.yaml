@@ -1,0 +1,25 @@
+# PROVISIONAL hasta DEC-07
+# Lo leen ingest (graph.py: traffic, poi_radius_m) y api (rutas: cost_floor, pesos, umbral).
+traffic_by_highway:     # 0 = sin trafico, 1 = maximo. Criterio propio salvo que se cite otra fuente.
+  primary: 1.0
+  primary_link: 1.0
+  secondary: 0.8
+  secondary_link: 0.8
+  tertiary: 0.6
+  tertiary_link: 0.6
+  unclassified: 0.4
+  residential: 0.3
+  service: 0.2
+  cycleway: 0.1
+  living_street: 0.1
+  track: 0.0
+  path: 0.0
+  footway: 0.0
+  pedestrian: 0.0
+  steps: 0.0
+default_traffic: 0.3
+cost_floor: 0.5         # arquitectura §4.4: factor >= 0,5
+poi_radius_m: 25
+traffic_display_threshold: 0.5
+default_route_weights: {traffic: 0.5, green: 0.5, fountains: 0.2}
+own_criterion: true
