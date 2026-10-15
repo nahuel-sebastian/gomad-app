@@ -1,5 +1,7 @@
+import pandas as pd
 import pytest
 
+from normalize.furniture import working_from_status
 from normalize.sports import eiel_covered
 
 
@@ -17,3 +19,12 @@ from normalize.sports import eiel_covered
 ])
 def test_eiel_covered(facility_type, sup_cubi, expected):
     assert eiel_covered(facility_type, sup_cubi) is expected
+
+
+def test_working_from_status():
+    # nulo = sin dato: un banco sin ESTADO no es un banco roto
+    status = pd.Series(["OPERATIVO", "FUERA_DE_SERVICIO", "", "  "])
+    working = working_from_status(status)
+    assert str(working.dtype) == "boolean"
+    assert working[:2].tolist() == [True, False]
+    assert working[2:].isna().all()
