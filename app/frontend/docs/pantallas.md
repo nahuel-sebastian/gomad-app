@@ -466,3 +466,16 @@ Paso 1 del front (rama `front/jue15-todas-pantallas`): todas las pantallas con d
 
 ### Revisión final (15/10)
 - Front: Ruling: de la revisión de código y de `a11y-architect` se aplicaron todos los Critical e Important con su prueba (captura del puntero en la hoja, texto de privacidad del asistente, errores de «Ver más», «Buscar actividad en» y «Ver este ejemplo», foco y anuncios, tablas, objetivos de 44 px, barra fija que tapaba el foco, reflow). Los Minor y las comprobaciones que jsdom no puede hacer quedan en `pendientes.md` §B2 — plazo — hay que probar en móvil real antes de la demo.
+
+### Correcciones de la verificación (15/10)
+- Front: Ruling: la pastilla de verde de Resultados muestra `factor.text` de la API y tono neutro (`info`), sin semáforo — así el front no pone cortes sobre `value` (solo se admite el de P-02) — si se quiere color, la API tendría que mandar el tono o se añade una constante marcada criterio propio.
+- Front: Ruling: sin `/activities` no se pintan los 5 pesos («Cargando pesos…» o error con «Reintentar»); el resto del formulario sigue usable — así nunca se envían pesos que no vienen del motor — si `/activities` cae en la demo, no se pueden mover los pesos hasta que vuelva.
+- Front: Ruling: al recalcular no se atenúa la lista; se avisa con «Actualizando…» (`--blue-tint` + `--navy`) y `aria-busy` — contraste intacto — ninguno.
+- Front: Ruling: reflow a 320 px solo con CSS (pastillas `white-space: normal` dentro de la tarjeta y nota debajo del título por debajo de 400 px); sin prueba automática porque jsdom no maqueta — pendiente comprobar en navegador (`pendientes.md` B2) — si no basta, se ajusta tras verlo.
+- Front: Ruling: `aria-current="page"` solo en la ruta exacta del enlace y `"true"` en sus subpantallas, con la misma marca visual (`.nav__link[aria-current]`) — ninguno.
+- Front: Ruling: `--border-strong: #7a8c9e` (3,46:1 sobre `--surface`, 3,21:1 sobre `--bg`, medido) en los bordes de `.option`, `.seg`, `.candidate` y `.button--quiet`; el resto de bordes decorativos sigue con `--border` — ninguno.
+- Front: Ruling: botón con `aria-disabled="true"`: `--nodata-bg` de fondo, `--muted` de texto y `cursor: not-allowed`, sin opacidad — el texto mantiene ≥ 4,5:1 — ninguno.
+- Front: Ruling: las pruebas de estilo (`src/styles/styles.test.ts`) leen `main.css` del disco con `node:fs` porque Vitest entrega vacío el CSS importado con `?raw`; usan `@types/node`, que ya venía en el proyecto — ninguno.
+- Front: Ruling: `role="list"` en todas las `ul`/`ol` de los componentes, porque `main.css` quita `list-style` a todas — VoiceOver — ninguno.
+- Front: Ruling: en Resultados vacío o con 422 hay dos botones «Ajustar preferencias» (cabecera y aviso) que abren lo mismo — mismo nombre, misma acción — ninguno.
+- Front: Ruling: la comprobación `grep -rn "FALLBACK_WEIGHTS\|>= 7" src --include=*.tsx` no sale vacía: encaja con el punto de corte `>= 768` de `Results.tsx` y de un comentario de `Header.tsx`; no son cortes del motor — ninguno.
