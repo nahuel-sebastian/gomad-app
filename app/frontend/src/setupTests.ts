@@ -10,8 +10,10 @@ class ResizeObserverStub {
 }
 globalThis.ResizeObserver ??= ResizeObserverStub;
 
-// jsdom no implementa scrollTo
+// jsdom no implementa scrollTo ni canvas (axe lo pide para detectar ligaduras)
 window.scrollTo = () => {};
+HTMLCanvasElement.prototype.getContext = (() =>
+    null) as typeof HTMLCanvasElement.prototype.getContext;
 
 afterEach(() => {
     cleanup();
