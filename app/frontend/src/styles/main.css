@@ -93,6 +93,19 @@
     --header-height: 64px;
     --bottom-nav-height: 72px;
     --transition: 0.15s ease-out;
+    --warn-bg: #fcebcb;
+    --warn-fg: #7a4300;
+    --bad-bg: #fbe3e4;
+    --bad-fg: #9b1c28;
+    --nodata-bg: #eceff2;
+    /* colores oficiales del ICA (umbrales.md §1.3) */
+    --aqi-good: rgb(56, 162, 206);
+    --aqi-fair: rgb(50, 161, 94);
+    --aqi-moderate: rgb(241, 229, 73);
+    --aqi-poor: rgb(200, 52, 65);
+    --aqi-very-poor: rgb(110, 22, 29);
+    --aqi-extremely-poor: rgb(162, 91, 164);
+    --aqi-nodata: rgb(85, 89, 93);
 }
 
 *,
@@ -118,14 +131,25 @@ body {
 
 h1,
 h2,
+h3,
 p,
-ul {
+ul,
+ol,
+dl,
+dd,
+fieldset {
     margin: 0px;
     padding: 0px;
 }
 
-ul {
+ul,
+ol {
     list-style: none;
+}
+
+fieldset {
+    border: 0px;
+    min-width: 0px;
 }
 
 a {
@@ -157,6 +181,19 @@ button {
 .muted {
     color: var(--muted);
     font-size: 14px;
+}
+
+/* texto solo para lectores de pantalla */
+.sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    padding: 0px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+    border: 0px;
 }
 
 .skip-link {
@@ -365,6 +402,52 @@ button {
 .chip--good {
     background: var(--green-tint);
     color: var(--green-dark);
+}
+
+.chip--bad {
+    background: var(--bad-bg);
+    color: var(--bad-fg);
+}
+
+.chip--nodata {
+    background: var(--nodata-bg);
+    color: var(--muted);
+}
+
+/* ICA: texto oscuro sobre azul, verde y amarillo; blanco sobre el resto (pantallas §0.1) */
+.chip--aqi-good {
+    background: var(--aqi-good);
+    color: #000000;
+}
+
+.chip--aqi-fair {
+    background: var(--aqi-fair);
+    color: #000000;
+}
+
+.chip--aqi-moderate {
+    background: var(--aqi-moderate);
+    color: var(--navy);
+}
+
+.chip--aqi-poor {
+    background: var(--aqi-poor);
+    color: #ffffff;
+}
+
+.chip--aqi-very_poor {
+    background: var(--aqi-very-poor);
+    color: #ffffff;
+}
+
+.chip--aqi-extremely_poor {
+    background: var(--aqi-extremely-poor);
+    color: #ffffff;
+}
+
+.chip--aqi-nodata {
+    background: var(--aqi-nodata);
+    color: #ffffff;
 }
 
 .home {
@@ -673,7 +756,7 @@ h1:focus-visible {
     width: 40px;
     height: 4px;
     border-radius: 999px;
-    background: var(--border);
+    background: var(--muted);
 }
 
 .results-sheet__scroll {
@@ -797,13 +880,33 @@ h1:focus-visible {
 }
 
 .result-card__title {
+    display: block;
     font-size: 16px;
     font-weight: 700;
 }
 
 .result-card__meta {
-    font-size: 13px;
+    display: block;
+    font-size: 14px;
     color: var(--muted);
+}
+
+.result-card__alt {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 8px 10px;
+    border-left: 4px solid var(--navy);
+    border-radius: 0px 8px 8px 0px;
+    background: var(--blue-tint);
+    font-size: 14px;
+}
+
+.result-card__best {
+    align-self: flex-start;
+    color: var(--green-dark);
+    font-size: 14px;
+    font-weight: 700;
 }
 
 .chips--small .chip {
@@ -812,8 +915,8 @@ h1:focus-visible {
 }
 
 .chip--warn {
-    background: rgb(252, 235, 203);
-    color: rgb(122, 67, 0);
+    background: var(--warn-bg);
+    color: var(--warn-fg);
 }
 
 .result-card__score-wrap {
@@ -842,10 +945,10 @@ h1:focus-visible {
 }
 
 .score-verdict {
-    font-size: 11px;
+    font-size: 14px;
     font-weight: 600;
     text-align: center;
-    max-width: 60px;
+    max-width: 84px;
     line-height: 1.2;
 }
 
@@ -855,6 +958,14 @@ h1:focus-visible {
 
 .score-verdict--warn {
     color: rgb(138, 75, 0);
+}
+
+.score-badge--bad {
+    background: var(--bad-fg);
+}
+
+.score-verdict--bad {
+    color: var(--bad-fg);
 }
 
 .button--full {
@@ -1475,31 +1586,20 @@ h1:focus-visible {
     }
 
     .results-sheet__scroll > .view-header {
-        display: none;
+        padding: 0px 0px 8px;
+        background: transparent;
     }
 
     .results-sheet__scroll {
         min-height: 0px;
         height: 100%;
-        overflow: hidden;
-        padding-bottom: 0px;
-    }
-
-    .results-sheet__scroll > .results-list {
-        height: 100%;
-        min-height: 0px;
         overflow-y: auto;
-        padding: 12px 8px 24px 0px;
+        padding-bottom: 0px;
         scrollbar-color: var(--border) transparent;
     }
 
-    .results-sheet__scroll > .results-list::before {
-        content: "536 resultados";
-        display: block;
-        padding: 0px 0px 10px;
-        color: var(--muted);
-        font-size: 14px;
-        font-weight: 600;
+    .results-sheet__scroll > .results-body {
+        padding: 4px 8px 24px 0px;
     }
 
     .result-card {
@@ -1509,12 +1609,271 @@ h1:focus-visible {
         box-shadow: rgba(18, 57, 91, 0.08) 0px 2px 10px;
     }
 
-    .result-card + .result-card {
-        margin-top: 12px;
-    }
 
     .result-card__number {
         width: 30px;
         height: 30px;
     }
+}
+
+/* ---------- Avisos (estados de carga, vacio, warnings) ---------- */
+
+.notice {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 12px 14px;
+    border-left: 4px solid var(--navy);
+    border-radius: 0px var(--radius-sm) var(--radius-sm) 0px;
+    background: var(--blue-tint);
+    font-size: 15px;
+}
+
+.notice ul {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.notice--info {
+    border-left-color: var(--navy);
+    background: var(--blue-tint);
+}
+
+.notice--warn {
+    border-left-color: var(--warn-fg);
+    background: var(--warn-bg);
+    color: var(--warn-fg);
+}
+
+.notice--bad {
+    border-left-color: var(--bad-fg);
+    background: var(--bad-bg);
+    color: var(--bad-fg);
+}
+
+.notice--good {
+    border-left-color: var(--green);
+    background: var(--green-tint);
+    color: var(--green-dark);
+}
+
+.notice__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.notice__actions:empty {
+    display: none;
+}
+
+/* ---------- Campos de formulario ---------- */
+
+.field__label {
+    display: block;
+    margin-bottom: 6px;
+    font-size: 15px;
+    font-weight: 600;
+}
+
+.field__input {
+    width: 100%;
+    min-height: var(--tap-min);
+    padding: 0px 12px;
+    border: 1.5px solid var(--muted);
+    border-radius: 10px;
+    background: var(--surface);
+    color: var(--navy);
+    font: inherit;
+}
+
+textarea.field__input {
+    min-height: 96px;
+    padding: 10px 12px;
+    resize: vertical;
+}
+
+/* ---------- Inicio: ubicacion y asistente ---------- */
+
+.location--highlight {
+    border-color: var(--navy);
+    box-shadow: 0px 0px 0px 3px var(--blue-tint);
+}
+
+.location__current {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.location__note {
+    color: var(--muted);
+    font-size: 14px;
+}
+
+.location__form {
+    display: flex;
+    flex-direction: column;
+}
+
+.location__row {
+    display: flex;
+    gap: 8px;
+}
+
+.location__status:empty {
+    display: none;
+}
+
+.location__status {
+    color: var(--muted);
+    font-size: 14px;
+}
+
+.location__candidates {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.candidate {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    min-height: var(--tap-min);
+    padding: 8px 12px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: var(--surface);
+    font-weight: 600;
+    text-align: left;
+}
+
+.candidate:hover {
+    background: var(--bg);
+}
+
+.prefs__title {
+    font-weight: 400;
+}
+
+.assistant-link {
+    gap: 4px;
+}
+
+/* ---------- Resultados: esqueleto, recalculo y aviso ---------- */
+
+.results-body {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.results-skeleton {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.results-skeleton li {
+    height: 112px;
+    border-radius: var(--radius);
+    background: linear-gradient(90deg, var(--bg), var(--border), var(--bg));
+    background-size: 200% 100%;
+    animation: skeleton 1.4s ease-in-out infinite;
+}
+
+@keyframes skeleton {
+    from {
+        background-position: 100% 0px;
+    }
+
+    to {
+        background-position: -100% 0px;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .results-skeleton li {
+        animation: none;
+    }
+}
+
+.results-list--stale {
+    opacity: 0.55;
+}
+
+.results-disclaimer {
+    color: var(--muted);
+    font-size: 14px;
+    text-align: center;
+}
+
+/* ---------- Mapa de marcador de posicion (paso 3: MapLibre) ---------- */
+
+.map-view {
+    overflow: hidden;
+    background: rgb(233, 239, 243);
+}
+
+.map-view--block {
+    position: relative;
+    height: 240px;
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+}
+
+.map-view__svg {
+    position: absolute;
+    inset: 12px;
+    width: calc(100% - 24px);
+    height: calc(100% - 24px);
+}
+
+.map-view__route {
+    fill: none;
+    stroke: var(--green-dark);
+    stroke-width: 1.4;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+.map-view__route--secondary {
+    stroke: var(--muted);
+    stroke-dasharray: 2 1.5;
+    stroke-width: 1;
+}
+
+.map-view__origin {
+    fill: var(--focus);
+    stroke: #ffffff;
+    stroke-width: 0.8;
+}
+
+.map-view__marker circle {
+    fill: var(--navy);
+    stroke: #ffffff;
+    stroke-width: 0.6;
+}
+
+.map-view__marker--selected circle {
+    fill: var(--green-dark);
+}
+
+.map-view__marker text {
+    fill: #ffffff;
+    font-size: 3.6px;
+    font-weight: 700;
+}
+
+.map-view__note {
+    position: absolute;
+    right: 8px;
+    bottom: 8px;
+    padding: 4px 8px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.9);
+    color: var(--navy);
+    font-size: 12px;
 }

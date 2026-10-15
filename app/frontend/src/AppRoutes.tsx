@@ -1,40 +1,10 @@
 import { Route, Routes, useNavigate } from "react-router";
 import ComingSoon from "./components/ComingSoon";
-import Hero from "./components/Hero";
 import Home from "./components/Home";
 import Layout from "./components/Layout";
 import NotFound from "./components/NotFound";
 import Recommendation from "./components/Recommendation";
 import Results from "./components/Results";
-import { useAppState } from "./state/context";
-
-function HomeScreen() {
-    const navigate = useNavigate();
-    const { setSearch } = useAppState();
-    return (
-        <>
-            <Hero municipality="Getafe" temperature="22 °C" air="Aire bueno" />
-            <Home
-                onSelectActivity={(activity) => {
-                    setSearch({ activity });
-                    navigate("/resultados");
-                }}
-            />
-        </>
-    );
-}
-
-function ResultsScreen() {
-    const navigate = useNavigate();
-    const { search } = useAppState();
-    return (
-        <Results
-            activity={search?.activity ?? null}
-            onBack={() => navigate("/")}
-            onSelectResult={() => navigate("/resultados/ejemplo")}
-        />
-    );
-}
 
 function DetailScreen() {
     const navigate = useNavigate();
@@ -50,8 +20,8 @@ export default function AppRoutes() {
     return (
         <Routes>
             <Route element={<Layout />}>
-                <Route index element={<HomeScreen />} />
-                <Route path="resultados" element={<ResultsScreen />} />
+                <Route index element={<Home />} />
+                <Route path="resultados" element={<Results />} />
                 <Route path="resultados/:id" element={<DetailScreen />} />
                 <Route
                     path="ruta/:id"

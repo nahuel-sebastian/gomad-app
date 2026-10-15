@@ -36,6 +36,8 @@ export const DEFAULT_PREFERENCES: Preferences = {
 // Busqueda en curso: undefined = ninguna; activity null = «Sorpréndeme»
 export interface Search {
     activity: string | null;
+    // etiqueta de la actividad (de /activities) para el titulo
+    label?: string;
 }
 
 export interface AppStateValue {

@@ -1,16 +1,13 @@
+import type { ReactNode } from "react";
+import PageHeading from "./PageHeading";
+
 interface HeroProps {
-    municipality: string;
-    temperature: string;
-    air: string;
+    title: string;
+    // estado del momento (pastillas), si lo hay
+    children?: ReactNode;
 }
 
-export default function Hero({ municipality, temperature, air }: HeroProps) {
-    const chips = [
-        { icon: "pin", label: municipality, tone: "info" },
-        { icon: "sun", label: temperature, tone: "good" },
-        { icon: "leaf", label: air, tone: "good" },
-    ];
-
+export default function Hero({ title, children }: HeroProps) {
     return (
         <section className="hero" id="entorno">
             <svg
@@ -72,16 +69,8 @@ export default function Hero({ municipality, temperature, air }: HeroProps) {
             </svg>
 
             <div className="container hero__content">
-                <h1 className="hero__title">Hoy es un gran día para moverte</h1>
-                <ul className="chips">
-                    {chips.map((chip) => (
-                        <li
-                            key={chip.icon}
-                            className={`chip chip--${chip.tone}`}>
-                            <span>{chip.label}</span>
-                        </li>
-                    ))}
-                </ul>
+                <PageHeading className="hero__title">{title}</PageHeading>
+                {children}
             </div>
         </section>
     );

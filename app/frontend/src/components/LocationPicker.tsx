@@ -1,0 +1,139 @@
+import { useId, useRef, useState, type FormEvent } from "react";
+import type { LocationCandidate } from "../api/types";
+import { searchLocation } from "../data/location";
+import { useAppState } from "../state/context";
+
+// Ubicacion de ejemplo del paso 1 (en el paso 3: GPS real tras el gesto)
+const SAMPLE_GPS: LocationCandidate = {
+    label: "Tu ubicación de ejemplo (Getafe)",
+    municipality: "Getafe",
+    ine_code: "28065",
+    coordinate: { lat: 40.3057, lon: -3.7329 },
+    precision: "address",
+};
+
+type SearchState =
+    | { status: "idle" }
+    | { status: "loading" }
+    | { status: "done"; candidates: LocationCandidate[] }
+    | { status: "error" };
+
+interface LocationPickerProps {
+    // se llama al elegir una ubicacion (p. ej. para seguir a resultados)
+    onPicked?: (origin: LocationCandidate) => void;
+    highlight?: boolean;
+}
+
+export default function LocationPicker({ onPicked, highlight }: LocationPickerProps) {
+    const { origin, setOrigin } = useAppState();
+    const [text, setText] = useState("");
+    const [search, setSearch] = useState<SearchState>({ status: "idle" });
+    const inputId = useId();
+    const statusRef = useRef(0);
+
+    const pick = (candidate: LocationCandidate) => {
+        setOrigin(candidate);
+        setSearch({ status: "idle" });
+        setText("");
+        onPicked?.(candidate);
+    };
+
+    const onSubmit = async (event: FormEvent) => {
+        event.preventDefault();
+        if (text.trim().length < 3) {
+            setSearch({ status: "done", candidates: [] });
+            return;
+        }
+        const call = ++statusRef.current;
+        setSearch({ status: "loading" });
+        try {
+            const data = await searchLocation(text.trim());
+            if (call === statusRef.current) {
+                setSearch({ status: "done", candidates: data.candidates });
+            }
+        } catch {
+            if (call === statusRef.current) setSearch({ status: "error" });
+        }
+    };
+
+    let announcement = "";
+    if (search.status === "loading") announcement = "Buscando…";
+    if (search.status === "error") announcement = "No se pudo buscar ahora. Inténtalo de nuevo.";
+    if (search.status === "done") {
+        const n = search.candidates.length;
+        announcement =
+            n === 0
+                ? text.trim().length < 3
+                    ? "Escribe al menos 3 caracteres."
+                    : "No encontramos esa dirección. Prueba con el nombre del municipio."
+                : `${n} ${n === 1 ? "lugar encontrado" : "lugares encontrados"}.`;
+    }
+
+    return (
+        <section
+            className={`panel location${highlight ? " location--highlight" : ""}`}
+            aria-labelledby="ubicacion-titulo"
+            id="ubicacion">
+            <h2 className="panel__title" id="ubicacion-titulo">
+                ¿Desde dónde sales?
+            </h2>
+
+            {origin && (
+                <p className="location__current">
+                    <span className="muted">Ubicación elegida:</span>{" "}
+                    <strong>{origin.label}</strong>
+                    {origin.precision === "municipality" && (
+                        <span className="location__note">
+                            Usaremos el centro de {origin.municipality}.
+                        </span>
+                    )}
+                    {origin.label === SAMPLE_GPS.label && (
+                        <span className="location__note">
+                            Es una ubicación de ejemplo: todavía no usamos tu GPS.
+                        </span>
+                    )}
+                </p>
+            )}
+
+            <button type="button" className="button button--primary" onClick={() => pick(SAMPLE_GPS)}>
+                Usar mi ubicación
+            </button>
+
+            <form className="location__form" onSubmit={onSubmit} role="search" aria-label="Buscar ubicación">
+                <label htmlFor={inputId} className="field__label">
+                    Escribe una dirección o un municipio
+                </label>
+                <div className="location__row">
+                    <input
+                        id={inputId}
+                        className="field__input"
+                        type="text"
+                        autoComplete="off"
+                        maxLength={200}
+                        value={text}
+                        onChange={(e) => setText(e.target.value)}
+                    />
+                    <button type="submit" className="button">
+                        Buscar
+                    </button>
+                </div>
+            </form>
+
+            <p className="location__status" role="status" aria-live="polite">
+                {announcement}
+            </p>
+
+            {search.status === "done" && search.candidates.length > 0 && (
+                <ul className="location__candidates" aria-label="Lugares encontrados">
+                    {search.candidates.map((c) => (
+                        <li key={`${c.ine_code}-${c.label}`}>
+                            <button type="button" className="candidate" onClick={() => pick(c)}>
+                                {c.label}
+                            </button>
+                        </li>
+                    ))}
+                </ul>
+            )}
+        </section>
+    );
+}
