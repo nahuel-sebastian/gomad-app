@@ -84,6 +84,13 @@ def nearest_node(g, lon, lat, max_m=300):
     return int(g.tree_nodes[i]) if g.tree_nodes is not None else int(i)
 
 
+def nearest_nodes(g, lons, lats, max_m=300):
+    """Nodo mas cercano (componente principal) de cada punto y su distancia en metros; -1 si esta a mas de max_m."""
+    d, i = g.tree.query(_xy(lons, lats, g.cos_lat0))
+    nodes = g.tree_nodes[i] if g.tree_nodes is not None else i
+    return np.where(d <= max_m, nodes, -1).astype(np.int64), d
+
+
 def edge_costs(g, weights, floor):
     green = np.nan_to_num(g.green, nan=0.0)
     factor = (1 + weights.get("traffic", 0) * g.traffic - weights.get("green", 0) * green

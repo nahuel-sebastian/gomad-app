@@ -3,7 +3,7 @@ import pandas as pd
 import pytest
 from shapely.geometry import LineString
 
-from routing.graph import (RouteNotFound, bounded_distances, edge_costs, load_graph, nearest_node,
+from routing.graph import (RouteNotFound, bounded_distances, edge_costs, load_graph, nearest_node, nearest_nodes,
                            shortest_path, summarize)
 
 
@@ -140,3 +140,9 @@ def test_nearest_node_skips_small_fragments(tmp_path):
     lat = [40.3050, 40.3050, 40.3050, 40.3054, 40.3054]          # 3 y 4 a ~45 m de 0, sin conexion
     g = _write_graph(tmp_path, lon, lat, [(0, 1, 90), (1, 2, 90), (3, 4, 9)])
     assert nearest_node(g, -3.7300, 40.3054) == 0
+
+
+def test_nearest_nodes_vectorized(graph):
+    nodes, dist = nearest_nodes(graph, [-3.7300, -3.7289, -3.7000], [40.3050, 40.30505, 40.3100], max_m=300)
+    assert nodes.tolist() == [0, 1, -1]                # el tercero cae en la componente aislada: fuera
+    assert dist[0] == pytest.approx(0) and dist[1] == pytest.approx(5.6, abs=0.5)

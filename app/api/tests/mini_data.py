@@ -14,7 +14,7 @@ ORIGIN = {"lat": 40.3050, "lon": -3.7300}      # nodo 0 del grafo mini
 # id, source, name, type, covered, ine_code, lon, lat, green, {actividad: suitability}
 DESTINATIONS = [
     ("eiel_parques:1", "eiel_parques", "Parque Uno", "park", False, "28065", -3.7289, 40.3050, 0.8, {"walk": 1.0, "run": 0.8}),
-    ("nmc_parques:1", "nmc_parques", "PARQUE UNO", "park", False, "28065", -3.72893, 40.30503, 0.8, {"walk": 1.0}),
+    ("nmc_parques:1", "nmc_parques", "PARQUE UNO", "park", False, "28065", -3.72887, 40.30503, 0.8, {"walk": 1.0}),
     ("nmc_parques:2", "nmc_parques", "Parque Dos", "park", False, "28065", -3.7300, 40.3100, None, {"walk": 1.0}),
     ("eiel_deporte:1", "eiel_deporte", "Polideportivo Cubierto", "facility", True, "28065", -3.7250, 40.3050, 0.1, {"gym": 1.0}),
     ("ay_parques:1", "ay_parques", "Parque Capital", "park", False, "28079", -3.7300, 40.3080, None, {"walk": 0.9}),
@@ -53,7 +53,8 @@ def _graph(directory):
     edges.to_parquet(directory / "edges.parquet")
 
 
-def build_mini_data(base, *, forecast=True, precip=0.0, feels=20.0, air=True, graph=False):
+def build_mini_data(base, *, forecast=True, precip=0.0, feels=20.0, air=True, graph=False, forecast_ines=("28065",),
+                    no2=30.0):
     """precip: numero o funcion hora_relativa -> probabilidad (para simular lluvia solo a ciertas horas)."""
     base.mkdir(parents=True, exist_ok=True)
     con = duckdb.connect(str(base / "gomad.duckdb"))
@@ -84,15 +85,16 @@ def build_mini_data(base, *, forecast=True, precip=0.0, feels=20.0, air=True, gr
     rt.execute("""CREATE TABLE forecast (ine_code VARCHAR, ts TIMESTAMP_NS, temp DOUBLE, feels_like DOUBLE,
                   precip_prob DOUBLE, precip DOUBLE, wind INTEGER, sky VARCHAR, issued VARCHAR)""")
     if forecast:
-        for h in range(6):
-            p = precip(h) if callable(precip) else precip
-            rt.execute("INSERT INTO forecast VALUES ('28065', ?, ?, ?, ?, 0, 5, 'Despejado', '2026-10-16T08:00:00')",
-                       [NOW + timedelta(hours=h), feels, feels, p])
+        for ine in forecast_ines:
+            for h in range(6):
+                p = precip(h) if callable(precip) else precip
+                rt.execute("INSERT INTO forecast VALUES (?, ?, ?, ?, ?, 0, 5, 'Despejado', '2026-10-16T08:00:00')",
+                           [ine, NOW + timedelta(hours=h), feels, feels, p])
     rt.execute("CREATE TABLE aqi_hourly (station_id VARCHAR, ts TIMESTAMP_NS, pollutant VARCHAR, mean DOUBLE, n_hours BIGINT)")
     if air:
         # NO2 30 -> buena; PM10 45 seria «regular», pero con 15 de 24 h no llega a la cobertura minima
-        rt.execute("INSERT INTO aqi_hourly VALUES ('28065014', ?, 'NO2', 30.0, 1), ('28065014', ?, 'PM10', 45.0, 15)",
-                   [NOW - timedelta(hours=1)] * 2)
+        rt.execute("INSERT INTO aqi_hourly VALUES ('28065014', ?, 'NO2', ?, 1), ('28065014', ?, 'PM10', 45.0, 15)",
+                   [NOW - timedelta(hours=1), no2, NOW - timedelta(hours=1)])
     rt.close()
     clean = base / "clean"
     clean.mkdir(exist_ok=True)

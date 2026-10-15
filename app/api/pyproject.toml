@@ -30,5 +30,5 @@ packages = []   # el codigo se importa desde la raiz del servicio (pythonpath de
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-pythonpath = ["."]
+pythonpath = [".", "tests"]   # tests: mini_data.py, compartido por tests/ y sus subcarpetas
 markers = ["slow: necesita datos reales en app/data (se salta si faltan)"]
