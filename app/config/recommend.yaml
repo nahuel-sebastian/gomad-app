@@ -1,0 +1,7 @@
+# Parametros de /recommend sin fuente oficial (V-M1, 16/10/2026). CRITERIO PROPIO: la app lo dice.
+own_criterion: true
+straight_line_detour: 1.3        # distancia a pie ~ linea recta x 1,3 donde no hay grafo peatonal cargado
+dedupe_radius_m: 50              # mismo nombre a menos de 50 m = mismo sitio en dos fuentes (Ruling I7 de Task 19)
+max_candidates: 400              # por actividad, los mas cercanos en linea recta (latencia < 3 s)
+indoor_fallback_activity: gym    # RF-09: alternativa cubierta si la actividad no tiene destinos cubiertos
+air_reading_valid_h: 3           # sin patron horario (V-D3), la ultima medicion vale estas horas; despues, aire null

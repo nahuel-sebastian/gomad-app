@@ -12,3 +12,5 @@ YAML compartidos por los servicios. Se monta **en solo lectura** en `api` e `ing
 | `routing.yaml` | Pesos de la ruta saludable (tráfico, verde, sombra, fuentes) | DEC-07 |
 | `activities.yaml` | Catálogo de actividades y tabla actividad → destino | DEC-08 |
 | `indicators.yaml` | Indicadores de la vista de municipio (F5) | DEC-09 |
+| `recommend.yaml` | Parámetros de `/recommend` sin fuente oficial: rodeo de la línea recta, radio de duplicados, tope de candidatos, alternativa cubierta, validez de la última medición de aire (criterio propio) | V-M1 (16/10) |
+| `sources.yaml` | Etiquetas de cada fuente para la persona (`DataSource.label`) | V-M1 (16/10); S-D1 añade licencias |

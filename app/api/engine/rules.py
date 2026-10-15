@@ -12,7 +12,7 @@ CATEGORY_LABEL = {"good": "Buena", "fair": "Razonablemente buena", "moderate": "
                   "poor": "Desfavorable", "very_poor": "Muy desfavorable",
                   "extremely_poor": "Extremadamente desfavorable"}
 # claves de rules.yaml -> air que no son perfiles
-AIR_META_KEYS = ("source", "own_criterion")
+AIR_META_KEYS = ("source", "own_criterion", "own_criterion_profiles")
 
 
 def pollutant_category(pollutant, value, bands):

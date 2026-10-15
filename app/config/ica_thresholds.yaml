@@ -11,3 +11,7 @@ bands:
   PM2_5: [10, 20, 25, 50, 75, 800]
   SO2:   [100, 200, 350, 500, 750, 1250]
 period_hours: {NO2: 1, SO2: 1, O3: 8, PM10: 24, PM2_5: 24}
+# Cobertura minima de las medias moviles para dar categoria (O3 8 h -> 6 h, PM 24 h -> 18 h; NO2/SO2 1 h).
+# CRITERIO PROPIO (Ruling I2 de Task 19): una hora suelta de O3 o PM no es el ICA.
+min_coverage: 0.75
+min_coverage_own_criterion: true

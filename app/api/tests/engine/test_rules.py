@@ -128,3 +128,10 @@ def test_valid_rules_pass_validation():
 def test_invalid_rules_fail_validation(rules):
     with pytest.raises(ValueError):
         validate_rules(rules)
+
+
+def test_air_meta_key_own_criterion_profiles_is_not_a_profile():
+    rules = {"air": {"general": "poor", "own_criterion": True, "own_criterion_profiles": ["senior"]}}
+    validate_rules(rules)                      # no debe tomarlo por un perfil con categoria invalida
+    ctx = HourContext(datetime(2026, 7, 15, 10), 20, 20, 0, "poor")
+    assert evaluate_outdoor(ctx, "own_criterion_profiles", rules).outdoor_ok is False   # cae a general
