@@ -1,16 +1,9 @@
 import type { LocationCandidate, LocationResponse } from "../../api/types";
+import { normalize } from "../../lib/text";
 import { ApiError } from "../errors";
 import { MUNICIPALITIES } from "./municipalities";
 
 // Buscador de ejemplo: municipios por nombre y una direccion inventada
-
-function normalize(text: string) {
-    return text
-        .normalize("NFD")
-        .replace(/[̀-ͯ]/g, "")
-        .toLowerCase()
-        .trim();
-}
 
 export function locationMock(text: string): LocationResponse {
     const query = normalize(text);

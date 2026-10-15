@@ -2113,3 +2113,113 @@ textarea.field__input {
         height: 420px;
     }
 }
+
+/* ---------- Municipios ---------- */
+
+.page > .back-button {
+    align-self: flex-start;
+    min-height: var(--tap-min);
+    margin-bottom: 0px;
+}
+
+.muni-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 8px;
+}
+
+.muni-list__link {
+    display: flex;
+    align-items: center;
+    min-height: var(--tap-min);
+    height: 100%;
+    padding: 8px 12px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: var(--surface);
+    font-weight: 600;
+    transition: border-color var(--transition);
+}
+
+.muni-list__link:hover {
+    border-color: var(--green);
+}
+
+.muni__heading {
+    font-size: 20px;
+}
+
+.muni__grid {
+    display: grid;
+    gap: 16px;
+}
+
+.muni__category .panel__title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.indicator-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.indicator {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--border);
+}
+
+.indicator:last-child {
+    padding-bottom: 0px;
+    border-bottom: 0px;
+}
+
+.indicator dt {
+    color: var(--muted);
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.indicator dd {
+    display: flex;
+    flex-direction: column;
+}
+
+.indicator dd strong {
+    font-size: 18px;
+}
+
+.indicator dd small {
+    color: var(--muted);
+    font-size: 14px;
+}
+
+/* «sin datos» neutro: que no parezca un error */
+.indicator .indicator__nodata {
+    color: var(--muted);
+    font-size: 16px;
+    font-style: italic;
+}
+
+.fit-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding-left: 20px;
+    list-style: disc;
+}
+
+.muni > .button {
+    align-self: flex-start;
+}
+
+@media (min-width: 768px) {
+    .muni__grid {
+        grid-template-columns: repeat(2, minmax(0px, 1fr));
+    }
+}

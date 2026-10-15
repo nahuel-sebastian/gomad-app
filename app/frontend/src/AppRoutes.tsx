@@ -2,6 +2,8 @@ import { Route, Routes } from "react-router";
 import ComingSoon from "./components/ComingSoon";
 import Home from "./components/Home";
 import Layout from "./components/Layout";
+import Municipalities from "./components/Municipalities";
+import Municipality from "./components/Municipality";
 import NotFound from "./components/NotFound";
 import Recommendation from "./components/Recommendation";
 import Results from "./components/Results";
@@ -15,14 +17,8 @@ export default function AppRoutes() {
                 <Route path="resultados" element={<Results />} />
                 <Route path="resultados/:id" element={<Recommendation />} />
                 <Route path="ruta/:id" element={<RouteView />} />
-                <Route
-                    path="municipios"
-                    element={<ComingSoon title="Municipios" />}
-                />
-                <Route
-                    path="municipios/:ine_code"
-                    element={<ComingSoon title="Municipio" />}
-                />
+                <Route path="municipios" element={<Municipalities />} />
+                <Route path="municipios/:ine_code" element={<Municipality />} />
                 <Route
                     path="perfil"
                     element={<ComingSoon title="Tus preferencias" />}
