@@ -3,10 +3,11 @@ import Header from "./components/Header";
 import Hero from "./components/Hero";
 import Home from "./components/Home";
 import Results from "./components/Results";
+import Recommendation from "./components/Recommendation";
 
 export default function App() {
     // Controlamos si estamos en 'home' o en 'results'
-    const [view, setView] = useState<"home" | "results">("home");
+    const [view, setView] = useState<"home" | "results" | "detail">("home");
     // Guardamos qué actividad se ha seleccionado
     const [activity, setActivity] = useState<string>("");
 
@@ -34,11 +35,17 @@ export default function App() {
                         {/* Pasamos la función al componente Home */}
                         <Home onSelectActivity={handleSelectActivity} />
                     </>
-                ) : (
+                ) : view === "results" ? (
                     /* Pasamos la actividad y la función para volver atrás */
                     <Results
                         activity={activity}
                         onBack={() => setView("home")}
+                        onSelectResult={() => setView("detail")}
+                    />
+                ) : (
+                    <Recommendation
+                        onBack={() => setView("results")}
+                        onViewRoute={() => undefined}
                     />
                 )}
             </main>

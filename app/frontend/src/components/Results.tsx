@@ -3,9 +3,14 @@ import { useRef, useState } from "react";
 interface ResultsProps {
     activity: string;
     onBack: () => void;
+    onSelectResult: () => void;
 }
 
-export default function Results({ activity, onBack }: ResultsProps) {
+export default function Results({
+    activity,
+    onBack,
+    onSelectResult,
+}: ResultsProps) {
     const [isSheetExpanded, setIsSheetExpanded] = useState(false);
     const sheetRef = useRef<HTMLDivElement>(null);
     const dragStartY = useRef<number | null>(null);
@@ -76,6 +81,7 @@ export default function Results({ activity, onBack }: ResultsProps) {
                     </svg>
                     Volver
                 </button>
+
                 <div className="results-filters" aria-label="Filtros">
                     <button className="filter-button" type="button">
                         <svg
@@ -92,6 +98,7 @@ export default function Results({ activity, onBack }: ResultsProps) {
                         </svg>
                         Filtros
                     </button>
+
                     <div className="results-filter-chips">
                         {[
                             "Cerca de ti",
@@ -116,7 +123,9 @@ export default function Results({ activity, onBack }: ResultsProps) {
             <div className="results-layout">
                 <div
                     ref={sheetRef}
-                    className={`results-sheet${isSheetExpanded ? " results-sheet--expanded" : ""}`}
+                    className={`results-sheet${
+                        isSheetExpanded ? " results-sheet--expanded" : ""
+                    }`}
                     onPointerDown={(event) => {
                         // BLOQUEO EN DESKTOP: Ignoramos el drag si la pantalla es ancha
                         if (window.innerWidth >= 768) return;
@@ -126,6 +135,7 @@ export default function Results({ activity, onBack }: ResultsProps) {
                             event.currentTarget.querySelector(
                                 ".results-sheet__scroll",
                             );
+
                         if (
                             scrollContainer instanceof HTMLElement &&
                             scrollContainer.scrollTop > 0
@@ -138,15 +148,20 @@ export default function Results({ activity, onBack }: ResultsProps) {
                         event.currentTarget.setPointerCapture(event.pointerId);
                     }}
                     onPointerMove={(event) => {
-                        if (dragStartY.current === null || !sheetRef.current)
+                        if (dragStartY.current === null || !sheetRef.current) {
                             return;
+                        }
 
                         const delta = event.clientY - dragStartY.current;
-                        if (Math.abs(delta) > 8) didDrag.current = true;
+
+                        if (Math.abs(delta) > 8) {
+                            didDrag.current = true;
+                        }
 
                         const sheetHeight = sheetRef.current.offsetHeight;
                         const maxOffset = Math.max(sheetHeight - 164, 0);
                         const baseOffset = isSheetExpanded ? 0 : maxOffset;
+
                         const offset = Math.min(
                             maxOffset,
                             Math.max(0, baseOffset + delta),
@@ -157,17 +172,24 @@ export default function Results({ activity, onBack }: ResultsProps) {
                     onPointerUp={(event) => {
                         if (dragStartY.current !== null) {
                             const delta = event.clientY - dragStartY.current;
-                            if (Math.abs(delta) > 40)
+
+                            if (Math.abs(delta) > 40) {
                                 setIsSheetExpanded(delta < 0);
+                            }
                         }
+
                         dragStartY.current = null;
-                        if (sheetRef.current)
+
+                        if (sheetRef.current) {
                             sheetRef.current.style.transform = "";
+                        }
                     }}
                     onPointerCancel={() => {
                         dragStartY.current = null;
-                        if (sheetRef.current)
+
+                        if (sheetRef.current) {
                             sheetRef.current.style.transform = "";
+                        }
                     }}>
                     <button
                         className="results-sheet__handle"
@@ -183,6 +205,7 @@ export default function Results({ activity, onBack }: ResultsProps) {
                                 didDrag.current = false;
                                 return;
                             }
+
                             setIsSheetExpanded((expanded) => !expanded);
                         }}>
                         <span aria-hidden="true" />
@@ -199,17 +222,24 @@ export default function Results({ activity, onBack }: ResultsProps) {
 
                         <div className="container results-list">
                             {results.map((item) => (
-                                <div key={item.id} className="result-card">
+                                <button
+                                    key={item.id}
+                                    type="button"
+                                    className="result-card"
+                                    onClick={onSelectResult}>
                                     <div className="result-card__number">
                                         {item.id}
                                     </div>
+
                                     <div className="result-card__content">
                                         <h2 className="result-card__title">
                                             {item.title}
                                         </h2>
+
                                         <p className="result-card__meta">
                                             {item.meta}
                                         </p>
+
                                         <div className="chips chips--small">
                                             {item.chips.map((chip, idx) => (
                                                 <span
@@ -220,18 +250,21 @@ export default function Results({ activity, onBack }: ResultsProps) {
                                             ))}
                                         </div>
                                     </div>
+
                                     <div className="result-card__score-wrap">
                                         <div
                                             className={`score-badge score-badge--${item.tone}`}>
                                             {item.score}
                                         </div>
+
                                         <span
                                             className={`score-verdict score-verdict--${item.tone}`}>
                                             {item.verdict}
                                         </span>
                                     </div>
-                                </div>
+                                </button>
                             ))}
+
                             <button
                                 type="button"
                                 className="button button--full">
@@ -240,6 +273,7 @@ export default function Results({ activity, onBack }: ResultsProps) {
                         </div>
                     </div>
                 </div>
+
                 <div className="map-demo"></div>
             </div>
         </section>
