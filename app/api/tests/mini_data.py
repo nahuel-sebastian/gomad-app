@@ -27,9 +27,12 @@ ADDRESSES = [   # ine_code, municipality, street_code, street_type, street, stre
     ("28065", "Getafe", "065A0460", "Calle", "Madrid", "madrid", None, "", -3.7316000, 40.3050000),
     ("28065", "Getafe", "065A0100", "Calle", "de la Constitución", "de la constitucion", 5, "", -3.7290000, 40.3060000),
     ("28079", "Madrid", "079A0001", "Calle", "Gran Vía", "gran via", 1, "", -3.7019000, 40.4196000),
+    ("28065", "Getafe", "065A0200", "Calle", "de las Rozas", "de las rozas", 3, "", -3.7280000, 40.3060000),
+    ("28127", "Las Rozas de Madrid", "127A0001", "Calle", "Real", "real", 1, "", -3.8700000, 40.4900000),
 ]
 MUNICIPALITY_BOXES = {"28065": ("GETAFE", box(-3.80, 40.25, -3.65, 40.34)),
-                      "28079": ("MADRID", box(-3.85, 40.34, -3.55, 40.55))}
+                      "28079": ("MADRID", box(-3.85, 40.34, -3.55, 40.55)),
+                      "28127": ("ROZAS DE MADRID (LAS)", box(-3.95, 40.45, -3.86, 40.56))}
 
 
 def _graph(directory):

@@ -65,7 +65,7 @@ def test_source_dates_prefer_modified(repo):
 
 
 def test_municipality_names_prefer_callejero(repo):
-    assert repo.municipality_names() == {"28065": "Getafe", "28079": "Madrid"}
+    assert repo.municipality_names() == {"28065": "Getafe", "28079": "Madrid", "28127": "Las Rozas de Madrid"}
 
 
 def test_route_pois_skip_not_working(repo):

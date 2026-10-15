@@ -4,12 +4,14 @@ import time
 from contextlib import asynccontextmanager
 from typing import get_args
 
+import httpx
 from fastapi import Depends, FastAPI, HTTPException, Query, Request
 
 import schemas as s
 import settings
 from engine.rules import validate_rules
 from engine.scoring import validate_weights
+from geocoding import Geocoder
 from repository import DataUnavailable, Repository
 from routing.store import GraphStore
 from services import recommend as recommend_service
@@ -33,7 +35,9 @@ async def lifespan(app: FastAPI):
     t0 = time.perf_counter()
     app.state.graphs = GraphStore.load(settings.DATA_DIR / "graph")
     log.info("grafos cargados: %s en %.1f s", [z.name for z in app.state.graphs.zones], time.perf_counter() - t0)
+    app.state.geocoder = Geocoder(settings.DATA_DIR, httpx.Client())
     yield
+    app.state.geocoder.client.close()
 
 
 app = FastAPI(title="GoMad API", version="0.1.0", lifespan=lifespan)
@@ -89,9 +93,13 @@ def recommend(request: s.RecommendRequest, repo: Repository = Depends(get_repo),
         raise HTTPException(status_code=503, detail=str(e))
 
 
+def get_geocoder(request: Request) -> Geocoder:
+    return getattr(request.app.state, "geocoder", None) or Geocoder(settings.DATA_DIR)
+
+
 @app.get("/location", response_model=s.LocationResponse)
-def location(text: str = Query(min_length=3, max_length=200)):
-    _not_implemented()
+def location(text: str = Query(min_length=3, max_length=200), geocoder: Geocoder = Depends(get_geocoder)):
+    return s.LocationResponse(candidates=[s.LocationCandidate(**c) for c in geocoder.search(text)])
 
 
 @app.post("/route", response_model=s.RouteResponse)
