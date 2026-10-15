@@ -1,0 +1,91 @@
+# Catalogo de actividades y tabla actividad -> destino. DEC-08 (15/10/2026).
+# Lo lee ingest/build_db.py (apply_activities) sobre clean/destination_raw.parquet.
+# Un destino encaja en una actividad si cumple CUALQUIER regla; su suitability es la mayor.
+# Claves de una regla: source (obligatoria), field + in | contains (sin distinguir mayusculas), sport (columna EIEL
+# en `sports`), type, suitability. Campos existentes en destination_raw: name, label, facility_type, sports, type.
+# Las suitability son CRITERIO PROPIO. «Sorprendeme» (RF-03) puede elegir cualquier actividad del catalogo.
+# EIEL `NATACION` esta vacia en las 726 filas: nadar va por facility_type (TIPOINSTAL).
+own_criterion: true
+activities:
+  - id: walk
+    label: Caminar
+    icon: directions_walk
+    outdoor: true
+    rules:
+      - {source: eiel_parques, suitability: 1.0}
+      - {source: nmc_parques, suitability: 1.0}
+      - {source: ay_parques, suitability: 1.0}
+      - {source: areas_recreativas, suitability: 1.0}
+      - {source: vpla_redes, field: label, in: ["Parques Municipales y Urbanos", "Jardines y Plazas", "Vías Pecuarias", "Espacios Naturales Protegidos", "Ribera"], suitability: 0.9}
+
+  - id: run
+    label: Correr
+    icon: directions_run
+    outdoor: true
+    rules:
+      - {source: eiel_deporte, sport: ATLETISMO, suitability: 1.0}
+      - {source: nmc_deporte, field: name, contains: ["atletismo"], suitability: 1.0}
+      - {source: ay_polideportivos, field: label, contains: ["pista de atletismo"], suitability: 1.0}
+      - {source: eiel_parques, suitability: 0.8}
+      - {source: nmc_parques, suitability: 0.8}
+      - {source: ay_parques, suitability: 0.8}
+      - {source: areas_recreativas, suitability: 0.8}
+      - {source: vpla_redes, field: label, in: ["Parques Municipales y Urbanos", "Vías Pecuarias", "Espacios Naturales Protegidos", "Ribera"], suitability: 0.8}
+
+  - id: swim
+    label: Nadar
+    icon: pool
+    outdoor: null
+    rules:
+      - {source: eiel_deporte, field: facility_type, in: ["PISCINAS AL AIRE LIBRE", "PISCINAS CUBIERTAS"], suitability: 1.0}
+      - {source: ay_piscinas, suitability: 1.0}
+      - {source: nmc_deporte, field: name, contains: ["piscina"], suitability: 0.9}
+      - {source: ay_polideportivos, field: label, contains: ["piscina"], suitability: 0.9}
+
+  - id: padel
+    label: Pádel
+    icon: sports_tennis
+    outdoor: null
+    rules:
+      - {source: eiel_deporte, sport: PADEL, suitability: 1.0}
+      - {source: nmc_deporte, field: name, contains: ["pádel", "padel"], suitability: 0.9}
+      - {source: ay_polideportivos, field: label, contains: ["pádel", "padel"], suitability: 0.9}
+
+  - id: tennis
+    label: Tenis
+    icon: sports_tennis
+    outdoor: null
+    rules:
+      - {source: eiel_deporte, sport: TENIS, suitability: 1.0}
+      - {source: nmc_deporte, field: name, contains: ["tenis"], suitability: 0.9}
+      - {source: ay_polideportivos, field: label, contains: ["pistas de tenis", "pista de tenis"], suitability: 0.9}
+
+  - id: football
+    label: Fútbol
+    icon: sports_soccer
+    outdoor: null
+    rules:
+      - {source: eiel_deporte, sport: FUTBOL, suitability: 1.0}
+      - {source: nmc_deporte, field: name, contains: ["fútbol", "futbol"], suitability: 0.9}
+      - {source: ay_idb, field: label, contains: ["fútbol", "futbol"], suitability: 0.9}
+      - {source: ay_polideportivos, field: label, contains: ["fútbol", "futbol"], suitability: 0.9}
+
+  - id: basketball
+    label: Baloncesto
+    icon: sports_basketball
+    outdoor: null
+    rules:
+      - {source: eiel_deporte, sport: BALONCESTO, suitability: 1.0}
+      - {source: nmc_deporte, field: name, contains: ["baloncesto"], suitability: 0.9}
+      - {source: ay_idb, field: label, contains: ["baloncesto"], suitability: 0.9}
+      - {source: ay_polideportivos, field: label, contains: ["baloncesto"], suitability: 0.9}
+
+  - id: gym
+    label: Gimnasio y cubierto
+    icon: fitness_center
+    outdoor: false
+    rules:
+      - {source: eiel_deporte, field: facility_type, in: ["GIMNASIO", "POLIDEPORTIVOS CUBIERTOS"], suitability: 1.0}
+      - {source: ay_polideportivos, field: label, contains: ["musculación", "sala multiusos", "salas multiusos"], suitability: 0.9}
+      - {source: nmc_deporte, field: name, contains: ["gimnasio", "pabellón", "polideportivo"], suitability: 0.6}
+      - {source: eiel_deporte, sport: GIMNASIA, suitability: 0.6}

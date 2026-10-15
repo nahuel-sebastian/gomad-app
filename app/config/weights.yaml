@@ -1,0 +1,14 @@
+# Pesos por defecto de la nota 0-10 y velocidades del «tiempo a pie». DEC-07 (15/10/2026).
+# CRITERIO PROPIO: numeros redondos para que la persona los mueva (RF-16); no son datos oficiales.
+defaults:          # fraccion 0-1; el motor renormaliza si falta un factor
+  proximity: 0.30
+  suitability: 0.25
+  green: 0.20
+  air: 0.15
+  weather: 0.10
+speeds_kmh:        # sin fuente citada todavia (P-11)
+  walk: 4.5
+  run: 9.0
+  senior: 3.5      # perfil mayor
+  stroller: 3.5    # perfil carrito
+own_criterion: true

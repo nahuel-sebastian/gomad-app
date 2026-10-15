@@ -342,10 +342,10 @@ app/
 | A-01 | ~~Framework del frontend~~ | ✅ 14/10 | React + Vite sobre el prototipo (§5) |
 | A-02 | Detalle de cada pantalla (§5.2) | Con la maquetadora, al maquetar | No cambia la arquitectura |
 | A-03 | Nombre y dominio (D-10) | Equipo | Afecta al dominio del despliegue |
-| A-04 | Pesos por defecto y velocidades (D-07) | Motor, jue 15 | Velocidades con fuente citada o marcadas como criterio propio |
-| A-05 | Regla de aire por perfil (D-05) | Motor, jue 15 | Ver `umbrales.md` §1.5 |
+| A-04 | ✅ Pesos por defecto y velocidades (D-07) | Decidido el 15/10 | `app/config/weights.yaml`: cercanía 30 · adecuación 25 · verde 20 · aire 15 · meteo 10; caminar 4,5, correr 9, mayor/carrito 3,5 km/h; ruta: `routing.yaml` sin cambios. Todo criterio propio |
+| A-05 | ✅ Regla de aire por perfil (D-05) | Decidido el 15/10 | `app/config/rules.yaml`: general y carrito desde Desfavorable, sensible y mayor desde Regular (BOE; mayor = criterio propio). Lluvia (D-07b): desde el 50 % |
 | A-06 | Umbrales de calor (D-06) | Desbloqueado: umbrales oficiales, tabla municipio → zona (`docs/assets/heat_zones.csv`) y propuesta en `docs/assets/umbrales.md` §2.3 | |
-| A-07 | Tabla actividad → destino definitiva (D-08) | Datos/Motor, jue 15 | |
+| A-07 | ✅ Tabla actividad → destino (D-08) | Decidido el 15/10 | `app/config/activities.yaml`: 8 actividades (caminar, correr, nadar, pádel, tenis, fútbol, baloncesto, gimnasio y cubierto) |
 | A-08 | Indicadores de F5 (D-09) | Datos, vie 16 | |
 | A-09 | Usos de IA de CLAUDE.md §6.5 (D-11) | Equipo | Recomendado: solo el n.º 1 |
 | A-10 | ✅ Forma de la VM de OCI | Decidido el 15/10 | `VM.Standard.E5.Flex` 2 OCPU / 16 GB en `eu-madrid-1` (A1 sin capacidad), §6.1 |

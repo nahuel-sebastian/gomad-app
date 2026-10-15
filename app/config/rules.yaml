@@ -1,0 +1,16 @@
+# Filtros duros del motor (engine/rules.py). Decisiones del 15/10/2026.
+air:             # DEC-05: categoria del ICA a partir de la cual NO se recomienda exterior (cubierto u otra franja)
+  general: poor          # BOE: poblacion general, «Desfavorable» -> reducir actividades prolongadas y energicas
+  stroller: poor         # carrito: como la poblacion general
+  sensitive: moderate    # BOE: grupos de riesgo, «Regular» -> reducir actividades prolongadas y energicas
+  senior: moderate       # mayor como grupo de riesgo: CRITERIO PROPIO (el BOE no lo dice)
+  source: "BOE-A-2020-10426, tabla de recomendaciones (umbrales.md §1.4); senior = criterio propio"
+  own_criterion: true    # solo por senior; el resto cita el BOE
+heat:            # DEC-06 (vie 16): null = regla desactivada, la app dice que no hay umbral de calor cargado
+  max_feels_like_c: null
+  source: null
+  own_criterion: false
+rain:            # DEC-07b: se bloquea exterior si probPrecipitacion de AEMET > este valor, es decir, desde el 50 %
+  max_precip_prob: 49
+  source: null
+  own_criterion: true

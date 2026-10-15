@@ -1,4 +1,4 @@
-# PROVISIONAL hasta DEC-07
+# Valores de DEC-07 (15/10/2026): se mantienen los provisionales de Task 20. Criterio propio.
 # Lo leen ingest (graph.py: traffic, poi_radius_m) y api (rutas: cost_floor, pesos, umbral).
 traffic_by_highway:     # 0 = sin trafico, 1 = maximo. Criterio propio salvo que se cite otra fuente.
   primary: 1.0
