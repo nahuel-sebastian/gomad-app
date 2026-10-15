@@ -2483,3 +2483,51 @@ textarea.field__input {
 .option--stacked .muted {
     font-weight: 400;
 }
+
+/* ---------- Asistente de rutas ---------- */
+
+.assistant__form {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.assistant__form .button {
+    align-self: flex-start;
+}
+
+.assistant__measures {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+}
+
+.option-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 6px;
+}
+
+.conditions {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.condition {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 10px 12px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+}
+
+.condition .chip {
+    flex-shrink: 0;
+}
+
+.assistant > .panel > .button--primary,
+.assistant .prefs-form > .button--primary {
+    align-self: flex-start;
+}

@@ -1,5 +1,5 @@
 import { Route, Routes } from "react-router";
-import ComingSoon from "./components/ComingSoon";
+import Assistant from "./components/Assistant";
 import Home from "./components/Home";
 import Layout from "./components/Layout";
 import Municipalities from "./components/Municipalities";
@@ -22,10 +22,7 @@ export default function AppRoutes() {
                 <Route path="municipios" element={<Municipalities />} />
                 <Route path="municipios/:ine_code" element={<Municipality />} />
                 <Route path="perfil" element={<Profile />} />
-                <Route
-                    path="asistente"
-                    element={<ComingSoon title="Asistente de rutas" />}
-                />
+                <Route path="asistente" element={<Assistant />} />
                 <Route path="fuentes" element={<Sources />} />
                 <Route path="*" element={<NotFound />} />
             </Route>
