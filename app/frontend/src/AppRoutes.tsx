@@ -8,6 +8,7 @@ import NotFound from "./components/NotFound";
 import Profile from "./components/Profile";
 import Recommendation from "./components/Recommendation";
 import Results from "./components/Results";
+import Sources from "./components/Sources";
 import RouteView from "./components/RouteView";
 
 export default function AppRoutes() {
@@ -25,10 +26,7 @@ export default function AppRoutes() {
                     path="asistente"
                     element={<ComingSoon title="Asistente de rutas" />}
                 />
-                <Route
-                    path="fuentes"
-                    element={<ComingSoon title="Fuentes, licencias y aviso" />}
-                />
+                <Route path="fuentes" element={<Sources />} />
                 <Route path="*" element={<NotFound />} />
             </Route>
         </Routes>

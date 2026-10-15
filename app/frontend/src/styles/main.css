@@ -2390,3 +2390,96 @@ textarea.field__input {
     border-color: var(--border);
     color: var(--muted);
 }
+
+/* ---------- Fuentes y aviso ---------- */
+
+.sources-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 15px;
+}
+
+.sources-table th,
+.sources-table td {
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--border);
+    text-align: left;
+    vertical-align: top;
+}
+
+.sources-table thead {
+    background: var(--bg);
+    color: var(--muted);
+    font-size: 14px;
+}
+
+.sources-table__link {
+    display: inline-flex;
+    min-height: var(--tap-min);
+    align-items: center;
+    font-weight: 700;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+}
+
+.sources-table__failure {
+    display: block;
+    margin-top: 4px;
+    color: var(--bad-fg);
+    font-weight: 600;
+}
+
+/* en movil, cada fila es una tarjeta con la etiqueta de su columna */
+@media (max-width: 767px) {
+    .sources-table thead {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+        clip: rect(0 0 0 0);
+    }
+
+    .sources-table,
+    .sources-table tbody,
+    .sources-table tr,
+    .sources-table td {
+        display: block;
+    }
+
+    .sources-table tr {
+        padding: 8px 0px;
+        border-bottom: 1px solid var(--border);
+    }
+
+    .sources-table td {
+        padding: 4px 0px;
+        border: 0px;
+    }
+
+    .sources-table td::before {
+        content: attr(data-label);
+        display: block;
+        color: var(--muted);
+        font-size: 14px;
+        font-weight: 600;
+    }
+}
+
+.option--stacked {
+    align-items: flex-start;
+    padding-block: 10px;
+}
+
+.option--stacked input {
+    margin-top: 2px;
+}
+
+.option--stacked > span {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.option--stacked .muted {
+    font-weight: 400;
+}
