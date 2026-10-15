@@ -82,6 +82,8 @@
     --bg: #f3f7fa;
     --surface: #ffffff;
     --border: #dce5ec;
+    /* bordes de controles: 3,46:1 sobre --surface y 3,21:1 sobre --bg (WCAG 1.4.11, medido) */
+    --border-strong: #7a8c9e;
     --muted: #55677a;
     --focus: #2c7be5;
     --font: "Figtree", "Segoe UI", Helvetica, Arial, sans-serif;
@@ -99,6 +101,8 @@
     --bad-fg: #9b1c28;
     --nodata-bg: #eceff2;
     /* colores oficiales del ICA (umbrales.md §1.3) */
+    --aqi-text-dark: #000000;
+    --aqi-text-light: #ffffff;
     --aqi-good: rgb(56, 162, 206);
     --aqi-fair: rgb(50, 161, 94);
     --aqi-moderate: rgb(241, 229, 73);
@@ -430,12 +434,12 @@ button {
 /* ICA: texto oscuro sobre azul, verde y amarillo; blanco sobre el resto (pantallas §0.1) */
 .chip--aqi-good {
     background: var(--aqi-good);
-    color: #000000;
+    color: var(--aqi-text-dark);
 }
 
 .chip--aqi-fair {
     background: var(--aqi-fair);
-    color: #000000;
+    color: var(--aqi-text-dark);
 }
 
 .chip--aqi-moderate {
@@ -445,22 +449,22 @@ button {
 
 .chip--aqi-poor {
     background: var(--aqi-poor);
-    color: #ffffff;
+    color: var(--aqi-text-light);
 }
 
 .chip--aqi-very_poor {
     background: var(--aqi-very-poor);
-    color: #ffffff;
+    color: var(--aqi-text-light);
 }
 
 .chip--aqi-extremely_poor {
     background: var(--aqi-extremely-poor);
-    color: #ffffff;
+    color: var(--aqi-text-light);
 }
 
 .chip--aqi-nodata {
     background: var(--aqi-nodata);
-    color: #ffffff;
+    color: var(--aqi-text-light);
 }
 
 .home {
@@ -610,6 +614,14 @@ button {
     background: var(--surface);
     font-weight: 700;
     transition: background var(--transition);
+}
+
+.button[aria-disabled="true"] {
+    /* deshabilitado sin opacidad: el texto mantiene >= 4,5:1 */
+    cursor: not-allowed;
+    border-color: var(--border-strong);
+    background: var(--nodata-bg);
+    color: var(--muted);
 }
 
 .button:hover {
@@ -1845,7 +1857,7 @@ textarea.field__input {
     width: 100%;
     min-height: var(--tap-min);
     padding: 8px 12px;
-    border: 1px solid var(--border);
+    border: 1px solid var(--border-strong);
     border-radius: 10px;
     background: var(--surface);
     font-weight: 600;
@@ -2005,7 +2017,7 @@ textarea.field__input {
     padding: 4px;
     border-radius: var(--radius-sm);
     background: var(--bg);
-    border: 1px solid var(--border);
+    border: 1px solid var(--border-strong);
 }
 
 .seg__option {
@@ -2412,7 +2424,7 @@ textarea.field__input {
     gap: 10px;
     min-height: var(--tap-min);
     padding: 6px 12px;
-    border: 1px solid var(--border);
+    border: 1px solid var(--border-strong);
     border-radius: 10px;
     cursor: pointer;
 }
@@ -2432,7 +2444,7 @@ textarea.field__input {
 
 .button--quiet {
     align-self: flex-start;
-    border-color: var(--border);
+    border-color: var(--border-strong);
     color: var(--muted);
 }
 
