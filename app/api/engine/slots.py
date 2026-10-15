@@ -1,6 +1,7 @@
 """Evaluacion hora a hora y mejor franja (RF-08, RF-09)."""
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
+from zoneinfo import ZoneInfo
 
 from engine.rules import HourContext, evaluate_outdoor
 from engine.scoring import air_factor, compute_score, weather_factor
@@ -20,6 +21,9 @@ class HourResult:
 
 def window_hours(start, end, now=None):
     # con now, las horas ya pasadas no se ofrecen (la hora en curso si)
+    if now is not None and now.tzinfo is not None:
+        # la ventana va en hora local de Madrid sin zona (schemas.py): se convierte now igual
+        now = now.astimezone(ZoneInfo("Europe/Madrid")).replace(tzinfo=None)
     if now is not None and now > start:
         start = now
     h = start.replace(minute=0, second=0, microsecond=0)

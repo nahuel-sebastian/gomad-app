@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 
 from engine.rules import HourContext
 from engine.slots import MAX_WINDOW_HOURS, best_hour, evaluate_hours, needs_indoor, window_hours
@@ -73,3 +73,24 @@ def test_past_hours_are_not_offered():
 def test_window_is_capped():
     w = window_hours(datetime(2026, 7, 15, 0), datetime(9999, 1, 1))
     assert len(w) == MAX_WINDOW_HOURS
+
+
+def test_aware_now_is_converted_to_madrid_local_time():
+    # en julio Madrid va a UTC+2: 17:20 UTC son las 19:20 locales
+    w = window_hours(datetime(2026, 7, 15, 9), datetime(2026, 7, 15, 21),
+                     now=datetime(2026, 7, 15, 17, 20, tzinfo=timezone.utc))
+    assert w[0] == datetime(2026, 7, 15, 19)
+
+
+def test_no_forecast_at_all_does_not_suggest_indoor():
+    window = [datetime(2026, 7, 15, 18), datetime(2026, 7, 15, 19)]
+    res = evaluate_hours({}, window, False, "general", RULES, FIXED, WEIGHTS)
+    assert needs_indoor(res) is False
+    assert best_hour(res) is None
+
+
+def test_tie_prefers_earliest_hour():
+    contexts = {c.hour: c for c in [ctx(18), ctx(19)]}
+    res = evaluate_hours(contexts, list(contexts), False, "general", RULES, FIXED, WEIGHTS)
+    assert res[0].score == res[1].score
+    assert best_hour(res).hour == datetime(2026, 7, 15, 18)
