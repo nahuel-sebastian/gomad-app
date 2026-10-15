@@ -24,7 +24,7 @@ export default function Layout() {
                 Saltar al contenido
             </a>
             <Header />
-            <main id="contenido" className="app-main">
+            <main id="contenido" className="app-main" tabIndex={-1}>
                 <Outlet />
             </main>
             <footer className="footer">

@@ -218,7 +218,12 @@ button {
 
     * {
         transition: none !important;
+        animation: none !important;
     }
+}
+
+.app-main:focus {
+    outline: none;
 }
 
 .header {
@@ -391,8 +396,8 @@ button {
     white-space: nowrap;
 }
 
-.chip .gomad-icon {
-    --gomad-icon-size: 16px;
+.chip .icon {
+    --icon-size: 16px;
 }
 
 .chip--info {
@@ -536,8 +541,8 @@ button {
         transform var(--transition);
 }
 
-.activity__tile .gomad-icon {
-    --gomad-icon-size: 28px;
+.activity__tile .icon {
+    --icon-size: 28px;
 }
 
 .activity:hover .activity__tile {
@@ -561,8 +566,8 @@ button {
     background: var(--blue-tint);
 }
 
-.surprise__tile .gomad-icon {
-    --gomad-icon-size: 24px;
+.surprise__tile .icon {
+    --icon-size: 24px;
 }
 
 .surprise__text {
@@ -603,8 +608,8 @@ button {
     background: var(--bg);
 }
 
-.button .gomad-icon {
-    --gomad-icon-size: 18px;
+.button .icon {
+    --icon-size: 18px;
 }
 
 .footer {

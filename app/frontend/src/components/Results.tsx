@@ -194,6 +194,7 @@ export default function Results() {
                     className={`results-sheet${
                         isSheetExpanded ? " results-sheet--expanded" : ""
                     }`}
+                    onFocus={() => setIsSheetExpanded(true)}
                     onPointerDown={(event) => {
                         // BLOQUEO EN DESKTOP: Ignoramos el drag si la pantalla es ancha
                         if (window.innerWidth >= 768) return;
