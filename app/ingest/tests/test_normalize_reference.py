@@ -1,3 +1,5 @@
+import pathlib
+
 import geopandas as gpd
 import pandas as pd
 import pytest
@@ -68,3 +70,41 @@ def test_poi():
     assert (p["type"] == "bench").sum() >= 76_000                             # ay_bancos por COORD_GIS (76.627)
     assert (p["type"] == "dog_area").sum() == 112
     assert (p["type"] == "aed").sum() > 12_000
+
+
+def test_destination_raw_names_and_flags():
+    # nombre obligatorio en la API (DestinationSummary.name: str); banderas booleanas con nulos, no double
+    d = read("destination_raw")
+    assert d["name"].notna().all() and (d["name"].str.strip() != "").all()
+    for col in ("covered", "accessible", "water"):
+        assert str(d[col].dtype) == "boolean", col
+    eiel = d[d.source == "eiel_deporte"]
+    outdoor = eiel.facility_type.isin(["PISCINAS AL AIRE LIBRE", "TERRENOS DE JUEGO", "PISTAS POLIDEPORTIVAS"])
+    assert not eiel.loc[outdoor, "covered"].any()
+
+
+def test_poi_only_working_fountains():
+    from common import RAW, latest_csv, read_csv
+    raw = read_csv(latest_csv(RAW / "ay_fuentes", ["ID", "ESTADO"]))
+    working = set("ay_fuentes:" + raw.loc[raw.ESTADO == "OPERATIVO", "ID"])
+    fountains = set(read("poi").query("source == 'ay_fuentes'")["id"])
+    assert fountains and fountains <= working
+
+
+def test_population_write_is_atomic(tmp_path, monkeypatch):
+    import common
+    import normalize.population as population
+    target = tmp_path / "population.parquet"
+    target.write_bytes(b"old")
+    monkeypatch.setattr(common, "CLEAN", tmp_path)
+    if hasattr(population, "CLEAN"):
+        monkeypatch.setattr(population, "CLEAN", tmp_path)
+
+    def broken(self, path, *args, **kwargs):
+        pathlib.Path(path).write_bytes(b"partial")
+        raise OSError("disco lleno")
+
+    monkeypatch.setattr(pd.DataFrame, "to_parquet", broken)
+    with pytest.raises(OSError):
+        population.run()
+    assert target.read_bytes() == b"old"

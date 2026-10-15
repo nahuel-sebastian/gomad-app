@@ -1,6 +1,6 @@
 import geopandas as gpd
 
-from common import RAW, ine_code, points, read_csv, to_float, write
+from common import RAW, ine_code, latest_csv, points, read_csv, to_float, write
 from normalize import normalizer
 
 YES_VALUES = ("SI", "EXISTE SERVICIO")   # literales reales: IT_FUENTE "SI"/vacio; AGUA "EXISTE SERVICIO"/"NO EXISTE SERVICIO"
@@ -36,7 +36,7 @@ def green_destinations():
     p4 = a.assign(source_id=a.index.astype(str), source="areas_recreativas", name=a["DS_NOMBRE"],
                   type="recreation_area", covered=False, ine_code=None,
                   water=a["IT_FUENTE"].map(lambda x: str(x).strip().upper() in YES_VALUES))
-    ay = points(read_csv(next((RAW / "ay_parques").glob("*.csv"))), "LONGITUD", "LATITUD", 4326)
+    ay = points(read_csv(latest_csv(RAW / "ay_parques", ["PK", "NOMBRE", "LATITUD", "LONGITUD"])), "LONGITUD", "LATITUD", 4326)
     p5 = ay.assign(source_id=ay["PK"], source="ay_parques", name=ay["NOMBRE"], type="park", covered=False,
                    ine_code="28079", url=ay["CONTENT-URL"])
     for p in (p1, p2, p3, p4, p5):

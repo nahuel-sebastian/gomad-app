@@ -60,13 +60,26 @@ def to_wgs84(xs, ys):
     return np.asarray(lon), np.asarray(lat)
 
 
-def read_csv(path, sep=";"):
+def read_csv(path, sep=";", nrows=None):
     for encoding in ("utf-8-sig", "cp1252"):
         try:
-            return pd.read_csv(path, sep=sep, dtype=str, encoding=encoding, keep_default_na=False)
+            return pd.read_csv(path, sep=sep, dtype=str, encoding=encoding, keep_default_na=False, nrows=nrows)
         except UnicodeDecodeError:
             continue
     raise ValueError(f"Codificación no reconocida: {path}")
+
+
+def latest_csv(folder, columns):
+    """CSV mas reciente de la carpeta que trae todas las columnas pedidas.
+
+    El Ayuntamiento cambia el nombre del fichero en cada publicacion y la descarga no borra el anterior;
+    con --include-heavy baja ademas otros recursos del dataset con columnas distintas.
+    """
+    for path in sorted(pathlib.Path(folder).glob("*.csv"), key=lambda f: f.stat().st_mtime, reverse=True):
+        header = read_csv(path, nrows=0).columns
+        if all(c in header for c in columns):
+            return path
+    raise FileNotFoundError(f"Ningún CSV de {folder} tiene las columnas {list(columns)}")
 
 
 def points(df, x, y, crs):

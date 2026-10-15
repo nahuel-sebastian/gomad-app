@@ -1,12 +1,12 @@
 import pandas as pd
 
-from common import CLEAN, RAW, ine_code, municipalities, normalize_name, read_csv
+from common import RAW, ine_code, latest_csv, municipalities, normalize_name, read_csv, write
 from normalize import normalizer
 
 
 @normalizer("population")
 def run():
-    df = read_csv(next((RAW / "padron").glob("*.csv")))
+    df = read_csv(latest_csv(RAW / "padron", ["Año", "Tipo territorio", "Código territorio", "Sexo", "Valor"]))
     # padron mezcla municipios, zonas estadisticas y total regional (informe-datos §2.12)
     df = df[df["Tipo territorio"] == "Municipios"]
     df = df[df["Sexo"] == "Total"]
@@ -23,7 +23,4 @@ def run():
     out = pd.DataFrame({"ine_code": df["ine_code"], "year": df["Año"].astype(int),
                         "population": df["Valor"].map(lambda v: int(float(str(v).replace(".", "").replace(",", "."))))})
     out = out.dropna(subset=["ine_code"])
-    CLEAN.mkdir(parents=True, exist_ok=True)
-    target = CLEAN / "population.parquet"
-    out.to_parquet(target, index=False)
-    return target
+    return write(out, "population")
