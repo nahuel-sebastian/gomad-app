@@ -23,6 +23,26 @@ npm run lint       # oxlint
 npm run build      # tsc + vite build
 ```
 
+## Imagen de producción y despliegue
+
+El `Dockerfile` es multi-stage: `node:22.23.3-alpine` hace `npm ci` y `npm run build`, y la imagen final (`caddy:2.8.4`) solo lleva el `Caddyfile` y `dist` en `/srv/web`. No hace falta `dist/` local; el `.dockerignore` deja fuera `node_modules/`, `dist/`, `docs/` y `.env*`. Las pruebas no se ejecutan en la imagen: pásalas antes (`npm test`).
+
+En local, desde `app/` (con `app/.env` y `app/deploy/.env`, `DOMAIN=:80`):
+
+```bash
+docker compose -f deploy/docker-compose.yml up -d --build
+curl -s localhost/api/health             # {"status":"ok"}
+docker compose -f deploy/docker-compose.yml down
+```
+
+En la VM, desde `~/GoMad` (o en local con `--no-pull`):
+
+```bash
+app/deploy/deploy.sh
+```
+
+Hace `git pull --ff-only`, `up -d --build`, comprueba `/` y `/api/health` y resume el commit y los contenedores. Si falla, `docker compose -f deploy/docker-compose.yml logs --tail=80` desde `app/`.
+
 ## Contrato con la API
 
 `src/api/openapi.json` lo genera y versiona Motor (no editarlo). Los tipos se regeneran con:

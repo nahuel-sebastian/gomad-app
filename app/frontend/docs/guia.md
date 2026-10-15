@@ -183,7 +183,7 @@ Cada paso: objetivo · ficheros · qué hacer · terminado cuando · cómo proba
      /* repetir para 500, 600 y 700 (y latin-ext con su unicode-range) */
      ```
    - **Iconos (aplazado; decidido: Material Symbols con un fichero de fuente propio).** Cuando se retome: el fichero en `public/fonts/` con su licencia (Apache 2.0), `@font-face` + clase `.icon` en `icons.css`, ligaduras (`<span class="icon" aria-hidden="true">directions_run</span>`). Ojo al peso: Material Symbols Rounded completo es **5,4 MB** en `.woff2` (`material-symbols` 0.48.0; el `.woff` pesa más). Conviene recortarlo a los iconos usados (p. ej. con `pyftsubset` de fonttools) o aceptar la carga sabiendo que penaliza el móvil. Mientras tanto, solo **cerrar el comentario de `icons.css`** (`/* … */`), que hoy está abierto.
-7. **Dockerfile multi-stage** (comprobado con `docker build` el 14/10):
+7. **Dockerfile multi-stage** (comprobado con `docker build` el 14/10; **hecho en el paso 2 (15/10)** con la versión fija `node:22.23.3-alpine` y un `.dockerignore` más completo: ver `app/frontend/Dockerfile`):
    ```dockerfile
    # 1) compila la SPA
    FROM node:22-alpine AS build
@@ -244,6 +244,7 @@ Cada paso: objetivo · ficheros · qué hacer · terminado cuando · cómo proba
 **Ficheros:** ninguno del front si el paso 0 está hecho; `app/deploy/.env` en la VM (`DOMAIN=<dominio>`).
 **Terminado cuando:** `curl -I https://<dominio>/api/health` → 200 con certificado válido; la SPA carga en el móvil; recargar `/resultados` no da 404.
 **Depende de:** paso 0 (D1), VM (Task 6), dominio (DEC-10).
+**Estado (15/10, paso 2):** HTTP listo: en la VM, desde `~/GoMad`, `app/deploy/deploy.sh` actualiza, compila y comprueba `/` y `/api/health` (pendiente de confirmar en la VM). Para HTTPS solo falta el dominio: `DOMAIN=<dominio>` en `app/deploy/.env` y volver a ejecutar el guion con `GOMAD_URL=https://<dominio>`.
 
 ### Paso 6 — Ruta y Municipio (sáb 17) · S-F1, S-F2
 - **Ruta (S-F1):** `src/screens/Route.tsx` según `app/frontend/docs/pantallas.md` §4. **Terminado:** descripción en texto completa sin mirar el mapa; aviso si `approximate`; Vitest + axe.

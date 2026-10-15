@@ -247,7 +247,17 @@ ingest   cron: horario (aire, previsión), diario 04:00 (servicios, Nomecalles, 
 
 **Motivo de la forma:** la Always Free `VM.Standard.A1.Flex` daba «out of capacity» en la región y E5.Flex era la única con capacidad. 16 GB dejan sitio para la API (~1–1,5 GB) y para construir el grafo regional (~3,1 GB, §3.4). Coste aproximado ~2,2 $/día encendida (precios de lista, sin verificar); al terminar el reto, parar o terminar la instancia.
 
-**Comprobado el 15/10:** `curl http://<SERVER_IP>/api/health` → `{"status":"ok"}` desde fuera. El front sirve una página de prueba (`app/frontend/dist/index.html` creado a mano en la VM) hasta que el Dockerfile multi-stage de la Task 10 compile el front. Solo HTTP: el HTTPS llega con el dominio (V-F4).
+**Comprobado el 15/10:** `curl http://<SERVER_IP>/api/health` → `{"status":"ok"}` desde fuera. El front servía una página de prueba (`app/frontend/dist/index.html` creado a mano en la VM). Solo HTTP: el HTTPS llega con el dominio (V-F4).
+
+**Cómo se despliega (paso 2 del front, 15/10):** el `Dockerfile` del front es multi-stage (`node:22.23.3-alpine` compila con `npm ci` + `npm run build`; `caddy:2.8.4` solo lleva el `Caddyfile` y `dist`), así que la imagen se construye desde un clon limpio y la página de prueba queda sustituida por la SPA (se borra `app/frontend/dist` de la VM, ya no se usa). En la VM, desde `~/GoMad`:
+
+```bash
+app/deploy/deploy.sh
+```
+
+El guion comprueba que existen `app/.env` y `app/deploy/.env` (sin leerlos), hace `git pull --ff-only`, `docker compose -f deploy/docker-compose.yml up -d --build`, espera a que respondan `/` (el `index.html` del build) y `/api/health`, y resume el commit desplegado y los contenedores. Sin `sudo` ni borrado de volúmenes; si algo falla, sale con error y dice qué mirar (`docker compose … ps` y `logs`). Imagen del front: 71,2 MB (Caddy 69,8 MB + estáticos).
+
+**Resultado en la VM:** pendiente de confirmar en la VM (commit desplegado, `curl http://<SERVER_IP>/` con la SPA y `/api/health`).
 
 ---
 
