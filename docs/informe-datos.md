@@ -88,7 +88,7 @@ Cobertura = municipios distintos reconocidos sobre 179. «Vía» = cómo se iden
 | Columna `NATACION` vacía | ✔ 0 filas con valor |
 | Columnas por deporte: `PADEL` 154, `TENIS` 164, `FUTBOL` 322, `BALONCESTO` 330, `ATLETISMO` 22, `GIMNASIA` 242 | ✔ exactas |
 | Piscinas por `TIPOINSTAL` | 35 «PISCINAS AL AIRE LIBRE» + 10 «PISCINAS CUBIERTAS» |
-| VPLA: 37.167 polígonos, 166 municipios, 16.867 zonas verdes, 738 «Deportivos» | ✔ |
+| VPLA: 37.167 polígonos, 166 municipios, 16.867 zonas verdes (en 162 municipios: El Atazar, Cervera de Buitrago, Gargantilla del Lozoya y Tielmes no tienen ninguna), 738 «Deportivos» | ✔ |
 | VPLA: faltan 13 | ✔ Boadilla del Monte, Brunete, Ciempozuelos, Guadarrama, **Madrid**, Pinto, Pozuelo de Alarcón, Rivas-Vaciamadrid, Las Rozas de Madrid, Sevilla la Nueva, Torrelodones, Villanueva de la Cañada, Villanueva del Pardillo |
 | Getafe en VPLA: 172,8 m² de zona verde/hab | Coherente: 648 polígonos verdes, 33,39 M m² (falta dividir por el padrón) |
 | Nomecalles por nombre: polideportivo 190, piscina 40, pádel 57, tenis 29, campo de fútbol 48 | ✔ salvo campo de fútbol: **50**. Otros: pabellón 38, frontón 17, skate 8, atletismo 2 |
