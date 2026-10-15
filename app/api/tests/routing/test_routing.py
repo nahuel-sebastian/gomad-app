@@ -75,3 +75,32 @@ def test_bounded_dijkstra(graph):
 
 def test_green_without_data_is_none(graph):
     assert summarize(graph, [4])["green_pct"] is None
+
+
+def test_astar_matches_dijkstra_when_lengths_are_shorter_than_local_xy(tmp_path):
+    # en los datos reales length_m (UTM) es hasta un 0,3 % menor que la distancia de la proyeccion local
+    # (aqui 1 %, para que salga en un grafo pequeno):
+    # una heuristica no consistente hacia que igraph 0.11.6 diera segfault (Getafe, Task 22)
+    rng = np.random.default_rng(7)
+    side = 30
+    ids = np.arange(side * side).reshape(side, side)
+    lon = (-3.73 + 0.0005 * (ids % side)).ravel() + rng.uniform(-1e-4, 1e-4, ids.size)
+    lat = (40.30 + 0.0004 * (ids // side)).ravel() + rng.uniform(-1e-4, 1e-4, ids.size)
+    pairs = [(ids[i, j], ids[i, j + 1]) for i in range(side) for j in range(side - 1)]
+    pairs += [(ids[i, j], ids[i + 1, j]) for i in range(side - 1) for j in range(side)]
+    u, v = np.array(pairs).T.reshape(2, -1)
+    cos0 = np.cos(np.radians(lat.mean()))
+    straight = np.hypot((lon[u] - lon[v]) * 111_320 * cos0, (lat[u] - lat[v]) * 111_320)
+    edges = pd.DataFrame({"u": u, "v": v, "length_m": straight * 0.99, "traffic": rng.uniform(0, 1, len(u)),
+                          "green_pct": rng.uniform(0, 1, len(u)), "near_fountain": rng.uniform(0, 1, len(u)) < 0.1,
+                          "highway": "footway", "near_bench": False, "near_aed": False})
+    edges["geom"] = [LineString([(lon[a], lat[a]), (lon[b], lat[b])]).wkb for a, b in zip(u, v)]
+    pd.DataFrame({"node": ids.ravel(), "osm_id": ids.ravel(), "lon": lon, "lat": lat}).to_parquet(
+        tmp_path / "nodes.parquet")
+    edges.to_parquet(tmp_path / "edges.parquet")
+    g = load_graph(tmp_path)
+    for costs in (g.length, edge_costs(g, WEIGHTS, 0.5)):
+        for a, b in rng.integers(0, ids.size, (40, 2)):
+            d = costs[shortest_path(g, int(a), int(b), costs, "dijkstra")].sum()
+            s = costs[shortest_path(g, int(a), int(b), costs, "astar")].sum()
+            assert s == pytest.approx(d)

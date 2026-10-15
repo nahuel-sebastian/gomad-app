@@ -81,9 +81,13 @@ def edge_costs(g, weights, floor):
 def shortest_path(g, origin, target, costs, algorithm="dijkstra"):
     if algorithm == "astar":
         xy = _xy(g.lon, g.lat, g.cos_lat0)
-        # factor minimo real: hace la heuristica admisible (linea recta x factor minimo)
-        min_factor = float(np.min(costs / g.length)) if len(g.length) else 1.0
-        heuristic = lambda graph, a, b: float(np.hypot(*(xy[a] - xy[b]))) * min_factor * 0.999
+        # escala = min(coste / linea recta) de cada tramo: heuristica consistente por construccion.
+        # length_m (UTM) puede ser algo menor que la distancia en _xy; una heuristica no consistente
+        # da rutas peores y hace que igraph 0.11.6 falle (segfault) en el grafo de Getafe
+        straight = np.hypot(*(xy[g.u] - xy[g.v]).T)
+        positive = straight > 0
+        scale = float(np.min(costs[positive] / straight[positive])) if positive.any() else 0.0
+        heuristic = lambda graph, a, b: float(np.hypot(*(xy[a] - xy[b]))) * scale * (1 - 1e-9)  # margen de redondeo
         edges = g.ig.get_shortest_path_astar(origin, target, heuristics=heuristic, weights=costs, output="epath")
     else:
         edges = g.ig.get_shortest_path(origin, target, weights=costs, output="epath")
