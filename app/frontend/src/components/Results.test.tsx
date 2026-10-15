@@ -214,9 +214,9 @@ describe("Resultados: pastilla de verde", () => {
     afterEach(() => vi.restoreAllMocks());
 
     async function withGreen(value: number | null, text: string) {
-        const { recommendMock } = await import("../data/mock/recommend");
+        const real = recommendApi.recommend;
         vi.spyOn(recommendApi, "recommend").mockImplementation(async (req) => {
-            const res = recommendMock(req);
+            const res = await real(req);
             const results = res.results.map((r) => ({
                 ...r,
                 factors: r.factors.map((f) => (f.factor === "green" ? { ...f, value, text } : f)),
