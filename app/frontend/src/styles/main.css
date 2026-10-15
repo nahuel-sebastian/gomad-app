@@ -930,6 +930,24 @@ h1:focus-visible {
 .chips--small .chip {
     padding: 4px 8px;
     font-size: 14px;
+    /* dentro de la tarjeta la pastilla puede partirse: reflow a 320 px (WCAG 1.4.10) */
+    white-space: normal;
+}
+
+/* pantallas muy estrechas: la nota pasa debajo del titulo para dejar ancho a las pastillas */
+@media (max-width: 399px) {
+    .result-card {
+        flex-wrap: wrap;
+    }
+
+    .result-card__content {
+        flex: 1 1 calc(100% - 50px);
+    }
+
+    .result-card__score-wrap {
+        flex-direction: row;
+        margin-left: 42px;
+    }
 }
 
 .chip--warn {
@@ -1883,8 +1901,16 @@ textarea.field__input {
     }
 }
 
-.results-list--stale {
-    opacity: 0.55;
+/* recalculo: no se atenua el texto (contraste); se avisa con texto visible y aria-busy */
+.results-updating {
+    margin: 0 0 8px;
+    padding: 4px 12px;
+    display: inline-block;
+    border-radius: var(--radius-sm);
+    background: var(--blue-tint);
+    color: var(--navy);
+    font-size: 14px;
+    font-weight: 600;
 }
 
 .results-disclaimer {

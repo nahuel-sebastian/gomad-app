@@ -356,10 +356,12 @@ export default function Results() {
                                 </div>
                             )}
 
+                            {stale && items.length > 0 && <p className="results-updating">Actualizando…</p>}
+
                             {items.length > 0 && (
                                 <ol
                                     ref={listRef}
-                                    className={`results-list${stale ? " results-list--stale" : ""}`}
+                                    className="results-list"
                                     aria-label="Resultados"
                                     aria-busy={stale ? true : undefined}>
                                     {items.map((item, i) => (

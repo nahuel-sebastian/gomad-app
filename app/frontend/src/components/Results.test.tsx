@@ -244,3 +244,19 @@ describe("Resultados: pastilla de verde", () => {
         expect(within(list).getAllByText("Verde: sin datos").length).toBeGreaterThan(0);
     });
 });
+
+describe("Resultados: recalculo", () => {
+    afterEach(() => vi.restoreAllMocks());
+
+    it("al recalcular la lista lleva aria-busy y se ve «Actualizando…» sin atenuar el texto", async () => {
+        const { user } = renderAt("/resultados", WITH_SEARCH);
+        const list = await resultsList();
+        vi.spyOn(recommendApi, "recommend").mockReturnValue(new Promise(() => {}));
+        await user.click(screen.getByRole("button", { name: "Ajustar" }));
+        const dialog = await screen.findByRole("dialog", { name: "Tus preferencias" });
+        await user.click(within(dialog).getByRole("radio", { name: "Interior" }));
+        await waitFor(() => expect(list).toHaveAttribute("aria-busy", "true"));
+        expect(screen.getByText("Actualizando…")).toBeInTheDocument();
+        expect(list.className).not.toMatch(/stale/);
+    });
+});
