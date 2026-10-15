@@ -1134,7 +1134,7 @@
   "t": "Pedir la ruta en texto libre; la IA la convierte en parámetros que se muestran y se pueden editar",
   "src": [
    {
-    "n": "Servicio de IA generativa (por decidir: OCI Generative AI de Oracle u otro)",
+    "n": "OCI Language (servicio de IA de Oracle, sin LLM; DEC-03, 15/10): entidades y frases clave + diccionario del catálogo RF-21",
     "i": "—",
     "o": "Externa",
     "l": []
