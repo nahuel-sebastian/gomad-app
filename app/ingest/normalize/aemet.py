@@ -69,13 +69,20 @@ def _decode(raw):
 def run():
     out_dir = CLEAN / "forecast"
     out_dir.mkdir(parents=True, exist_ok=True)
-    written = []
+    written, failed = [], []
     for path in sorted((RAW / "aemet").glob("28???.json")):
-        doc = json.loads(_decode(path.read_bytes()))
-        doc = doc[0] if isinstance(doc, list) else doc
+        try:   # un fichero roto (429, JSON a medias) no para al resto; se mantiene su parquet anterior
+            doc = json.loads(_decode(path.read_bytes()))
+            doc = doc[0] if isinstance(doc, list) else doc
+            forecast = municipality_forecast(doc, path.stem)
+        except Exception as e:
+            failed.append(f"{path.stem} ({type(e).__name__}: {e})")
+            continue
         target = out_dir / f"{path.stem}.parquet"
         tmp = target.with_suffix(".tmp")
-        municipality_forecast(doc, path.stem).to_parquet(tmp, index=False)
+        forecast.to_parquet(tmp, index=False)
         tmp.replace(target)
         written.append(target)
+    if failed:
+        raise RuntimeError(f"Previsión sin procesar ({len(written)} correctas): {', '.join(failed)}")
     return written

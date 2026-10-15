@@ -30,7 +30,9 @@ def long_readings(df):
             if value is None or flag not in ("T", "V"):
                 continue
             rows.append((station, magnitude, day + dt.timedelta(hours=h), value, flag))
-    return pd.DataFrame(rows, columns=READING_COLUMNS)
+    df = pd.DataFrame(rows, columns=READING_COLUMNS)
+    df["ts"] = pd.to_datetime(df["ts"])   # vacio tambien con tipo fecha
+    return df
 
 
 @normalizer("air_reading")
@@ -40,6 +42,8 @@ def run_readings():
     written = []
     for source, columns in (("aire_dia", ["provincia", "h24"]), ("ay_aire", ["PROVINCIA", "H24"])):
         long = long_readings(read_csv(latest_csv(RAW / source, columns)))
+        if long.empty:   # al cambiar de dia puede no haber ninguna hora valida todavia
+            continue
         for day, group in long.groupby(long["ts"].dt.strftime("%Y%m%d")):
             target = out_dir / f"{source}_{day}.parquet"
             if target.exists():   # el mismo dia llega varias veces: V gana a T, lo nuevo a lo viejo
