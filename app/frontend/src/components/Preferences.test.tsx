@@ -1,5 +1,6 @@
 import { screen, waitFor, within } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import * as activitiesApi from "../data/activities";
 import { expectNoAxeViolations, renderAt, SAMPLE_ORIGIN } from "../test/render";
 
 const WITH_SEARCH = {
@@ -110,5 +111,27 @@ describe("Ajustar como dialogo", () => {
             preferences: { weights: { proximity: 0, suitability: 0, green: 0, air: 0, weather: 0 } },
         });
         expect(await screen.findByText(/se usan los pesos por defecto/)).toBeInTheDocument();
+    });
+});
+
+describe("Perfil: pesos por defecto", () => {
+    afterEach(() => vi.restoreAllMocks());
+
+    it("sin /activities no pinta los pesos ni inventa unos: error con Reintentar y, al reintentar, aparecen", async () => {
+        const real = activitiesApi.getActivities;
+        const spy = vi.spyOn(activitiesApi, "getActivities").mockRejectedValueOnce(new Error("red"));
+        const { user } = renderAt("/perfil");
+        const retry = await screen.findByRole("button", { name: "Reintentar" });
+        expect(screen.queryAllByRole("slider", { name: /^Importancia de/ })).toHaveLength(0);
+        spy.mockImplementation(real);
+        await user.click(retry);
+        expect(await screen.findAllByRole("slider", { name: /^Importancia de/ })).toHaveLength(5);
+    });
+
+    it("mientras carga dice «Cargando pesos…» y no hay deslizadores de peso", async () => {
+        vi.spyOn(activitiesApi, "getActivities").mockReturnValue(new Promise(() => {}));
+        renderAt("/perfil");
+        expect(screen.getByText("Cargando pesos…")).toBeInTheDocument();
+        expect(screen.queryAllByRole("slider", { name: /^Importancia de/ })).toHaveLength(0);
     });
 });
