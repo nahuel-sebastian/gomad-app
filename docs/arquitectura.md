@@ -12,7 +12,7 @@
 |---|---|---|
 | D-01 | **Almacén** | Datos limpios en **GeoParquet** como núcleo; la app sirve con **DuckDB** (solo lectura). Oracle Autonomous DB **opcional**: carga del mismo GeoParquet + APEX para la pantalla de administración, solo si sobra tiempo |
 | D-02 | **Pilotos de ruta** | Diseño **regional desde el principio** (179 municipios). **Getafe** para afinar y probar hasta el viernes 16; el sábado 17 se activa toda la Comunidad con validación por muestras. Si falla en algún municipio: ruta directa con aviso, sin tocar código |
-| D-03 | **IA para F6** | Interfaz propia (`interpretar`, `redactar`; en código: `interpret`, `write_up`) con un adaptador por proveedor. Primero **OCI Generative AI**; si el jueves 15 a mediodía no funciona, plan B (API de Anthropic). F6 funciona sin LLM (formulario editable) y hay respuestas grabadas para la demo |
+| D-03 | **IA para F6** | **Decidido el 15/10 (§10, A-12): OCI Language + reglas + plantillas, sin LLM.** Interfaz propia (`interpretar`, `redactar`; en código: `interpret`, `write_up`) con un adaptador: OCI Language extrae entidades y frases clave, un diccionario del catálogo RF-21 completa lo que Language no detecta y las respuestas se redactan con plantillas y datos del motor. F6 funciona sin OCI (formulario editable y solo diccionario) y hay respuestas grabadas para la demo. (Plan original, descartado: OCI Generative AI y, si no funcionaba el jueves 15 a mediodía, plan B con la API de Anthropic.) |
 | D-04 | **Ubicación escrita (RF-01)** | Buscador de Nomecalles (sin clave) + capa **`callejero_completo_2025`** de Nomecalles para las coordenadas. Respaldo: GPS o centro del municipio |
 | — | **Algoritmo de rutas** | Grafo peatonal de toda la Comunidad **en memoria**; **A\* / Dijkstra bidireccional** con coste calculado por petición; **Dijkstra con radio** para las distancias de F1 |
 | D-13 | **Despliegue** | **Docker Compose** en una **VM de OCI** (créditos del proyecto; preferir la forma Always Free si hay capacidad). Primer despliegue el **viernes 16** |
@@ -130,7 +130,7 @@ Cada uno se prueba por separado:
 | `engine/slots.py` | Evaluación hora a hora y mejor franja |
 | `engine/explanation.py` | Plantillas en lenguaje llano con fuente y fecha |
 | `routing/` | Grafo, A\*, Dijkstra con límite, ruta circular (F6) |
-| `ai/` | Interfaz `interpret` / `write_up` + adaptadores (OCI, plan B) |
+| `ai/` | Interfaz `interpret` / `write_up` + adaptador OCI Language + diccionario RF-21 + plantillas (DEC-03, A-12) |
 
 ### 4.4 Rutas
 - **Grafo entero en memoria**, cargado una vez al arrancar. Nodo más cercano con **KD-tree** (`scipy.spatial.cKDTree`).
@@ -257,7 +257,7 @@ ingest   cron: horario (aire, previsión), diario 04:00 (servicios, Nomecalles, 
 |---|---|
 | Cae una fuente en la ingesta | Se mantiene el fichero anterior; `manifest.json` lo registra |
 | Dato viejo | La API devuelve la fecha de cada dato; el front avisa («Aire de hace 3 h: el portal no responde») |
-| Cae el LLM | F6 sigue con el formulario editable; respuestas de reserva en la demo |
+| Cae OCI Language | F6 sigue con el diccionario RF-21 y el formulario editable; respuestas de reserva en la demo |
 | Cae el tráfico en tiempo real | Penalización por tipo de vía (disponible en toda la Comunidad) |
 | Municipio sin datos de mobiliario | Se muestra «sin datos» con aviso de cobertura |
 
@@ -305,7 +305,7 @@ app/
     engine/            rules, scoring, slots, explanation
     routing/           grafo, A*, Dijkstra con límite, ruta circular
     repository.py      todas las consultas SQL
-    ai/                interfaz interpret/write_up + adaptadores (oci, plan B)
+    ai/                interfaz interpret/write_up + adaptador OCI Language + diccionario RF-21 + plantillas (DEC-03, A-12)
     scripts/  tests/
   ingest/              servicio de ingesta; pyproject.toml, Dockerfile, .venv/ local
     common.py          utilidades de normalización
@@ -341,15 +341,17 @@ app/
 |---|---|---|---|
 | A-01 | ~~Framework del frontend~~ | ✅ 14/10 | React + Vite sobre el prototipo (§5) |
 | A-02 | Detalle de cada pantalla (§5.2) | Con la maquetadora, al maquetar | No cambia la arquitectura |
-| A-03 | Nombre y dominio (D-10) | Equipo | Afecta al dominio del despliegue |
+| A-03 | Nombre y dominio (D-10) | Nombre ✅ **GoMad** (15/10); dominio pendiente (V-F4) | Afecta al dominio del despliegue |
 | A-04 | ✅ Pesos por defecto y velocidades (D-07) | Decidido el 15/10 | `app/config/weights.yaml`: cercanía 30 · adecuación 25 · verde 20 · aire 15 · meteo 10; caminar 4,5, correr 9, mayor/carrito 3,5 km/h; ruta: `routing.yaml` sin cambios. Todo criterio propio |
 | A-05 | ✅ Regla de aire por perfil (D-05) | Decidido el 15/10 | `app/config/rules.yaml`: general y carrito desde Desfavorable, sensible y mayor desde Regular (BOE; mayor = criterio propio). Lluvia (D-07b): desde el 50 % |
 | A-06 | Umbrales de calor (D-06) | Desbloqueado: umbrales oficiales, tabla municipio → zona (`docs/assets/heat_zones.csv`) y propuesta en `docs/assets/umbrales.md` §2.3 | |
 | A-07 | ✅ Tabla actividad → destino (D-08) | Decidido el 15/10 | `app/config/activities.yaml`: 8 actividades (caminar, correr, nadar, pádel, tenis, fútbol, baloncesto, gimnasio y cubierto) |
 | A-08 | Indicadores de F5 (D-09) | Datos, vie 16 | |
-| A-09 | Usos de IA de CLAUDE.md §6.5 (D-11) | Equipo | Recomendado: solo el n.º 1 |
+| A-09 | Usos de IA de CLAUDE.md §6.5 (D-11) | Equipo | 15/10: n.º 1 (deducir el deporte con LLM) **descartado**, se usan palabras clave; n.º 2 (Select AI + APEX) **pendiente**: necesita un LLM y OCI Generative AI no está disponible (A-12) |
 | A-10 | ✅ Forma de la VM de OCI | Decidido el 15/10 | `VM.Standard.E5.Flex` 2 OCPU / 16 GB en `eu-madrid-1` (A1 sin capacidad), §6.1 |
 | A-11 | Tamaño real del grafo regional y latencia en la capital | Rutas, jue 15–sáb 17 | Si no llega: CH por perfiles fijos |
+| A-12 | ✅ Proveedor de IA para F6 (D-03) | Decidido el 15/10 | **OCI Language** (servicio de IA de Oracle, sin LLM) + reglas + plantillas: Language extrae entidades y frases clave (`batch_detect_language_entities`, `batch_detect_language_key_phrases`; 0,23 s de media en 5 llamadas, `app/api/scripts/probe_ai.py`), un diccionario del catálogo RF-21 las pasa a `AssistantParams` (con negaciones) y `write_up` redacta con plantillas (D-M1). Descartados: OCI Generative AI (en `eu-madrid-1` el chat da 404 por permisos; `eu-frankfurt-1` no está suscrita) y Anthropic (coste propio). Credenciales: `OCI_*` en `app/.env`; en la VM se copia `~/.oci` y se monta en solo lectura en el contenedor `api` |
+| A-13 | ✅ Desnivel (D-12) | Decidido el 15/10: **sí, Should** | IGN MDT05 → altura por nodo y pendiente por tramo, con el grafo regional (S-R1, sáb 17). Descarga comprobada el 15/10 por el WCS INSPIRE del IGN (CLAUDE.md §7.1): teselas de ≤ 4096 px. Recorte justo después de F6 |
 
 ### Ideas para después de la demo (no se hacen ahora)
 - **Núcleo fijo y bordes configurables para la entrega a la organización:** fuentes, umbrales (con cita), pesos, perfiles, actividades y municipios con ruta en ficheros de configuración; repositorio con contrato para poder sustituir DuckDB por Oracle u otro almacén (DDL de Oracle con `SDO_GEOMETRY`, script de carga desde GeoParquet, pruebas de contrato que cualquier implementación debe pasar); `README` de entrega.

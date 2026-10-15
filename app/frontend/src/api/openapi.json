@@ -454,7 +454,7 @@
      "activity"
     ],
     "title": "AssistantParams",
-    "description": "Esquema cerrado de F6 (RF-21). El LLM solo puede rellenar esto."
+    "description": "Esquema cerrado de F6 (RF-21). La interpretacion (OCI Language + diccionario) solo puede rellenar esto."
    },
    "AssistantRouteRequest": {
     "properties": {

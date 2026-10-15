@@ -203,7 +203,7 @@ class MunicipalityResponse(Strict):
 
 
 class AssistantParams(Strict):
-    """Esquema cerrado de F6 (RF-21). El LLM solo puede rellenar esto."""
+    """Esquema cerrado de F6 (RF-21). La interpretacion (OCI Language + diccionario) solo puede rellenar esto."""
     activity: Literal["walk", "run"]
     distance_km: float | None = Field(default=None, gt=0, le=42)
     duration_min: int | None = Field(default=None, gt=0, le=480)

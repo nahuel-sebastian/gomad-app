@@ -813,12 +813,16 @@
     ]
    },
    {
-    "n": "IGN: modelo digital del terreno (por verificar)",
+    "n": "IGN: modelo digital del terreno MDT05 (WCS comprobado 15/10)",
     "i": "MDT05",
     "o": "Externa",
     "l": [
      [
-      "Ficha",
+      "WCS (GetCapabilities)",
+      "https://servicios.idee.es/wcs-inspire/mdt?SERVICE=WCS&REQUEST=GetCapabilities"
+     ],
+     [
+      "Ficha CNIG",
       "https://centrodedescargas.cnig.es/CentroDescargas/modelo-digital-terreno-mdt05"
      ]
     ]
@@ -884,7 +888,7 @@
     "l": [
      [
       "Ficha",
-      "https://www.miteco.gob.es/es/calidad-y-evaluacion-ambiental/temas/atmosfera-y-calidad-del-aire/calidad-del-aire/ica.html"
+      "https://www.miteco.gob.es/es/calidad-y-evaluacion-ambiental/temas/atmosfera-y-calidad-del-aire/calidad-del-aire/visualizacion-datos-calidad-del-aire/ica.html"
      ]
     ]
    }
@@ -1134,7 +1138,7 @@
   "t": "Pedir la ruta en texto libre; la IA la convierte en parámetros que se muestran y se pueden editar",
   "src": [
    {
-    "n": "Servicio de IA generativa (por decidir: OCI Generative AI de Oracle u otro)",
+    "n": "OCI Language (servicio de IA de Oracle, sin LLM; DEC-03, 15/10): entidades y frases clave + diccionario del catálogo RF-21",
     "i": "—",
     "o": "Externa",
     "l": []
@@ -1320,7 +1324,7 @@
   "t": "Fuente y fecha de cada dato",
   "src": [
    {
-    "n": "Metadatos CKAN (fecha) y marca de validación V/N",
+    "n": "Metadatos CKAN (fecha) y marca de validación V/T/N",
     "i": "—",
     "o": "CKAN Comunidad",
     "l": []

@@ -19,6 +19,7 @@ dependencies = [
   "python-igraph==0.11.6",
   "pyyaml==6.0.2",
   "httpx==0.27.2",
+  "oci==2.188.0",              # OCI Language para F6 (DEC-03)
 ]
 
 [project.optional-dependencies]
