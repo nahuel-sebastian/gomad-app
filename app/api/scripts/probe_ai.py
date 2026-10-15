@@ -51,6 +51,11 @@ def analyze(lang, compartment_id):
     return entities, phrases
 
 
+def fmt_score(score):
+    # OCI puede devolver score nulo
+    return "-" if score is None else f"{score:.2f}"
+
+
 def main():
     env = read_env()
     compartment_id = env.get("OCI_COMPARTMENT_ID")
@@ -65,10 +70,10 @@ def main():
     print(f"Texto: {TEXT}")
     print("Entidades:")
     for e in entities:
-        print(f"  {e.text!r:24} {e.type:12} {e.score:.2f}")
+        print(f"  {e.text!r:24} {e.type or '-':12} {fmt_score(e.score)}")
     print("Frases clave:")
     for p in phrases:
-        print(f"  {p.text!r:24} {p.score:.2f}")
+        print(f"  {p.text!r:24} {fmt_score(p.score)}")
     mean = statistics.mean(times)
     print(f"Latencia (entidades + frases clave) en {CALLS} llamadas: media {mean:.2f} s, max {max(times):.2f} s")
     print("OK" if mean < TARGET_S else f"LENTO: media >= {TARGET_S} s")
