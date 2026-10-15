@@ -12,7 +12,7 @@
 |---|---|---|
 | D-01 | **Almacén** | Datos limpios en **GeoParquet** como núcleo; la app sirve con **DuckDB** (solo lectura). Oracle Autonomous DB **opcional**: carga del mismo GeoParquet + APEX para la pantalla de administración, solo si sobra tiempo |
 | D-02 | **Pilotos de ruta** | Diseño **regional desde el principio** (179 municipios). **Getafe** para afinar y probar hasta el viernes 16; el sábado 17 se activa toda la Comunidad con validación por muestras. Si falla en algún municipio: ruta directa con aviso, sin tocar código |
-| D-03 | **IA para F6** | Interfaz propia (`interpretar`, `redactar`; en código: `interpret`, `write_up`) con un adaptador por proveedor. Primero **OCI Generative AI**; si el jueves 15 a mediodía no funciona, plan B (API de Anthropic). F6 funciona sin LLM (formulario editable) y hay respuestas grabadas para la demo. **Decidido el 15/10 (§10, A-12): OCI Language + reglas + plantillas, sin LLM** |
+| D-03 | **IA para F6** | **Decidido el 15/10 (§10, A-12): OCI Language + reglas + plantillas, sin LLM.** Interfaz propia (`interpretar`, `redactar`; en código: `interpret`, `write_up`) con un adaptador: OCI Language extrae entidades y frases clave, un diccionario del catálogo RF-21 completa lo que Language no detecta y las respuestas se redactan con plantillas y datos del motor. F6 funciona sin OCI (formulario editable y solo diccionario) y hay respuestas grabadas para la demo. (Plan original, descartado: OCI Generative AI y, si no funcionaba el jueves 15 a mediodía, plan B con la API de Anthropic.) |
 | D-04 | **Ubicación escrita (RF-01)** | Buscador de Nomecalles (sin clave) + capa **`callejero_completo_2025`** de Nomecalles para las coordenadas. Respaldo: GPS o centro del municipio |
 | — | **Algoritmo de rutas** | Grafo peatonal de toda la Comunidad **en memoria**; **A\* / Dijkstra bidireccional** con coste calculado por petición; **Dijkstra con radio** para las distancias de F1 |
 | D-13 | **Despliegue** | **Docker Compose** en una **VM de OCI** (créditos del proyecto; preferir la forma Always Free si hay capacidad). Primer despliegue el **viernes 16** |
@@ -130,7 +130,7 @@ Cada uno se prueba por separado:
 | `engine/slots.py` | Evaluación hora a hora y mejor franja |
 | `engine/explanation.py` | Plantillas en lenguaje llano con fuente y fecha |
 | `routing/` | Grafo, A\*, Dijkstra con límite, ruta circular (F6) |
-| `ai/` | Interfaz `interpret` / `write_up` + adaptadores (OCI, plan B) |
+| `ai/` | Interfaz `interpret` / `write_up` + adaptador OCI Language + diccionario RF-21 + plantillas (DEC-03, A-12) |
 
 ### 4.4 Rutas
 - **Grafo entero en memoria**, cargado una vez al arrancar. Nodo más cercano con **KD-tree** (`scipy.spatial.cKDTree`).
@@ -257,7 +257,7 @@ ingest   cron: horario (aire, previsión), diario 04:00 (servicios, Nomecalles, 
 |---|---|
 | Cae una fuente en la ingesta | Se mantiene el fichero anterior; `manifest.json` lo registra |
 | Dato viejo | La API devuelve la fecha de cada dato; el front avisa («Aire de hace 3 h: el portal no responde») |
-| Cae el LLM | F6 sigue con el formulario editable; respuestas de reserva en la demo |
+| Cae OCI Language | F6 sigue con el diccionario RF-21 y el formulario editable; respuestas de reserva en la demo |
 | Cae el tráfico en tiempo real | Penalización por tipo de vía (disponible en toda la Comunidad) |
 | Municipio sin datos de mobiliario | Se muestra «sin datos» con aviso de cobertura |
 
@@ -305,7 +305,7 @@ app/
     engine/            rules, scoring, slots, explanation
     routing/           grafo, A*, Dijkstra con límite, ruta circular
     repository.py      todas las consultas SQL
-    ai/                interfaz interpret/write_up + adaptadores (oci, plan B)
+    ai/                interfaz interpret/write_up + adaptador OCI Language + diccionario RF-21 + plantillas (DEC-03, A-12)
     scripts/  tests/
   ingest/              servicio de ingesta; pyproject.toml, Dockerfile, .venv/ local
     common.py          utilidades de normalización
