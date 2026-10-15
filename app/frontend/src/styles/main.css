@@ -10,7 +10,6 @@
     --border: #dce5ec;
     --muted: #55677a;
     --focus: #2c7be5;
-
     --font: "Figtree", "Segoe UI", Helvetica, Arial, sans-serif;
     --radius: 16px;
     --radius-sm: 12px;
@@ -18,14 +17,13 @@
     --max-width: 1080px;
     --tap-min: 44px;
     --header-height: 64px;
+    --bottom-nav-height: 72px;
     --transition: 0.15s ease-out;
 }
 
-/* ---------- Base ---------- */
-
 *,
-*::before,
-*::after {
+::before,
+::after {
     box-sizing: border-box;
 }
 
@@ -35,7 +33,7 @@ html {
 }
 
 body {
-    margin: 0;
+    margin: 0px;
     background: var(--bg);
     color: var(--navy);
     font-family: var(--font);
@@ -48,8 +46,8 @@ h1,
 h2,
 p,
 ul {
-    margin: 0;
-    padding: 0;
+    margin: 0px;
+    padding: 0px;
 }
 
 ul {
@@ -62,8 +60,8 @@ a {
 }
 
 button {
-    padding: 0;
-    border: 0;
+    padding: 0px;
+    border: 0px;
     background: none;
     color: inherit;
     font: inherit;
@@ -82,6 +80,10 @@ button {
     padding-inline: var(--gutter);
 }
 
+.app-main {
+    padding-bottom: 3rem;
+}
+
 .muted {
     color: var(--muted);
     font-size: 14px;
@@ -95,7 +97,7 @@ button {
     padding: 8px 12px;
     border-radius: 8px;
     background: var(--navy);
-    color: #fff;
+    color: rgb(255, 255, 255);
 }
 
 .skip-link:focus {
@@ -112,11 +114,9 @@ button {
     }
 }
 
-/* ---------- Cabecera y navegación ---------- */
-
 .header {
     position: sticky;
-    top: 0;
+    top: 0px;
     z-index: 50;
     background: var(--surface);
     border-bottom: 1px solid var(--border);
@@ -141,7 +141,7 @@ button {
 
 .logo__mark {
     width: 2.5rem;
-    aspect-ratio: 1/1;
+    aspect-ratio: 1 / 1;
     border-radius: 5rem;
 }
 
@@ -149,42 +149,29 @@ button {
     color: var(--green);
 }
 
-.header__toggle {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: var(--tap-min);
-    height: var(--tap-min);
-}
-
-.header__toggle .gomad-icon {
-    --gomad-icon-size: 24px;
-}
-
-/* Móvil: menú desplegable bajo la cabecera */
 .nav {
-    position: absolute;
-    top: 100%;
-    right: 0;
-    left: 0;
-    display: none;
-    flex-direction: column;
-    padding: 8px var(--gutter) 16px;
+    position: fixed;
+    z-index: 60;
+    right: 0px;
+    bottom: 0px;
+    left: 0px;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0px, 1fr));
+    gap: 4px;
+    padding: 6px var(--gutter) calc(6px + env(safe-area-inset-bottom));
     background: var(--surface);
-    border-bottom: 1px solid var(--border);
-    box-shadow: 0 12px 24px rgba(18, 57, 91, 0.1);
-}
-
-.nav--open {
-    display: flex;
+    border-top: 1px solid var(--border);
+    box-shadow: rgba(18, 57, 91, 0.1) 0px -8px 24px;
 }
 
 .nav__link {
     display: flex;
     align-items: center;
+    justify-content: center;
     min-height: var(--tap-min);
-    padding: 0 12px;
+    padding: 0px 12px;
     border-radius: 10px;
+    font-size: 13px;
     color: var(--muted);
     font-weight: 500;
     transition:
@@ -207,50 +194,52 @@ button {
         margin-bottom: 1rem;
     }
 
-    .header__toggle {
-        display: none;
-    }
-
     .nav {
         position: static;
         display: flex;
         flex-direction: row;
         gap: 4px;
-        padding: 0;
-        border: 0;
+        padding: 0px;
+        border: 0px;
         box-shadow: none;
     }
-}
 
-/* ---------- Hero ---------- */
+    .app-main {
+        padding-bottom: 0px;
+    }
+
+    .footer {
+        padding: 24px 0px;
+    }
+}
 
 .hero {
     position: relative;
     overflow: hidden;
-    background: linear-gradient(180deg, #cfe6f5 0%, #e9f4fa 100%);
+    background: linear-gradient(rgb(207, 230, 245) 0%, rgb(233, 244, 250) 100%);
 }
 
 .hero__scene {
     position: absolute;
-    inset: 0;
+    inset: 0px;
     width: 100%;
     height: 100%;
 }
 
 .scene-sun {
-    fill: #f7c948;
+    fill: rgb(247, 201, 72);
 }
 
 .scene-buildings {
-    fill: #a9c6da;
+    fill: rgb(169, 198, 218);
 }
 
 .scene-hill-back {
-    fill: #8cc79b;
+    fill: rgb(140, 199, 155);
 }
 
 .scene-hill-front {
-    fill: #5fa777;
+    fill: rgb(95, 167, 119);
 }
 
 .hero__content {
@@ -263,13 +252,11 @@ button {
 
 .hero__title {
     max-width: 16ch;
-    font-size: clamp(1.75rem, 5vw + 0.5rem, 3.25rem);
+    font-size: clamp(1.75rem, 0.5rem + 5vw, 3.25rem);
     font-weight: 700;
     line-height: 1.1;
     text-wrap: balance;
 }
-
-/* ---------- Chips ---------- */
 
 .chips {
     display: flex;
@@ -300,8 +287,6 @@ button {
     background: var(--green-tint);
     color: var(--green-dark);
 }
-
-/* ---------- Contenido ---------- */
 
 .home {
     display: flex;
@@ -351,14 +336,12 @@ button {
 }
 
 .panel--action:hover {
-    box-shadow: 0 8px 20px rgba(18, 57, 91, 0.1);
+    box-shadow: rgba(18, 57, 91, 0.1) 0px 8px 20px;
 }
 
 .panel--action:active {
     background: var(--bg);
 }
-
-/* ---------- Actividades ---------- */
 
 .activities {
     display: grid;
@@ -382,7 +365,7 @@ button {
     justify-content: center;
     width: 100%;
     max-width: 88px;
-    aspect-ratio: 1;
+    aspect-ratio: 1 / 1;
     border-radius: 16px;
     background: var(--green-tint);
     color: var(--green-dark);
@@ -399,8 +382,6 @@ button {
     background: var(--green-tint-active);
     transform: translateY(-2px);
 }
-
-/* ---------- Sorpréndeme y preferencias ---------- */
 
 .surprise {
     flex-direction: row;
@@ -448,7 +429,7 @@ button {
     justify-content: center;
     gap: 6px;
     min-height: var(--tap-min);
-    padding: 0 16px;
+    padding: 0px 16px;
     border: 1.5px solid var(--navy);
     border-radius: 10px;
     background: var(--surface);
@@ -464,10 +445,9 @@ button {
     --gomad-icon-size: 18px;
 }
 
-/* ---------- Pie ---------- */
-
 .footer {
-    padding-block: 24px;
+    padding: 24px var(--gutter)
+        calc(20px + var(--bottom-nav-height) + env(safe-area-inset-bottom));
     border-top: 1px solid var(--border);
     background: var(--surface);
     color: var(--muted);
@@ -475,12 +455,10 @@ button {
     text-align: center;
 }
 
-/* ---------- Vista de Resultados ---------- */
-
 .results-screen {
     position: relative;
-    height: calc(100dvh - var(--header-height));
-    min-height: 0;
+    height: calc(102dvh - var(--header-height) - var(--bottom-nav-height));
+    min-height: 0px;
     overflow: hidden;
 }
 
@@ -491,10 +469,10 @@ button {
 
 .map-demo {
     position: absolute;
-    inset: 0;
+    inset: 0px;
     width: 100%;
     height: 100%;
-    background: #e9eff3;
+    background: rgb(233, 239, 243);
 }
 
 .results-desktop-toolbar {
@@ -534,28 +512,27 @@ button {
     color: var(--muted);
 }
 
-/* Modal (Bottom sheet) móvil */
 .results-sheet {
     position: absolute;
     z-index: 3;
-    right: 0;
-    bottom: 0;
-    left: 0;
+    right: 0px;
+    bottom: 0px;
+    left: 0px;
     height: calc(100% - 110px);
     max-height: 75vh;
     display: flex;
     flex-direction: column;
     overflow: hidden;
-    border-radius: 20px 20px 0 0;
+    border-radius: 20px 20px 0px 0px;
     background: var(--surface);
-    box-shadow: 0 -4px 18px rgba(18, 57, 91, 0.16);
+    box-shadow: rgba(18, 57, 91, 0.16) 0px -4px 18px;
     transform: translateY(calc(100% - 164px));
     transition: transform 0.25s ease-out;
     touch-action: pan-y;
 }
 
 .results-sheet--expanded {
-    transform: translateY(0);
+    transform: translateY(0px);
 }
 
 .results-sheet__handle {
@@ -580,17 +557,15 @@ button {
     background: var(--border);
 }
 
-/* Contenedor del scroll móvil */
 .results-sheet__scroll {
     display: flex;
     flex-direction: column;
-    flex: 1;
+    flex: 1 1 0%;
     overflow-y: hidden;
     overscroll-behavior-y: contain;
     padding-bottom: 24px;
 }
 
-/* Solo habilita scroll cuando el sheet está arriba */
 .results-sheet--expanded .results-sheet__scroll {
     overflow-y: auto;
 }
@@ -601,7 +576,6 @@ button {
     gap: 16px;
 }
 
-/* Filtros */
 .results-filters {
     display: flex;
     align-items: center;
@@ -610,7 +584,7 @@ button {
 
 .results-filter-chips {
     display: flex;
-    flex: 1;
+    flex: 1 1 0%;
     gap: 8px;
     overflow-x: auto;
     overscroll-behavior-x: contain;
@@ -631,11 +605,11 @@ button {
     justify-content: center;
     gap: 7px;
     min-height: 40px;
-    padding: 0 14px;
+    padding: 0px 14px;
     border: 1px solid var(--border);
     border-radius: 999px;
     background: var(--surface);
-    box-shadow: 0 2px 10px rgba(18, 57, 91, 0.12);
+    box-shadow: rgba(18, 57, 91, 0.12) 0px 2px 10px;
     color: var(--navy);
     font-size: 14px;
     font-weight: 600;
@@ -655,7 +629,6 @@ button {
     color: var(--navy);
 }
 
-/* Tarjetas de resultado */
 .result-card {
     display: flex;
     gap: 12px;
@@ -681,8 +654,8 @@ button {
 }
 
 .result-card__content {
-    flex: 1;
-    min-width: 0;
+    flex: 1 1 0%;
+    min-width: 0px;
     display: flex;
     flex-direction: column;
     gap: 6px;
@@ -704,8 +677,8 @@ button {
 }
 
 .chip--warn {
-    background: #fcebcb;
-    color: #7a4300;
+    background: rgb(252, 235, 203);
+    color: rgb(122, 67, 0);
 }
 
 .result-card__score-wrap {
@@ -730,7 +703,7 @@ button {
 }
 
 .score-badge--warn {
-    background: #8a4b00;
+    background: rgb(138, 75, 0);
 }
 
 .score-verdict {
@@ -746,27 +719,24 @@ button {
 }
 
 .score-verdict--warn {
-    color: #8a4b00;
+    color: rgb(138, 75, 0);
 }
 
 .button--full {
     width: 100%;
 }
 
-/* ==============================================================
-   ESCRITORIO (Media query exclusivo para Desktop)
-   ============================================================== */
 @media (min-width: 768px) {
     .results-screen {
         display: grid;
-        grid-template-columns: minmax(280px, 0.82fr) minmax(0, 1.8fr);
-        grid-template-rows: auto minmax(0, 1fr);
-        gap: 0 16px;
+        grid-template-columns: minmax(280px, 0.82fr) minmax(0px, 1.8fr);
+        grid-template-rows: auto minmax(0px, 1fr);
+        gap: 0px 16px;
         width: 100%;
         max-width: var(--max-width);
         height: calc(100dvh - var(--header-height) - 24px);
-        min-height: 0;
-        margin-bottom: 24px;
+        min-height: 0px;
+        margin-bottom: 20px;
         margin-inline: auto;
         padding-inline: var(--gutter);
     }
@@ -775,8 +745,7 @@ button {
         position: static;
         display: flex;
         flex-direction: column;
-        grid-column: 1 / -1;
-        grid-row: 1;
+        grid-area: 1 / 1 / auto / -1;
         align-items: stretch;
         gap: 4px;
         min-height: 92px;
@@ -784,7 +753,7 @@ button {
     }
 
     .results-desktop-toolbar .back-button {
-        margin: 0;
+        margin: 0px;
         padding-top: 1rem;
     }
 
@@ -798,7 +767,7 @@ button {
 
     .results-filter-chips {
         overflow: visible;
-        padding-block: 0;
+        padding-block: 0px;
         touch-action: auto;
     }
 
@@ -809,10 +778,9 @@ button {
 
     .results-layout {
         display: grid;
-        grid-template-columns: minmax(280px, 0.82fr) minmax(0, 1.8fr);
-        grid-column: 1 / -1;
-        grid-row: 2;
-        min-height: 0;
+        grid-template-columns: minmax(280px, 0.82fr) minmax(0px, 1.8fr);
+        grid-area: 2 / 1 / auto / -1;
+        min-height: 0px;
         height: 100%;
         gap: 16px;
     }
@@ -820,36 +788,34 @@ button {
     .map-demo {
         position: relative;
         inset: auto;
-        grid-column: 2;
-        grid-row: 1;
+        grid-area: 1 / 2;
         height: 100%;
-        min-height: 0;
+        min-height: 0px;
         border-radius: var(--radius);
         background:
             linear-gradient(rgba(24, 35, 43, 0.72), rgba(24, 35, 43, 0.72)),
             repeating-linear-gradient(
                 35deg,
-                #68757a 0 2px,
-                #4c595e 2px 3px,
-                #38464b 3px 30px
+                rgb(104, 117, 122) 0px,
+                rgb(104, 117, 122) 2px,
+                rgb(76, 89, 94) 2px,
+                rgb(76, 89, 94) 3px,
+                rgb(56, 70, 75) 3px,
+                rgb(56, 70, 75) 30px
             );
-        box-shadow: inset 0 0 0 1px rgba(18, 57, 91, 0.12);
+        box-shadow: rgba(18, 57, 91, 0.12) 0px 0px 0px 1px inset;
     }
 
-    /* Rompemos el estilo bottom-sheet y lo hacemos columna estática */
     .results-sheet {
         position: static;
-        grid-column: 1;
-        grid-row: 1;
+        grid-area: 1 / 1;
         height: 100%;
-        min-height: 0;
+        min-height: 0px;
         max-height: none;
         overflow: hidden;
-        border-radius: 0;
+        border-radius: 0px;
         background: transparent;
         box-shadow: none;
-
-        /* IGNORAR TRANSFORMACIÓN JS EN DESKTOP */
         transform: none !important;
     }
 
@@ -862,25 +828,24 @@ button {
     }
 
     .results-sheet__scroll {
-        min-height: 0;
+        min-height: 0px;
         height: 100%;
         overflow: hidden;
-        padding-bottom: 0;
+        padding-bottom: 0px;
     }
 
-    /* En desktop solo hace scroll el listado */
     .results-sheet__scroll > .results-list {
         height: 100%;
-        min-height: 0;
+        min-height: 0px;
         overflow-y: auto;
-        padding: 12px 8px 24px 0;
+        padding: 12px 8px 24px 0px;
         scrollbar-color: var(--border) transparent;
     }
 
     .results-sheet__scroll > .results-list::before {
         content: "536 resultados";
         display: block;
-        padding: 0 0 10px;
+        padding: 0px 0px 10px;
         color: var(--muted);
         font-size: 14px;
         font-weight: 600;
@@ -888,9 +853,9 @@ button {
 
     .result-card {
         padding: 14px;
-        border: 0;
+        border: 0px;
         border-radius: var(--radius);
-        box-shadow: 0 2px 10px rgba(18, 57, 91, 0.08);
+        box-shadow: rgba(18, 57, 91, 0.08) 0px 2px 10px;
     }
 
     .result-card + .result-card {

@@ -23,7 +23,7 @@ export default function App() {
                 Saltar al contenido
             </a>
             <Header />
-            <main id="contenido">
+            <main id="contenido" className="app-main">
                 {view === "home" ? (
                     <>
                         <Hero
