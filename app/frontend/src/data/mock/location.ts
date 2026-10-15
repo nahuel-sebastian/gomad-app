@@ -34,3 +34,12 @@ export function locationMock(text: string): LocationResponse {
     }
     return { candidates };
 }
+
+// Ubicacion de ejemplo del boton «Usar mi ubicacion» (paso 1)
+export const SAMPLE_GPS: LocationCandidate = {
+    label: "Tu ubicación de ejemplo (Getafe)",
+    municipality: "Getafe",
+    ine_code: "28065",
+    coordinate: { lat: 40.3057, lon: -3.7329 },
+    precision: "address",
+};

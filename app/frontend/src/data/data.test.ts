@@ -3,7 +3,7 @@ import type { RecommendRequest } from "../api/types";
 import { getActivities } from "./activities";
 import { assistantRoute, interpret } from "./assistant";
 import { ApiError } from "./errors";
-import { searchLocation } from "./location";
+import { isSampleLocation, sampleLocation, searchLocation } from "./location";
 import { setMockScenario } from "./mock/scenario";
 import { getMunicipality, listMunicipalities } from "./municipality";
 import { recommend } from "./recommend";
@@ -292,5 +292,15 @@ describe("fuentes", () => {
         expect(licenses).toMatch(/CC BY 4.0/);
         expect(licenses).toMatch(/ODbL/);
         expect(data.sources.some((s) => s.last_refresh === null)).toBe(true);
+    });
+});
+
+describe("ubicacion de ejemplo (paso 3: GPS)", () => {
+    it("sampleLocation devuelve un candidato de ejemplo y isSampleLocation lo reconoce", () => {
+        const sample = sampleLocation();
+        expect(sample.municipality).toBe("Getafe");
+        expect(sample.label).toMatch(/ejemplo/);
+        expect(isSampleLocation(sample)).toBe(true);
+        expect(isSampleLocation({ ...sample, label: "Otra" })).toBe(false);
     });
 });

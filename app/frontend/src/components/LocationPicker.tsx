@@ -1,16 +1,7 @@
 import { useId, useRef, useState, type FormEvent } from "react";
 import type { LocationCandidate } from "../api/types";
-import { searchLocation } from "../data/location";
+import { isSampleLocation, sampleLocation, searchLocation } from "../data/location";
 import { useAppState } from "../state/context";
-
-// Ubicacion de ejemplo del paso 1 (en el paso 3: GPS real tras el gesto)
-const SAMPLE_GPS: LocationCandidate = {
-    label: "Tu ubicación de ejemplo (Getafe)",
-    municipality: "Getafe",
-    ine_code: "28065",
-    coordinate: { lat: 40.3057, lon: -3.7329 },
-    precision: "address",
-};
 
 type SearchState =
     | { status: "idle" }
@@ -93,7 +84,7 @@ export default function LocationPicker({ onPicked, highlight }: LocationPickerPr
                             Usaremos el centro de {origin.municipality}.
                         </span>
                     )}
-                    {origin.label === SAMPLE_GPS.label && (
+                    {isSampleLocation(origin) && (
                         <span className="location__note">
                             Es una ubicación de ejemplo: todavía no usamos tu GPS.
                         </span>
@@ -101,7 +92,7 @@ export default function LocationPicker({ onPicked, highlight }: LocationPickerPr
                 </p>
             )}
 
-            <button type="button" className="button button--primary" onClick={() => pick(SAMPLE_GPS)}>
+            <button type="button" className="button button--primary" onClick={() => pick(sampleLocation())}>
                 Usar mi ubicación
             </button>
 
