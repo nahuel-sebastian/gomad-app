@@ -417,3 +417,49 @@ Se repiten, con contexto, en `app/frontend/docs/guia.md` §6.
 | P-09 | No hay endpoint con la lista de municipios para el selector. ¿`/location` o lista estática? | Municipio |
 | P-10 | `Indicator.category` incluye `social`, que el PDF de interfaz no tiene. ¿Se muestra? | Municipio |
 | P-11 | El quinto peso `suitability` no está en el prototipo. ¿Se expone? | Perfil |
+
+---
+
+## Decisiones tomadas al construir (15/10)
+
+Paso 1 del front (rama `front/jue15-todas-pantallas`): todas las pantallas con datos de ejemplo y la forma exacta del contrato, sin red. Cada línea: `Front: Ruling: <qué> — <por qué> — <coste si me equivoco>`. El equipo puede cambiar cualquiera.
+
+### Preguntas abiertas (§10)
+- Front: Ruling: **P-01** `h1` neutro «¿Qué te apetece hacer hoy?»; el estado del momento son las pastillas de municipio, temperatura y aire de la **primera hora** (`hours[0]`) del primer resultado de `/recommend` (`activity: null`, `limit: 1`), solo si hay ubicación — no hay endpoint de condiciones y el `h1` fijo contradecía a Carmen — una petición más a `/recommend` en Inicio; si se crea `/conditions`, solo cambia `MomentChips` en `Home.tsx`.
+- Front: Ruling: **P-02** el veredicto lo calcula el front: ≥ 8 «Muy buena opción», ≥ 6,5 «Buena opción», resto «Opción aceptable» (`VERDICT_THRESHOLDS` en `src/lib/labels.ts`, criterio propio) — el contrato no lo trae — si Motor lo manda, se cambia `verdictFor` y nada más.
+- Front: Ruling: **P-03** fuera la barra de filtros y las pastillas de tráfico en Resultados y Detalle; queda un botón «Ajustar» que abre las preferencias. Pastillas de cada tarjeta: temperatura ahora, aire (ICA) y verde (factor `green`). En el Detalle, la tercera tesela «Tráfico» pasa a «Lluvia» (`precip_prob`) — `/recommend` no devuelve tráfico; el tráfico está en Ruta — si se amplía el contrato, hay que volver a añadirlas.
+- Front: Ruling: **P-04** sin «Otra»: se muestran las 8 actividades del catálogo (`activities.yaml`) — catálogo cerrado (RF-02) — ninguno.
+- Front: Ruling: **P-05** la recomendación literal del BOE solo se pinta si llega de la API en `reasons`/`explanation` (el Detalle muestra los `reasons` de ahora y de la mejor hora); los datos de ejemplo la ponen en `reasons` con el prefijo «Recomendación oficial (BOE):» — el motor decide (CLAUDE.md §2.4) — si Motor no la manda, no aparece.
+- Front: Ruling: **P-06** ventana por defecto ahora → +3 h, editable de 1 a 12 h con el deslizador «Ventana horaria» de Preferencias — propuesta del encargo — si el motor necesita el resto del día, solo cambia `DEFAULT_PREFERENCES.windowHours`.
+- Front: Ruling: **P-07** sin persistencia: `/resultados`, `/resultados/:id` y `/ruta/:id` sin estado en memoria vuelven a Inicio con el aviso «Elige una actividad para ver recomendaciones: los resultados no se guardan al recargar la página.» — más simple y sin guardar nada (Q-09) — quien recargue pierde la lista.
+- Front: Ruling: **P-08** fuera sombra y «Elegir esta ruta»; desnivel siempre «sin datos de desnivel» — no están en `RouteVariant` (DEC-12 llega el sábado) — cuando el contrato traiga el desnivel, añadirlo en `RouteView.tsx`.
+- Front: Ruling: **P-09** lista de los 179 municipios generada de `Comun:IDEM_V_MUNICIPIOS` (`app/data/raw/municipios/municipios.geojson`, CC BY 4.0) con centro aproximado (media de los vértices del contorno, reproyectado a EPSG:4326) en `src/data/mock/municipalities.ts`, servida por `listMunicipalities()` — no hay endpoint — en el paso 3 hay que decidir si la da la API o se queda estática; el centro de Madrid capital sale desplazado al norte (media de vértices).
+- Front: Ruling: **P-10** `social` se muestra como «Servicios sociales», la última categoría — está en el contrato — ninguno.
+- Front: Ruling: **P-11** `suitability` se expone como «Importancia de adecuación a la actividad», el último de los cinco pesos — está en el contrato y el encargo lo pide — un peso más que entender.
+
+### Desviaciones de pantallas.md, guia.md y pendientes.md
+- Front: Ruling: preferencias **solo en memoria** (contexto de React), no en `localStorage` como dice §6 — instrucción del paso 1 — se pierden al recargar; en el paso 3 se puede añadir `localStorage` con `try/catch`, nunca con la ubicación.
+- Front: Ruling: tipos generados en `src/api/schema.d.ts` (no `types.ts` como dice guia §4.2) y alias legibles en `src/api/types.ts`; script `npm run contract` — instrucción del encargo — ninguno.
+- Front: Ruling: un solo `<nav aria-label="Principal">` dentro de la cabecera, fijo abajo en móvil y arriba en ≥ 768 px; en el DOM va antes de `main` (§9.1 recomendaba después) — evita duplicar la navegación; el skip link la salta — orden de foco cabecera → navegación → contenido.
+- Front: Ruling: la hoja inferior de Resultados queda **encima** de la barra (la pantalla ya resta su altura) y se despliega sola al recibir el foco — sin enlaces enfocables fuera de la vista — ninguno.
+- Front: Ruling: en el Detalle se quita el botón «Cerrar» (duplicaba «Volver a resultados») y la imagen decorativa lleva `aria-hidden` — menos ruido — ninguno.
+- Front: Ruling: «Sorpréndeme» (RF-03): `Recommendation` no dice qué actividad propone; los 3 resultados son de **tipos de destino distintos** (`destination.type`) y la explicación lo cuenta — no hay campo de actividad por resultado — si Motor quiere enseñar la actividad, hace falta un campo nuevo en el contrato.
+- Front: Ruling: `RouteVariant.geometry` es `{"type": "object"}` sin propiedades en `openapi.json`, que `openapi-typescript` convierte en `Record<string, never>`; se lee y se construye con `src/lib/geometry.ts` (comprueba que sea un `LineString`) — no se toca el contrato — **petición a Motor:** tipar `geometry` como GeoJSON `LineString` (`type` + `coordinates`).
+- Front: Ruling: el motivo de un indicador «Sin datos» se toma de `source.label` (p. ej. «EIEL 2023 · no cubre este municipio»), porque `Indicator` no tiene campo de motivo — sin cambiar el contrato — si la API no pone el motivo en la etiqueta, solo se verá «Sin datos».
+- Front: Ruling: rangos de la interfaz más cortos que el contrato: tiempo 10–180 min (contrato 10–480), distancia 0,5–10 km (contrato 0,2–50 km); pesos en % de 0 a 100 de 5 en 5 con palabras (ninguna, baja, media, alta, máxima; criterio propio) — deslizadores usables en móvil — quien quiera más, no puede desde la interfaz.
+- Front: Ruling: «Usar mi ubicación» usa una **ubicación de ejemplo** en Getafe y lo dice; sin geolocalización real hasta el paso 3 — encargo — ninguno.
+- Front: Ruling: escenarios de la demo (Carmen, Lucía, Dani, Ana, familia y «día normal» para «dos personas, mismo sitio») en un selector «Datos de ejemplo» al final de Fuentes (`src/data/scenarios.ts`); en el paso 3 se borran el módulo y el selector — discreto y sin tocar las pantallas — ninguno.
+- Front: Ruling: textos del asistente sin decir «IA generativa»: «El asistente solo interpreta tu texto y redacta la respuesta con los resultados del motor» — DEC-03: OCI Language + reglas, sin LLM — si se añade un LLM, cambiar el texto.
+- Front: Ruling: en el asistente, distancia **o** duración: si hay distancia, manda la distancia y `duration_min: null` — el esquema admite ambos y el motor espera uno — ninguno.
+- Front: Ruling: todo el texto de contenido a ≥ 14 px (antes había 11–13 px), asa de la hoja con `--muted` (≥ 3:1) y filtros a 44 px — checklist §5 — algo más de altura en las tarjetas.
+- Front: Ruling: en escritorio el `h1` de Resultados estaba oculto (`display: none`) y había un contador fijo «536 resultados» en CSS; ahora el `h1` se ve y el contador se quita — un `h1` visible por pantalla — ninguno.
+- Front: Ruling: **logo** sigue en PNG de 516 KB (con `width`/`height` y `alt=""`, el enlace lleva `aria-label`) — no hay herramienta local para WebP (ni `cwebp`, ni `sharp`, ni ImageMagick, ni Pillow) — primera carga más lenta en móvil; queda en `pendientes.md`.
+- Front: Ruling: iconos aplazados: componente `Icon` que pinta `<span class="icon" aria-hidden="true" data-icon="…">` vacío (oculto con `.icon:empty`), ya colocado en pastillas, actividades y categorías — decisión del equipo — al llegar la fuente, solo cambian `Icon.tsx` e `icons.css`.
+- Front: Ruling: el mapa es `MapView`, un SVG de marcador de posición sin teselas con la interfaz final (`markers`, `selectedId`, `origin`, `route`, `secondaryRoute`), oculto a lectores (la lista y la descripción son el equivalente) — sin red en el paso 1 — en el paso 3 falta la sincronización tarjeta ↔ marcador.
+- Front: Ruling: los datos de ejemplo usan un umbral de calor de 33 °C de criterio propio (solo en `src/data/mock/recommend.ts`) — DEC-06 sigue pendiente — ninguno en producción: lo decide el motor.
+- Front: Ruling: el estado de error se prueba espiando las funciones de `src/data` (`vi.spyOn`) — sin MSW en el paso 1 — en el paso 3 se pueden pasar a MSW.
+
+### Versiones
+- Front: Ruling: instaladas `react-router` 7.18.4, `@radix-ui/react-dialog` 1.3.1, `@radix-ui/react-slider` 1.6.1; dev `vitest` 4.1.12, `jsdom` 26.1.0, `@testing-library/react` 16.3.3, `@testing-library/dom` 10.4.2, `@testing-library/jest-dom` 6.9.1, `@testing-library/user-event` 14.6.8, `vitest-axe` 0.1.0 — las de guia §2.1 — ninguno.
+- Front: Ruling: npm 10.8.2 (Node 20.20.2) falla al instalar `vitest` con «Cannot read properties of null (reading 'edgesOut')» (fallo de arborist); se instaló con `npx npm@11 install` — mismo `lockfileVersion` 3 — si `npm ci` del Dockerfile (paso 2) se queja, regenerar el lock con su versión de npm.
+- Front: Ruling: `vitest-axe` se usa llamando a `axe()` y comprobando `violations` (sin sus *matchers*), con la regla `color-contrast` desactivada porque jsdom no mide colores — el contraste se revisa a mano (§0.1) — un fallo de contraste no lo detectan las pruebas.
