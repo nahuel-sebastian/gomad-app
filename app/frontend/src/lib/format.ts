@@ -52,7 +52,7 @@ export function formatSourceDate(datetime: string): string {
     return `${day}/${month} ${hh}:${mm}`;
 }
 
-// «hace 12 min», «hace 3 h», «hace 3 días»
+// «hace 12 min», «hace 3 h», «hace 3 dias»
 export function formatTimeAgo(datetime: string, now: Date = new Date()): string {
     const then = new Date(datetime);
     const minutes = Math.max(

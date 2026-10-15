@@ -19,7 +19,7 @@ export default function Hero({ title, children }: HeroProps) {
                 <circle cx="318" cy="90" r="26" fill="#f7c948" />
 
                 <g fill="#a9c6da">
-                    {/* Torres KIO (Puerta de Europa) - Más separadas */}
+                    {/* Torres KIO (Puerta de Europa) - Mas separadas */}
                     <polygon points="80,180 100,180 120,120 100,120" />
                     <polygon points="150,180 170,180 150,120 130,120" />
 
@@ -35,7 +35,7 @@ export default function Hero({ title, children }: HeroProps) {
                     {/* Torre Caleido (Quinta torre) */}
                     <path d="M293,180 v-70 h12 v70 Z M289,180 v-25 h20 v25 Z" />
 
-                    {/* El Pirulí (Torrespaña) */}
+                    {/* El Piruli (Torrespana) */}
                     <rect x="335" y="110" width="6" height="70" />
                     <polygon points="330,110 346,110 342,100 334,100" />
                     <polygon points="330,110 334,120 342,120 346,110" />

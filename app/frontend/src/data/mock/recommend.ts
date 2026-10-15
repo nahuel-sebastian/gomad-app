@@ -360,7 +360,7 @@ export function recommendMock(req: RecommendRequest): RecommendResponse {
 
     let ranked: Recommendation[];
     if (req.activity === null || req.activity === undefined) {
-        // «Sorpréndeme»: cada sitio con su mejor actividad; primero uno por tipo
+        // «Sorprendeme»: cada sitio con su mejor actividad; primero uno por tipo
         const all = inRange
             .map((p) => {
                 const activity = Object.entries(p.suitability).sort((a, b) => b[1] - a[1])[0][0];

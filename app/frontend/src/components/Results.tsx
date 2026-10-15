@@ -99,11 +99,11 @@ export default function Results() {
                 : Promise.resolve(null),
         [key],
     );
-    // paginas de «Ver más opciones», se vacian al cambiar la peticion
+    // paginas de «Ver mas opciones», se vacian al cambiar la peticion
     const [more, setMore] = useState<{ key: string; items: Recommendation[]; hasMore: boolean } | null>(null);
     const [loadingMore, setLoadingMore] = useState(false);
     const [moreFailed, setMoreFailed] = useState(false);
-    // tras «Ver más», el foco va al primer resultado nuevo
+    // tras «Ver mas», el foco va al primer resultado nuevo
     const [focusIndex, setFocusIndex] = useState<number | null>(null);
     const listRef = useRef<HTMLOListElement>(null);
 

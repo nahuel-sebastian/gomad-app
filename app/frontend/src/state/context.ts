@@ -33,7 +33,7 @@ export const DEFAULT_PREFERENCES: Preferences = {
     windowHours: 3,
 };
 
-// Busqueda en curso: undefined = ninguna; activity null = «Sorpréndeme»
+// Busqueda en curso: undefined = ninguna; activity null = «Sorprendeme»
 export interface Search {
     activity: string | null;
     // etiqueta de la actividad (de /activities) para el titulo
