@@ -1,5 +1,6 @@
 import { screen, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import * as activitiesApi from "../data/activities";
 import { selectScenario } from "../data/scenarios";
 import * as sourcesApi from "../data/sources";
 import { expectNoAxeViolations, renderAt } from "../test/render";
@@ -34,7 +35,10 @@ describe("Fuentes y aviso", () => {
         const privacy = screen.getByRole("region", { name: "Privacidad" });
         expect(privacy).toHaveTextContent("Sin registro");
         expect(privacy).toHaveTextContent(/ubicación.*no se guarda/);
-        expect(privacy).toHaveTextContent(/no se envía tu ubicación/);
+        // al interpretar solo va el texto; la ubicacion si va al calcular la ruta
+        expect(privacy).toHaveTextContent(/Para interpretar tu texto solo se envía el texto/);
+        expect(privacy).toHaveTextContent(/tu ubicación solo se usa para calcular la ruta/);
+        expect(privacy).not.toHaveTextContent(/Al asistente de rutas solo le llega el texto/);
         expect(screen.getByRole("region", { name: "Nuestros datos" })).toHaveTextContent("CC BY 4.0");
     });
 
@@ -44,6 +48,13 @@ describe("Fuentes y aviso", () => {
         expect(await screen.findByText("No se pudieron cargar las fuentes.")).toBeInTheDocument();
         await user.click(screen.getByRole("button", { name: "Reintentar" }));
         expect(await screen.findByRole("table", { name: "Fuentes de datos" })).toBeInTheDocument();
+    });
+
+    it("avisa si falla al aplicar el escenario", async () => {
+        vi.spyOn(activitiesApi, "getActivities").mockRejectedValueOnce(new Error("red"));
+        const { user } = renderAt("/fuentes");
+        await user.click(screen.getByRole("button", { name: "Ver este ejemplo" }));
+        expect(await screen.findByText("No se pudo cargar el ejemplo.")).toBeInTheDocument();
     });
 
     it("permite elegir un escenario de la demo y verlo (Carmen)", async () => {

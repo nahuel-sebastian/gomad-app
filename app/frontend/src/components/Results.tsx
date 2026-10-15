@@ -101,6 +101,7 @@ export default function Results() {
     // paginas de «Ver más opciones», se vacian al cambiar la peticion
     const [more, setMore] = useState<{ key: string; items: Recommendation[]; hasMore: boolean } | null>(null);
     const [loadingMore, setLoadingMore] = useState(false);
+    const [moreFailed, setMoreFailed] = useState(false);
     const extra = more?.key === key ? more : null;
 
     const items = [...(first.data?.results ?? []), ...(extra?.items ?? [])];
@@ -120,11 +121,14 @@ export default function Results() {
 
     const loadMore = async () => {
         setLoadingMore(true);
+        setMoreFailed(false);
         try {
             const page = await recommend(
                 buildRecommendRequest(origin.coordinate, activity, preferences, { offset: items.length }),
             );
             setMore({ key, items: [...(extra?.items ?? []), ...page.results], hasMore: page.has_more });
+        } catch {
+            setMoreFailed(true);
         } finally {
             setLoadingMore(false);
         }
@@ -214,7 +218,6 @@ export default function Results() {
 
                         dragStartY.current = event.clientY;
                         didDrag.current = false;
-                        event.currentTarget.setPointerCapture(event.pointerId);
                     }}
                     onPointerMove={(event) => {
                         if (dragStartY.current === null || !sheetRef.current) {
@@ -223,8 +226,10 @@ export default function Results() {
 
                         const delta = event.clientY - dragStartY.current;
 
-                        if (Math.abs(delta) > 8) {
+                        // la captura solo empieza al arrastrar: un toque sigue siendo un clic en el enlace
+                        if (Math.abs(delta) > 8 && !didDrag.current) {
                             didDrag.current = true;
+                            event.currentTarget.setPointerCapture(event.pointerId);
                         }
 
                         const sheetHeight = sheetRef.current.offsetHeight;
@@ -346,7 +351,11 @@ export default function Results() {
                                 </ol>
                             )}
 
-                            {hasMore && first.status === "success" && (
+                            {moreFailed && (
+                                <ErrorMessage message="No se pudieron cargar más opciones." onRetry={loadMore} />
+                            )}
+
+                            {hasMore && first.status === "success" && !moreFailed && (
                                 <button
                                     type="button"
                                     className="button button--full"

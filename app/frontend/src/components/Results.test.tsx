@@ -1,4 +1,4 @@
-import { screen, waitFor, within } from "@testing-library/react";
+import { fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import * as recommendApi from "../data/recommend";
 import { ApiError } from "../data/errors";
@@ -90,6 +90,34 @@ describe("Resultados", () => {
         expect(
             screen.queryByRole("button", { name: "Ver más opciones" }),
         ).not.toBeInTheDocument();
+    });
+
+    it("si falla Ver más, lo dice y deja reintentar", async () => {
+        const { user } = renderAt("/resultados", WITH_SEARCH);
+        await resultsList();
+        vi.spyOn(recommendApi, "recommend").mockRejectedValueOnce(new Error("red"));
+        await user.click(screen.getByRole("button", { name: "Ver más opciones" }));
+        expect(await screen.findByText("No se pudieron cargar más opciones.")).toBeInTheDocument();
+        await user.click(screen.getByRole("button", { name: "Reintentar" }));
+        await waitFor(async () =>
+            expect(within(await resultsList()).getAllByRole("listitem")).toHaveLength(6),
+        );
+    });
+
+    it("tocar una tarjeta no captura el puntero en la hoja (el enlace recibe el clic)", async () => {
+        const capture = vi.fn();
+        HTMLElement.prototype.setPointerCapture = capture;
+        const width = window.innerWidth;
+        window.innerWidth = 375;
+        try {
+            renderAt("/resultados", WITH_SEARCH);
+            const link = within(await resultsList()).getAllByRole("link")[0];
+            fireEvent.pointerDown(link, { pointerId: 1, clientY: 500 });
+            fireEvent.pointerUp(link, { pointerId: 1, clientY: 500 });
+            expect(capture).not.toHaveBeenCalled();
+        } finally {
+            window.innerWidth = width;
+        }
     });
 
     it("estado vacio con Ajustar preferencias", async () => {

@@ -62,6 +62,13 @@ describe("Vista de municipio", () => {
         expect(await screen.findByText("Usaremos el centro de Getafe.")).toBeInTheDocument();
     });
 
+    it("avisa si no puede situar el municipio", async () => {
+        vi.spyOn(municipalityApi, "listMunicipalities").mockRejectedValueOnce(new Error("red"));
+        const { user } = renderAt("/municipios/28065");
+        await user.click(await screen.findByRole("button", { name: "Buscar actividad en Getafe" }));
+        expect(await screen.findByText("No se pudo situar el municipio. Inténtalo de nuevo.")).toBeInTheDocument();
+    });
+
     it("con un codigo inexistente da un 404 legible", async () => {
         renderAt("/municipios/28999");
         expect(

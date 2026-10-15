@@ -30,10 +30,12 @@ function SampleData() {
     const { setOrigin, setSearch, updatePreferences } = useAppState();
     const [chosen, setChosen] = useState<ScenarioId>(currentScenario().id);
     const [busy, setBusy] = useState(false);
+    const [failed, setFailed] = useState(false);
 
     const apply = async () => {
         const scenario = listScenarios().find((s) => s.id === chosen)!;
         setBusy(true);
+        setFailed(false);
         try {
             selectScenario(scenario.id);
             const [municipalities, activities] = await Promise.all([listMunicipalities(), getActivities()]);
@@ -52,6 +54,8 @@ function SampleData() {
                 label: activities.activities.find((a) => a.id === activity)?.label,
             });
             navigate(scenario.preset.path);
+        } catch {
+            setFailed(true);
         } finally {
             setBusy(false);
         }
@@ -85,6 +89,7 @@ function SampleData() {
                     ))}
                 </div>
             </fieldset>
+            {failed && <ErrorMessage message="No se pudo cargar el ejemplo." onRetry={apply} />}
             <button type="button" className="button button--primary" onClick={apply} disabled={busy}>
                 Ver este ejemplo
             </button>
@@ -181,7 +186,10 @@ export default function Sources() {
                     <li>
                         Tus preferencias se guardan solo mientras tienes la página abierta; puedes borrarlas en Perfil.
                     </li>
-                    <li>Al asistente de rutas solo le llega el texto que escribes: no se envía tu ubicación.</li>
+                    <li>
+                        Asistente de rutas. Para interpretar tu texto solo se envía el texto; tu ubicación solo se usa
+                        para calcular la ruta y no se guarda.
+                    </li>
                     <li>Las fuentes tipográficas se sirven desde nuestro servidor, sin terceros.</li>
                     <li>
                         Mapa base: en esta versión el mapa es de ejemplo y no pide teselas a nadie. Cuando llegue, se

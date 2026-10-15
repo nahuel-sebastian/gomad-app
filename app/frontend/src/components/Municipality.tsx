@@ -2,8 +2,7 @@ import { useState } from "react";
 import { Link, useNavigate, useParams } from "react-router";
 import type { Indicator, IndicatorCategory } from "../api/types";
 import { ApiError } from "../data/errors";
-import { searchLocation } from "../data/location";
-import { getMunicipality } from "../data/municipality";
+import { getMunicipality, listMunicipalities } from "../data/municipality";
 import { useAsync } from "../data/useAsync";
 import { formatNumber } from "../lib/format";
 import { CATEGORY_LABELS } from "../lib/labels";
@@ -55,6 +54,7 @@ export default function Municipality() {
     const { setOrigin } = useAppState();
     const data = useAsync(() => getMunicipality(ine_code), [ine_code]);
     const [locating, setLocating] = useState(false);
+    const [locateFailed, setLocateFailed] = useState(false);
     const notFound = data.error instanceof ApiError && data.error.status === 404;
 
     if (notFound) {
@@ -74,15 +74,20 @@ export default function Municipality() {
     const searchHere = async () => {
         if (!m) return;
         setLocating(true);
+        setLocateFailed(false);
         try {
-            const result = await searchLocation(m.name);
-            const center =
-                result.candidates.find((c) => c.ine_code === m.ine_code && c.precision === "municipality") ??
-                result.candidates.find((c) => c.ine_code === m.ine_code);
-            if (center) {
-                setOrigin(center);
-                navigate("/");
-            }
+            const center = (await listMunicipalities()).find((x) => x.ine_code === m.ine_code);
+            if (!center) throw new Error("municipio sin centro");
+            setOrigin({
+                label: m.name,
+                municipality: m.name,
+                ine_code: m.ine_code,
+                coordinate: { lat: center.lat, lon: center.lon },
+                precision: "municipality",
+            });
+            navigate("/");
+        } catch {
+            setLocateFailed(true);
         } finally {
             setLocating(false);
         }
@@ -167,6 +172,9 @@ export default function Municipality() {
                         )}
                     </section>
 
+                    {locateFailed && (
+                        <ErrorMessage message="No se pudo situar el municipio. Inténtalo de nuevo." />
+                    )}
                     <button type="button" className="button button--primary" onClick={searchHere} disabled={locating}>
                         Buscar actividad en {m.name}
                     </button>
