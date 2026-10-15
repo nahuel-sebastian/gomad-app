@@ -1,0 +1,15 @@
+# solo entra en el contexto lo necesario para compilar: nada local, ni claves, ni el build previo
+node_modules/
+dist/
+dist-ssr/
+docs/
+.env*
+*.local
+*.log
+coverage/
+.vscode/
+.idea/
+.DS_Store
+Dockerfile
+.dockerignore
+README.md
