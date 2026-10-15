@@ -40,7 +40,7 @@ function MomentChips({ hour, failed }: { hour: MomentHour; failed: boolean }) {
     const { origin } = useAppState();
 
     return (
-        <ul className="chips" aria-label="Ahora en tu zona">
+        <ul role="list" className="chips" aria-label="Ahora en tu zona">
             <li>
                 <Chip tone="info" icon="location_on">
                     {origin ? origin.municipality : "Sin ubicación todavía"}
@@ -150,7 +150,7 @@ export default function Home() {
                         />
                     )}
                     {activities.data && (
-                        <ul className="activities" aria-label="Actividades">
+                        <ul role="list" className="activities" aria-label="Actividades">
                             {activities.data.activities.map((a: Activity) => (
                                 <li key={a.id}>
                                     <button type="button" className="activity" onClick={() => go(a.id, a.label)}>
@@ -187,7 +187,7 @@ export default function Home() {
                         </div>
                         <PreferencesDialog
                             trigger={
-                                <button type="button" className="button">
+                                <button type="button" className="button" aria-label="Ajustar preferencias">
                                     <span>Ajustar</span>
                                 </button>
                             }

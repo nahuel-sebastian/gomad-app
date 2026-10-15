@@ -51,7 +51,7 @@ export default function Municipalities() {
             )}
 
             {list.data && (
-                <ul className="muni-list" aria-label="Municipios de la Comunidad de Madrid">
+                <ul role="list" className="muni-list" aria-label="Municipios de la Comunidad de Madrid">
                     {shown.map((m) => (
                         <li key={m.ine_code}>
                             <Link to={`/municipios/${m.ine_code}`} className="muni-list__link">

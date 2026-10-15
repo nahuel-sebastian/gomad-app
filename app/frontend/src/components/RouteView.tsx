@@ -121,7 +121,7 @@ export default function RouteView() {
                     )}
                     {data.warnings.length > 0 && (
                         <div className="notice notice--info" role="note">
-                            <ul>
+                            <ul role="list">
                                 {data.warnings.map((w) => (
                                     <li key={w}>{w}</li>
                                 ))}
@@ -146,7 +146,7 @@ export default function RouteView() {
                                 ]}
                                 selectedId={item.destination.id}
                             />
-                            <ul className="route-legend" aria-label="Leyenda del mapa">
+                            <ul role="list" className="route-legend" aria-label="Leyenda del mapa">
                                 <li>
                                     <span className="route-legend__line" aria-hidden="true" />
                                     Ruta elegida
@@ -159,7 +159,7 @@ export default function RouteView() {
                         </div>
 
                         <div className="route-info panel">
-                            <ul className="route-metrics" aria-label="Resumen de la ruta">
+                            <ul role="list" className="route-metrics" aria-label="Resumen de la ruta">
                                 <li>
                                     <span>Distancia</span>
                                     <strong>{formatDistance(variant.distance_m)}</strong>
@@ -183,7 +183,7 @@ export default function RouteView() {
                             </ul>
 
                             <h2 className="panel__title">En el camino</h2>
-                            <ul className="route-pois" aria-label="En la ruta">
+                            <ul role="list" className="route-pois" aria-label="En la ruta">
                                 {pois.length > 0 ? (
                                     pois.map((p) => <li key={p}>{p}</li>)
                                 ) : (

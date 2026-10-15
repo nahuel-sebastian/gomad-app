@@ -320,10 +320,6 @@ button {
 }
 
 @media (min-width: 768px) {
-    .filter-chip {
-        margin-bottom: 1rem;
-    }
-
     .nav {
         position: static;
         padding: 0px;
@@ -815,23 +811,7 @@ h1:focus-visible {
     gap: 8px;
 }
 
-.results-filter-chips {
-    display: flex;
-    flex: 1 1 0%;
-    gap: 8px;
-    overflow-x: auto;
-    overscroll-behavior-x: contain;
-    scrollbar-width: none;
-    touch-action: pan-x;
-    padding-bottom: 1rem;
-}
-
-.results-filter-chips::-webkit-scrollbar {
-    display: none;
-}
-
-.filter-button,
-.filter-chip {
+.filter-button {
     display: inline-flex;
     flex-shrink: 0;
     align-items: center;
@@ -856,7 +836,6 @@ h1:focus-visible {
     margin-bottom: 1rem;
 }
 
-.filter-chip:hover,
 .filter-button:hover {
     background: var(--blue-tint);
     color: var(--navy);
@@ -1640,14 +1619,7 @@ h1:focus-visible {
         padding-block: 4px;
     }
 
-    .results-filter-chips {
-        overflow: visible;
-        padding-block: 0px;
-        touch-action: auto;
-    }
-
-    .filter-button,
-    .filter-chip {
+    .filter-button {
         padding-inline: 16px;
     }
 

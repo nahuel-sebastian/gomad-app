@@ -83,7 +83,7 @@ export default function Recommendation() {
                         </div>
                     </div>
 
-                    <ul className="detail-tags" aria-label="Características del lugar">
+                    <ul role="list" className="detail-tags" aria-label="Características del lugar">
                         <li>
                             {item.destination.covered === null
                                 ? "Cubierta: sin datos"
@@ -129,7 +129,7 @@ export default function Recommendation() {
                         <p className="detail-section__eyebrow">La recomendación</p>
                         <h2 id="por-que">¿Por qué te recomendamos este lugar?</h2>
                         <p className="detail-explanation">{item.explanation}</p>
-                        <ul className="factor-list" aria-label="Nota por factor">
+                        <ul role="list" className="factor-list" aria-label="Nota por factor">
                             {item.factors.map((f) => (
                                 <li key={f.factor}>
                                     <div>
@@ -195,7 +195,7 @@ export default function Recommendation() {
                                 </tbody>
                             </table>
                         </div>
-                        <ul className="detail-reasons" aria-label="Motivos por hora">
+                        <ul role="list" className="detail-reasons" aria-label="Motivos por hora">
                             {detailHours.map((h) => (
                                 <li key={h.hour}>
                                     <strong>{h === now ? `Ahora (${formatHour(h.hour)})` : `A las ${formatHour(h.hour)}`}:</strong>{" "}

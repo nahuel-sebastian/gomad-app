@@ -62,3 +62,9 @@ describe("estilos", () => {
         expect(contrast(token(fg!), token(bg!))).toBeGreaterThanOrEqual(4.5);
     });
 });
+
+describe("css muerto", () => {
+    it("no quedan reglas de los filtros quitados (.filter-chip, .results-filter-chips)", () => {
+        expect(css).not.toMatch(/\.filter-chip\b|\.results-filter-chips\b/);
+    });
+});

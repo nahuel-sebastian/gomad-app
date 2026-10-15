@@ -125,13 +125,12 @@ describe("Resultados", () => {
             ...WITH_SEARCH,
             preferences: { maxDistanceM: 200 },
         });
+        const empty = await screen.findByText(
+            /Ningún destino encaja con tus preferencias/,
+        );
+        // el aviso trae su propio boton (la cabecera tiene otro con el mismo nombre)
         expect(
-            await screen.findByText(
-                /Ningún destino encaja con tus preferencias/,
-            ),
-        ).toBeInTheDocument();
-        expect(
-            screen.getByRole("button", { name: "Ajustar preferencias" }),
+            within(empty.closest(".notice") as HTMLElement).getByRole("button", { name: "Ajustar preferencias" }),
         ).toBeInTheDocument();
     });
 
@@ -154,11 +153,9 @@ describe("Resultados", () => {
             new ApiError(422, "invalida"),
         );
         renderAt("/resultados", WITH_SEARCH);
+        const invalid = await screen.findByText(/no son válidas/);
         expect(
-            await screen.findByText(/no son válidas/),
-        ).toBeInTheDocument();
-        expect(
-            screen.getByRole("button", { name: "Ajustar preferencias" }),
+            within(invalid.closest(".notice") as HTMLElement).getByRole("button", { name: "Ajustar preferencias" }),
         ).toBeInTheDocument();
     });
 
@@ -252,7 +249,7 @@ describe("Resultados: recalculo", () => {
         const { user } = renderAt("/resultados", WITH_SEARCH);
         const list = await resultsList();
         vi.spyOn(recommendApi, "recommend").mockReturnValue(new Promise(() => {}));
-        await user.click(screen.getByRole("button", { name: "Ajustar" }));
+        await user.click(screen.getByRole("button", { name: "Ajustar preferencias" }));
         const dialog = await screen.findByRole("dialog", { name: "Tus preferencias" });
         await user.click(within(dialog).getByRole("radio", { name: "Interior" }));
         await waitFor(() => expect(list).toHaveAttribute("aria-busy", "true"));

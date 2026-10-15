@@ -180,7 +180,7 @@ export default function Sources() {
                 <h2 className="panel__title" id="privacidad">
                     Privacidad
                 </h2>
-                <ul className="fit-list">
+                <ul role="list" className="fit-list">
                     <li>Sin registro: no te pedimos ningún dato personal ni de salud.</li>
                     <li>
                         Tu ubicación solo se usa para la consulta: no se guarda, no va en la dirección de la página y no

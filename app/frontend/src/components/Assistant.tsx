@@ -335,7 +335,7 @@ export default function Assistant() {
                                 {done.route.green_pct !== null && ` · ${Math.round(done.route.green_pct)} % por zona verde`}
                             </strong>
                         </p>
-                        <ul className="conditions" aria-label="Condiciones">
+                        <ul role="list" className="conditions" aria-label="Condiciones">
                             {done.conditions.map((c) => (
                                 <li key={c.condition} className={`condition condition--${c.met ? "ok" : "ko"}`}>
                                     <span className={`chip chip--${c.met ? "good" : "bad"}`}>

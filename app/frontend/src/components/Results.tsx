@@ -183,7 +183,7 @@ export default function Results() {
                 <div className="results-filters">
                     <PreferencesDialog
                         trigger={
-                            <button className="filter-button" type="button">
+                            <button className="filter-button" type="button" aria-label="Ajustar preferencias">
                                 <svg
                                     width="18"
                                     height="18"
@@ -317,7 +317,7 @@ export default function Results() {
                             </p>
 
                             {first.status === "loading" && !first.data && (
-                                <ul className="results-skeleton" aria-hidden="true">
+                                <ul role="list" className="results-skeleton" aria-hidden="true">
                                     <li />
                                     <li />
                                     <li />
@@ -338,7 +338,7 @@ export default function Results() {
 
                             {first.data && first.data.warnings.length > 0 && (
                                 <div className="notice notice--warn" role="note">
-                                    <ul>
+                                    <ul role="list">
                                         {first.data.warnings.map((w) => (
                                             <li key={w}>{w}</li>
                                         ))}
@@ -359,7 +359,7 @@ export default function Results() {
                             {stale && items.length > 0 && <p className="results-updating">Actualizando…</p>}
 
                             {items.length > 0 && (
-                                <ol
+                                <ol role="list"
                                     ref={listRef}
                                     className="results-list"
                                     aria-label="Resultados"

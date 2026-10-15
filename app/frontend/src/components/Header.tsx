@@ -43,7 +43,7 @@ export default function Header() {
 
                 {/* En movil es la barra inferior (fija); en >= 768 px va aqui arriba */}
                 <nav className="nav" aria-label="Principal">
-                    <ul className="nav__list">
+                    <ul role="list" className="nav__list">
                         {LINKS.map((link) => (
                             <li key={link.to}>
                                 <Link

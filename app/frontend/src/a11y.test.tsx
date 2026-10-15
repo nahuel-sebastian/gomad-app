@@ -93,3 +93,19 @@ describe("navegacion global", () => {
         );
     });
 });
+
+describe("listas y nombres de botones", () => {
+    it.each(["/", "/municipios", "/municipios/28065", "/perfil", "/fuentes", "/asistente"])(
+        "en %s toda ul/ol lleva role=list (list-style: none quita la semantica en VoiceOver)",
+        async (path) => {
+            const { container } = renderAt(path, { origin: SAMPLE_ORIGIN });
+            await new Promise((r) => setTimeout(r, 50));
+            expect(container.querySelectorAll("ul:not([role]), ol:not([role])")).toHaveLength(0);
+        },
+    );
+
+    it("los botones «Ajustar» de Inicio y Resultados se llaman «Ajustar preferencias»", async () => {
+        renderAt("/", { origin: SAMPLE_ORIGIN });
+        expect(await screen.findByRole("button", { name: "Ajustar preferencias" })).toHaveTextContent("Ajustar");
+    });
+});

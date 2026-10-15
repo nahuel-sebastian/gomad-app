@@ -121,7 +121,7 @@ export default function LocationPicker({ onPicked, highlight }: LocationPickerPr
             </p>
 
             {search.status === "done" && search.candidates.length > 0 && (
-                <ul className="location__candidates" aria-label="Lugares encontrados">
+                <ul role="list" className="location__candidates" aria-label="Lugares encontrados">
                     {search.candidates.map((c) => (
                         <li key={`${c.ine_code}-${c.label}`}>
                             <button type="button" className="candidate" onClick={() => pick(c)}>

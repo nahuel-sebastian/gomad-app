@@ -67,7 +67,7 @@ describe("Perfil", () => {
 describe("Ajustar como dialogo", () => {
     it("se abre desde Resultados, Esc cierra y el foco vuelve a Ajustar", async () => {
         const { user } = renderAt("/resultados", WITH_SEARCH);
-        const adjust = screen.getByRole("button", { name: "Ajustar" });
+        const adjust = screen.getByRole("button", { name: "Ajustar preferencias" });
         await user.click(adjust);
         const dialog = await screen.findByRole("dialog", { name: "Tus preferencias" });
         expect(dialog).toBeInTheDocument();
@@ -81,7 +81,7 @@ describe("Ajustar como dialogo", () => {
         const list = await screen.findByRole("list", { name: "Resultados" });
         await waitFor(() => expect(within(list).getAllByRole("listitem")).toHaveLength(3));
         const before = within(list).getAllByRole("link")[0].textContent;
-        await user.click(screen.getByRole("button", { name: "Ajustar" }));
+        await user.click(screen.getByRole("button", { name: "Ajustar preferencias" }));
         const dialog = await screen.findByRole("dialog", { name: "Tus preferencias" });
         for (const name of ["Importancia de sombra y zona verde", "Importancia de aire limpio", "Importancia de adecuación a la actividad", "Importancia de meteorología"]) {
             const slider = within(dialog).getByRole("slider", { name });
@@ -101,7 +101,7 @@ describe("Ajustar como dialogo", () => {
 
     it("se abre tambien desde Ajustar en Inicio", async () => {
         const { user } = renderAt("/");
-        await user.click(screen.getByRole("button", { name: "Ajustar" }));
+        await user.click(screen.getByRole("button", { name: "Ajustar preferencias" }));
         expect(await screen.findByRole("dialog", { name: "Tus preferencias" })).toBeInTheDocument();
     });
 

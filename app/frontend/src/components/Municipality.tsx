@@ -165,7 +165,7 @@ export default function Municipality() {
                             ¿Cómo encaja contigo?
                         </h2>
                         {m.fit.length > 0 ? (
-                            <ul className="fit-list">
+                            <ul role="list" className="fit-list">
                                 {m.fit.map((f) => (
                                     <li key={f}>{f}</li>
                                 ))}
