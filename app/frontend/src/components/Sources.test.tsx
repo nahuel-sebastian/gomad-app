@@ -1,6 +1,5 @@
 import { screen, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import * as activitiesApi from "../data/activities";
 import { selectScenario } from "../data/scenarios";
 import * as sourcesApi from "../data/sources";
 import { expectNoAxeViolations, renderAt } from "../test/render";
@@ -50,21 +49,16 @@ describe("Fuentes y aviso", () => {
         expect(await screen.findByRole("table", { name: "Fuentes de datos" })).toBeInTheDocument();
     });
 
-    it("avisa si falla al aplicar el escenario", async () => {
-        vi.spyOn(activitiesApi, "getActivities").mockRejectedValueOnce(new Error("red"));
-        const { user } = renderAt("/fuentes");
-        await user.click(screen.getByRole("button", { name: "Ver este ejemplo" }));
-        expect(await screen.findByText("No se pudo cargar el ejemplo.")).toBeInTheDocument();
+    it("ya no ofrece escenarios de ejemplo: la recomendación es real", () => {
+        renderAt("/fuentes");
+        expect(screen.queryByRole("group", { name: "Datos de ejemplo" })).not.toBeInTheDocument();
+        expect(screen.queryByRole("button", { name: "Ver este ejemplo" })).not.toBeInTheDocument();
     });
 
-    it("permite elegir un escenario de la demo y verlo (Carmen)", async () => {
-        const { user } = renderAt("/fuentes");
-        const group = screen.getByRole("group", { name: "Datos de ejemplo" });
-        expect(within(group).getAllByRole("radio")).toHaveLength(6);
-        await user.click(within(group).getByRole("radio", { name: /Carmen/ }));
-        await user.click(screen.getByRole("button", { name: "Ver este ejemplo" }));
-        expect(await screen.findByRole("heading", { level: 1, name: "Caminar cerca de ti" })).toBeInTheDocument();
-        expect(await screen.findByText("Alternativa cubierta")).toBeInTheDocument();
+    it("dice que la tabla de fuentes todavía es de ejemplo", async () => {
+        renderAt("/fuentes");
+        const table = await screen.findByRole("table", { name: "Fuentes de datos" });
+        expect(table.closest("section")).toHaveTextContent(/Lista de ejemplo/);
     });
 });
 

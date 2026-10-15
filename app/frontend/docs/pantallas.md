@@ -459,6 +459,12 @@ Paso 1 del front (rama `front/jue15-todas-pantallas`): todas las pantallas con d
 - Front: Ruling: los datos de ejemplo usan un umbral de calor de 33 °C de criterio propio (solo en `src/data/mock/recommend.ts`) — DEC-06 sigue pendiente — ninguno en producción: lo decide el motor.
 - Front: Ruling: el estado de error se prueba espiando las funciones de `src/data` (`vi.spyOn`) — sin MSW en el paso 1 — en el paso 3 se pueden pasar a MSW.
 
+### Conexión a la API (paso 3 parcial, 16/10, rama `motor/vie16-api-conexion`)
+- Front: Ruling: `getActivities`, `recommend`, `getRoute` y `searchLocation` llaman a la API con `src/data/http.ts` (base `/api`, 15 s de tiempo límite, `ApiError`); en `MODE=test` usan los datos de ejemplo (`sampleDataMode()`), así las pruebas no tocan la red — encargo — una prueba de pantalla no detecta un cambio de forma de la API (lo cubre el contrato).
+- Front: Ruling: «Usar mi ubicación» toma el municipio por **punto en polígono** con `src/data/municipalityShapes.json` (contornos simplificados ~50 m, 217 KB, carga diferida al pulsar; `scripts/municipality_shapes.py`) — con los centros aproximados de P-09 el centro de Getafe salía Leganés — a menos de ~50 m de un límite puede salir el vecino o «fuera de la Comunidad».
+- Front: Ruling: la ubicación de ejemplo solo en pruebas y como respaldo del GPS en desarrollo (`import.meta.env.DEV`), con su aviso; en producción, mensaje de error y se escribe la dirección — encargo — ninguno.
+- Front: Ruling: fuera el selector de escenarios de Fuentes (la recomendación ya es real); `scenarios.ts` y `mock/` se quedan para las pruebas; la tabla de Fuentes dice «Lista de ejemplo» hasta S-D1 — ninguno.
+
 ### Versiones
 - Front: Ruling: instaladas `react-router` 7.18.4, `@radix-ui/react-dialog` 1.3.1, `@radix-ui/react-slider` 1.6.1; dev `vitest` 4.1.12, `jsdom` 26.1.0, `@testing-library/react` 16.3.3, `@testing-library/dom` 10.4.2, `@testing-library/jest-dom` 6.9.1, `@testing-library/user-event` 14.6.8, `vitest-axe` 0.1.0 — las de guia §2.1 — ninguno.
 - Front: Ruling: npm 10.8.2 (Node 20.20.2) falla al instalar `vitest` con «Cannot read properties of null (reading 'edgesOut')» (fallo de arborist); se instaló con `npx npm@11 install` — mismo `lockfileVersion` 3 — si `npm ci` del Dockerfile (paso 2) se queja, regenerar el lock con su versión de npm.

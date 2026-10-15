@@ -307,7 +307,7 @@ export default function Results() {
                                 {title}
                             </PageHeading>
                             <p className="view-subtitle">
-                                Las mejores opciones cerca de {origin.municipality} · datos de ejemplo
+                                Las mejores opciones cerca de {origin.municipality}
                             </p>
                         </div>
 
