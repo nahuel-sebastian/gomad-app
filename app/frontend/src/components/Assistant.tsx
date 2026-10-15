@@ -132,9 +132,13 @@ export default function Assistant() {
             ? "Calculando la ruta…"
             : done
               ? `Ruta calculada: cumple ${met} de ${done.conditions.length} condiciones.`
-              : interpretation.status === "understood"
-                ? "He rellenado los campos con lo que he entendido. Revísalos y calcula la ruta."
-                : "";
+              : needLocation && !origin
+                ? "Antes, dinos dónde estás para calcular la ruta."
+                : interpretation.status === "rejection" || interpretation.status === "clarification"
+                  ? interpretation.text
+                  : interpretation.status === "understood"
+                    ? "He rellenado los campos con lo que he entendido. Revísalos y calcula la ruta."
+                    : "";
 
     return (
         <section className="container page assistant" aria-labelledby="asistente-titulo">

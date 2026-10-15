@@ -1,5 +1,5 @@
 import * as Slider from "@radix-ui/react-slider";
-import { useId, useRef, useState } from "react";
+import { useRef, useState } from "react";
 
 interface PrefSliderProps {
     label: string;
@@ -20,12 +20,11 @@ export default function PrefSlider({ label, min, max, step, value, format, onCom
     const local = draft ?? value;
     // con teclado, Radix avisa del commit antes que del cambio: se ignora ese cambio
     const justCommitted = useRef<number | null>(null);
-    const labelId = useId();
 
     return (
         <div className="pref-slider">
             <div className="pref-slider__head">
-                <span id={labelId} className="field__label">
+                <span className="field__label" aria-hidden="true">
                     {label}
                 </span>
                 <span className="pref-slider__value" aria-hidden="true">

@@ -43,14 +43,14 @@ describe("Asistente de rutas", () => {
         const { user } = renderAt("/asistente", { origin: SAMPLE_ORIGIN });
         await user.type(screen.getByLabelText("¿Qué ruta quieres?"), "¿Puedo correr con la tensión alta?");
         await user.click(screen.getByRole("button", { name: "Interpretar" }));
-        expect(await screen.findByText(/no da consejo médico/)).toBeInTheDocument();
+        expect(await screen.findByText(/no da consejo médico/, { selector: ".notice" })).toBeInTheDocument();
     });
 
     it("pide aclaracion si es ambiguo", async () => {
         const { user } = renderAt("/asistente", { origin: SAMPLE_ORIGIN });
         await user.type(screen.getByLabelText("¿Qué ruta quieres?"), "quiero dar un paseo");
         await user.click(screen.getByRole("button", { name: "Interpretar" }));
-        expect(await screen.findByText(/¿Qué distancia o cuánto tiempo/)).toBeInTheDocument();
+        expect(await screen.findByText(/¿Qué distancia o cuánto tiempo/, { selector: ".notice" })).toBeInTheDocument();
         await waitFor(() => expect(screen.getByLabelText("¿Qué ruta quieres?")).toHaveFocus());
     });
 
@@ -80,7 +80,7 @@ describe("Asistente de rutas", () => {
     it("sin ubicacion pide elegirla antes de calcular", async () => {
         const { user } = renderAt("/asistente");
         await user.click(screen.getByRole("button", { name: "Calcular ruta" }));
-        expect(await screen.findByText(/Antes, dinos dónde estás/)).toBeInTheDocument();
+        expect(await screen.findByText(/Antes, dinos dónde estás/, { selector: ".notice" })).toBeInTheDocument();
         expect(screen.getByRole("button", { name: "Usar mi ubicación" })).toBeInTheDocument();
     });
 

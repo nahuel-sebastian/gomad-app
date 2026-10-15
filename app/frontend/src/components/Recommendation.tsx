@@ -165,7 +165,7 @@ export default function Recommendation() {
                                 </Link>
                             </p>
                         )}
-                        <div className="hours-table-wrap">
+                        <div className="hours-table-wrap" role="region" aria-label="Tabla de horas" tabIndex={0}>
                             <table>
                                 <caption className="sr-only">Nota por hora en tu ventana horaria</caption>
                                 <thead>

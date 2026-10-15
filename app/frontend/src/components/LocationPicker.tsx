@@ -30,11 +30,16 @@ export default function LocationPicker({ onPicked, highlight }: LocationPickerPr
     const [search, setSearch] = useState<SearchState>({ status: "idle" });
     const inputId = useId();
     const statusRef = useRef(0);
+    const [picked, setPicked] = useState("");
+    const currentRef = useRef<HTMLParagraphElement>(null);
 
     const pick = (candidate: LocationCandidate) => {
         setOrigin(candidate);
         setSearch({ status: "idle" });
         setText("");
+        setPicked(`Ubicación elegida: ${candidate.label}.`);
+        // el candidato pulsado desaparece: el foco va a la ubicacion elegida
+        requestAnimationFrame(() => currentRef.current?.focus());
         onPicked?.(candidate);
     };
 
@@ -45,6 +50,7 @@ export default function LocationPicker({ onPicked, highlight }: LocationPickerPr
             return;
         }
         const call = ++statusRef.current;
+        setPicked("");
         setSearch({ status: "loading" });
         try {
             const data = await searchLocation(text.trim());
@@ -56,7 +62,7 @@ export default function LocationPicker({ onPicked, highlight }: LocationPickerPr
         }
     };
 
-    let announcement = "";
+    let announcement = picked;
     if (search.status === "loading") announcement = "Buscando…";
     if (search.status === "error") announcement = "No se pudo buscar ahora. Inténtalo de nuevo.";
     if (search.status === "done") {
@@ -79,7 +85,7 @@ export default function LocationPicker({ onPicked, highlight }: LocationPickerPr
             </h2>
 
             {origin && (
-                <p className="location__current">
+                <p className="location__current" ref={currentRef} tabIndex={-1}>
                     <span className="muted">Ubicación elegida:</span>{" "}
                     <strong>{origin.label}</strong>
                     {origin.precision === "municipality" && (

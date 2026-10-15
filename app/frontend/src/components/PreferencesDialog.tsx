@@ -1,5 +1,6 @@
 import * as Dialog from "@radix-ui/react-dialog";
 import type { ReactElement } from "react";
+import { useAppState } from "../state/context";
 import PreferencesForm from "./PreferencesForm";
 
 interface PreferencesDialogProps {
@@ -10,6 +11,9 @@ interface PreferencesDialogProps {
 // Hoja/dialogo de preferencias desde «Ajustar» (Radix Dialog: foco atrapado,
 // Esc cierra y el foco vuelve al boton)
 export default function PreferencesDialog({ trigger }: PreferencesDialogProps) {
+    // con el dialogo abierto el resto de la pagina queda oculto a lectores:
+    // el recalculo se anuncia aqui dentro
+    const { results } = useAppState();
     return (
         <Dialog.Root>
             <Dialog.Trigger asChild>{trigger}</Dialog.Trigger>
@@ -27,6 +31,9 @@ export default function PreferencesDialog({ trigger }: PreferencesDialogProps) {
                     <Dialog.Description className="muted">
                         Los cambios se aplican al momento; los resultados se recalculan solos.
                     </Dialog.Description>
+                    <p className="sr-only" role="status" aria-live="polite">
+                        {results.length > 0 ? `${results.length} resultados con tus preferencias.` : ""}
+                    </p>
                     <PreferencesForm />
                 </Dialog.Content>
             </Dialog.Portal>

@@ -102,6 +102,15 @@ export default function Results() {
     const [more, setMore] = useState<{ key: string; items: Recommendation[]; hasMore: boolean } | null>(null);
     const [loadingMore, setLoadingMore] = useState(false);
     const [moreFailed, setMoreFailed] = useState(false);
+    // tras «Ver más», el foco va al primer resultado nuevo
+    const [focusIndex, setFocusIndex] = useState<number | null>(null);
+    const listRef = useRef<HTMLOListElement>(null);
+
+    useEffect(() => {
+        if (focusIndex === null) return;
+        listRef.current?.querySelectorAll<HTMLAnchorElement>("a")[focusIndex]?.focus();
+        setFocusIndex(null);
+    }, [focusIndex]);
     const extra = more?.key === key ? more : null;
 
     const items = [...(first.data?.results ?? []), ...(extra?.items ?? [])];
@@ -127,6 +136,7 @@ export default function Results() {
                 buildRecommendRequest(origin.coordinate, activity, preferences, { offset: items.length }),
             );
             setMore({ key, items: [...(extra?.items ?? []), ...page.results], hasMore: page.has_more });
+            if (page.results.length > 0) setFocusIndex(items.length);
         } catch {
             setMoreFailed(true);
         } finally {
@@ -198,7 +208,12 @@ export default function Results() {
                     className={`results-sheet${
                         isSheetExpanded ? " results-sheet--expanded" : ""
                     }`}
-                    onFocus={() => setIsSheetExpanded(true)}
+                    onFocus={(event) => {
+                        // solo al llegar con el foco a un resultado (ni el asa ni el h1)
+                        if ((event.target as HTMLElement).closest(".results-list")) {
+                            setIsSheetExpanded(true);
+                        }
+                    }}
                     onPointerDown={(event) => {
                         // BLOQUEO EN DESKTOP: Ignoramos el drag si la pantalla es ancha
                         if (window.innerWidth >= 768) return;
@@ -342,6 +357,7 @@ export default function Results() {
 
                             {items.length > 0 && (
                                 <ol
+                                    ref={listRef}
                                     className={`results-list${stale ? " results-list--stale" : ""}`}
                                     aria-label="Resultados"
                                     aria-busy={stale ? true : undefined}>
@@ -359,8 +375,8 @@ export default function Results() {
                                 <button
                                     type="button"
                                     className="button button--full"
-                                    onClick={loadMore}
-                                    disabled={loadingMore}>
+                                    onClick={() => !loadingMore && loadMore()}
+                                    aria-disabled={loadingMore}>
                                     <span>{loadingMore ? "Cargando…" : "Ver más opciones"}</span>
                                 </button>
                             )}

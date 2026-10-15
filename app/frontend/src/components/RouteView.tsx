@@ -99,7 +99,12 @@ export default function RouteView() {
             </fieldset>
 
             <p className="sr-only" role="status" aria-live="polite">
-                {route.status === "loading" ? "Calculando la ruta…" : announcement}
+                {route.status === "loading"
+                    ? "Calculando la ruta…"
+                    : announcement ||
+                      (variant
+                          ? `Ruta calculada: ${formatDistance(variant.distance_m)}, ${formatMinutes(variant.duration_min)}.`
+                          : "")}
             </p>
 
             {route.status === "loading" && !data && <p className="muted">Calculando la ruta…</p>}

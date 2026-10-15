@@ -123,27 +123,27 @@ export default function Sources() {
                     <ErrorMessage message="No se pudieron cargar las fuentes." onRetry={sources.reload} />
                 )}
                 {sources.data && (
-                    <table className="sources-table">
+                    <table className="sources-table" role="table">
                         <caption className="sr-only">Fuentes de datos</caption>
-                        <thead>
-                            <tr>
-                                <th scope="col">Fuente</th>
-                                <th scope="col">Publicador</th>
-                                <th scope="col">Licencia</th>
-                                <th scope="col">Actualizado</th>
+                        <thead role="rowgroup">
+                            <tr role="row">
+                                <th scope="col" role="columnheader">Fuente</th>
+                                <th scope="col" role="columnheader">Publicador</th>
+                                <th scope="col" role="columnheader">Licencia</th>
+                                <th scope="col" role="columnheader">Actualizado</th>
                             </tr>
                         </thead>
-                        <tbody>
+                        <tbody role="rowgroup">
                             {sources.data.sources.map((s) => (
-                                <tr key={s.id}>
-                                    <td data-label="Fuente">
+                                <tr key={s.id} role="row">
+                                    <td role="cell" data-label="Fuente">
                                         <a href={s.url} className="sources-table__link" rel="noreferrer noopener">
                                             {s.name}
                                         </a>
                                     </td>
-                                    <td data-label="Publicador">{s.publisher}</td>
-                                    <td data-label="Licencia">{s.license}</td>
-                                    <td data-label="Actualizado">
+                                    <td role="cell" data-label="Publicador">{s.publisher}</td>
+                                    <td role="cell" data-label="Licencia">{s.license}</td>
+                                    <td role="cell" data-label="Actualizado">
                                         {refreshText(s)}
                                         {failedAfterRefresh(s) && (
                                             <span className="sources-table__failure">

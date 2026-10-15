@@ -119,6 +119,13 @@ html {
     scroll-padding-top: var(--header-height);
 }
 
+/* la barra inferior fija no debe tapar el elemento con foco */
+@media (max-width: 767px) {
+    html {
+        scroll-padding-bottom: calc(var(--bottom-nav-height) + 8px);
+    }
+}
+
 body {
     margin: 0px;
     background: var(--bg);
@@ -664,7 +671,7 @@ h1:focus-visible {
 
 .results-screen {
     position: relative;
-    height: calc(102dvh - var(--header-height) - var(--bottom-nav-height));
+    height: calc(100dvh - var(--header-height) - var(--bottom-nav-height));
     min-height: 0px;
     overflow: hidden;
 }
@@ -694,6 +701,7 @@ h1:focus-visible {
 .back-button {
     display: inline-flex;
     align-items: center;
+    min-height: var(--tap-min);
     gap: 4px;
     margin-bottom: 12px;
     color: var(--navy);
@@ -747,10 +755,15 @@ h1:focus-visible {
     align-items: center;
     justify-content: center;
     width: 100%;
-    height: 32px;
+    height: var(--tap-min);
     flex-shrink: 0;
     touch-action: none;
     cursor: grab;
+}
+
+/* el contenedor recorta: el anillo de foco va por dentro */
+.results-sheet__handle:focus-visible {
+    outline-offset: -3px;
 }
 
 .results-sheet__handle:active {
@@ -1161,10 +1174,9 @@ h1:focus-visible {
 
 .detail-tags {
     display: flex;
+    flex-wrap: wrap;
     gap: 8px;
     margin-top: 24px;
-    overflow-x: auto;
-    scrollbar-width: none;
 }
 
 .detail-tags::-webkit-scrollbar {
@@ -1262,7 +1274,7 @@ h1:focus-visible {
     gap: 3px;
 }
 
-.factor-list li span {
+.factor-list li div > span {
     color: var(--muted);
     font-size: 14px;
 }
@@ -1792,8 +1804,9 @@ textarea.field__input {
     gap: 8px;
 }
 
-.location__status:empty {
-    display: none;
+.location__row .field__input {
+    flex: 1 1 0%;
+    min-width: 0px;
 }
 
 .location__status {
@@ -2535,4 +2548,11 @@ textarea.field__input {
 .assistant > .panel > .button--primary,
 .assistant .prefs-form > .button--primary {
     align-self: flex-start;
+}
+
+/* con poca altura (movil apaisado, zoom alto) la pantalla de resultados crece y la pagina hace scroll */
+@media (max-height: 500px) {
+    .results-screen {
+        min-height: 480px;
+    }
 }
