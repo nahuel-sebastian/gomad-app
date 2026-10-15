@@ -56,8 +56,9 @@ function ResultCard({ item, index }: { item: Recommendation; index: number }) {
                         )}
                         {now && <AqiChip category={now.aqi_category} />}
                         {green && (
-                            <Chip tone={green.value === null ? "nodata" : green.value >= 7 ? "good" : "warn"} icon="park">
-                                {green.value === null ? "Verde: sin datos" : green.value >= 7 ? "Mucho verde" : "Poco verde"}
+                            // el texto lo manda la API; el front no pone cortes propios sobre el valor
+                            <Chip tone={green.value === null ? "nodata" : "info"} icon="park">
+                                {green.value === null ? "Verde: sin datos" : green.text}
                             </Chip>
                         )}
                     </span>

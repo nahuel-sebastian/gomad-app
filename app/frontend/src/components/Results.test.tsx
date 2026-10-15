@@ -212,3 +212,35 @@ describe("Resultados", () => {
         expect(map).toHaveAttribute("aria-hidden", "true");
     });
 });
+
+describe("Resultados: pastilla de verde", () => {
+    afterEach(() => vi.restoreAllMocks());
+
+    async function withGreen(value: number | null, text: string) {
+        const { recommendMock } = await import("../data/mock/recommend");
+        vi.spyOn(recommendApi, "recommend").mockImplementation(async (req) => {
+            const res = recommendMock(req);
+            const results = res.results.map((r) => ({
+                ...r,
+                factors: r.factors.map((f) => (f.factor === "green" ? { ...f, value, text } : f)),
+            }));
+            return { ...res, results };
+        });
+    }
+
+    it("muestra el texto del factor que manda la API, sin cortes propios", async () => {
+        await withGreen(2, "Texto de verde del contrato");
+        renderAt("/resultados", WITH_SEARCH);
+        const list = await resultsList();
+        expect(within(list).getAllByText("Texto de verde del contrato").length).toBeGreaterThan(0);
+        expect(within(list).queryByText("Poco verde")).toBeNull();
+        expect(within(list).queryByText("Mucho verde")).toBeNull();
+    });
+
+    it("con valor null dice «Verde: sin datos»", async () => {
+        await withGreen(null, "lo que sea");
+        renderAt("/resultados", WITH_SEARCH);
+        const list = await resultsList();
+        expect(within(list).getAllByText("Verde: sin datos").length).toBeGreaterThan(0);
+    });
+});
