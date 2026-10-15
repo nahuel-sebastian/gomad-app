@@ -140,7 +140,17 @@ Cada uno se prueba por separado:
 - **F1** no calcula rutas por destino: Dijkstra con límite (§4.2). La ruta completa se calcula solo al tocar un destino.
 - **Ruta circular por distancia (F6, RF-22):** puntos de paso a ≈ objetivo/3 encadenados con la ruta saludable; ±10 %.
 - **Librerías:** igraph (A\*) y/o `scipy.sparse.csgraph` (Dijkstra con límite). Confirmar con una prueba el jueves.
-- **Latencia estimada (sin verificar):** decenas de ms en Getafe, ~100–300 ms en la capital. Se mide el jueves/viernes. Si la capital no llega a < 5 s: **Contraction Hierarchies precalculadas para 3–4 perfiles fijos** y los deslizadores saltan entre ellos.
+- **Latencia medida (15/10, Task 22, `app/api/tests/routing/test_latency.py`, portátil WSL2):** 10 pares de nodos al azar, cada uno con ruta directa + coste saludable + ruta saludable.
+
+  | Grafo (caja del municipio) | Nodos / tramos | Construir (`python -m graph`) | Cargar | Memoria API (RSS) | Dijkstra p50 / máx | A\* p50 / máx | Dijkstra con límite 5 km |
+  |---|---|---|---|---|---|---|---|
+  | Getafe (28065) | 59.751 / 68.000 | 80 s, 0,5 GB | 0,09 s | 221 MB | 0,016 / 0,030 s | 0,069 / 0,218 s | < 1 s |
+  | Madrid capital (28079)\* | 980.138 / 1.129.705 | 98 s, 1,7 GB | 1,6 s | 1,2 GB | 0,458 / 1,147 s | 0,949 / 2,518 s | < 1 s |
+
+  \* La caja de 28079 incluye parte de los municipios vecinos; los pares al azar cruzan toda la caja (peor caso).
+- **Algoritmo elegido: Dijkstra de igraph** (`algorithm="dijkstra"`, por defecto). A\* es 2–4 veces más lento porque igraph llama a la heurística en Python por nodo. Las dos cumplen < 5 s también en la capital, así que **no hacen falta Contraction Hierarchies**.
+- La heurística de A\* usa como escala `min(coste / línea recta)` por tramo: con el factor mínimo × 0,999 no era consistente (`length_m` en UTM llega a ser un 0,3 % menor que la distancia en la proyección local) y igraph 0.11.6 fallaba con *segfault*.
+- El % verde por tramo se calcula con índice espacial (`sjoin` tramo–zona): con la unión de todas las zonas, la caja de la capital pasaba de 25 min.
 
 ---
 
