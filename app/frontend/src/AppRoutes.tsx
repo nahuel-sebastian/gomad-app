@@ -1,4 +1,4 @@
-import { Route, Routes, useNavigate } from "react-router";
+import { Route, Routes } from "react-router";
 import ComingSoon from "./components/ComingSoon";
 import Home from "./components/Home";
 import Layout from "./components/Layout";
@@ -6,23 +6,13 @@ import NotFound from "./components/NotFound";
 import Recommendation from "./components/Recommendation";
 import Results from "./components/Results";
 
-function DetailScreen() {
-    const navigate = useNavigate();
-    return (
-        <Recommendation
-            onBack={() => navigate("/resultados")}
-            onViewRoute={() => navigate("/ruta/ejemplo")}
-        />
-    );
-}
-
 export default function AppRoutes() {
     return (
         <Routes>
             <Route element={<Layout />}>
                 <Route index element={<Home />} />
                 <Route path="resultados" element={<Results />} />
-                <Route path="resultados/:id" element={<DetailScreen />} />
+                <Route path="resultados/:id" element={<Recommendation />} />
                 <Route
                     path="ruta/:id"
                     element={<ComingSoon title="Ruta saludable" />}
