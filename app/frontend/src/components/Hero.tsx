@@ -1,16 +1,13 @@
+import type { ReactNode } from "react";
+import PageHeading from "./PageHeading";
+
 interface HeroProps {
-    municipality: string;
-    temperature: string;
-    air: string;
+    title: string;
+    // estado del momento (pastillas), si lo hay
+    children?: ReactNode;
 }
 
-export default function Hero({ municipality, temperature, air }: HeroProps) {
-    const chips = [
-        { icon: "pin", label: municipality, tone: "info" },
-        { icon: "sun", label: temperature, tone: "good" },
-        { icon: "leaf", label: air, tone: "good" },
-    ];
-
+export default function Hero({ title, children }: HeroProps) {
     return (
         <section className="hero" id="entorno">
             <svg
@@ -22,7 +19,7 @@ export default function Hero({ municipality, temperature, air }: HeroProps) {
                 <circle cx="318" cy="90" r="26" fill="#f7c948" />
 
                 <g fill="#a9c6da">
-                    {/* Torres KIO (Puerta de Europa) - Más separadas */}
+                    {/* Torres KIO (Puerta de Europa) - Mas separadas */}
                     <polygon points="80,180 100,180 120,120 100,120" />
                     <polygon points="150,180 170,180 150,120 130,120" />
 
@@ -38,7 +35,7 @@ export default function Hero({ municipality, temperature, air }: HeroProps) {
                     {/* Torre Caleido (Quinta torre) */}
                     <path d="M293,180 v-70 h12 v70 Z M289,180 v-25 h20 v25 Z" />
 
-                    {/* El Pirulí (Torrespaña) */}
+                    {/* El Piruli (Torrespana) */}
                     <rect x="335" y="110" width="6" height="70" />
                     <polygon points="330,110 346,110 342,100 334,100" />
                     <polygon points="330,110 334,120 342,120 346,110" />
@@ -72,16 +69,8 @@ export default function Hero({ municipality, temperature, air }: HeroProps) {
             </svg>
 
             <div className="container hero__content">
-                <h1 className="hero__title">Hoy es un gran día para moverte</h1>
-                <ul className="chips">
-                    {chips.map((chip) => (
-                        <li
-                            key={chip.icon}
-                            className={`chip chip--${chip.tone}`}>
-                            <span>{chip.label}</span>
-                        </li>
-                    ))}
-                </ul>
+                <PageHeading className="hero__title">{title}</PageHeading>
+                {children}
             </div>
         </section>
     );
