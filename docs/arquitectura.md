@@ -249,13 +249,42 @@ ingest   cron: horario (aire, previsión), diario 04:00 (servicios, Nomecalles, 
 
 **Comprobado el 15/10:** `curl http://<SERVER_IP>/api/health` → `{"status":"ok"}` desde fuera. El front servía una página de prueba (`app/frontend/dist/index.html` creado a mano en la VM). Solo HTTP: el HTTPS llega con el dominio (V-F4).
 
-**Cómo se despliega (paso 2 del front, 15/10):** el `Dockerfile` del front es multi-stage (`node:22.23.3-alpine` compila con `npm ci` + `npm run build`; `caddy:2.8.4` solo lleva el `Caddyfile` y `dist`), así que la imagen se construye desde un clon limpio y la página de prueba queda sustituida por la SPA (se borra `app/frontend/dist` de la VM, ya no se usa). En la VM, desde `~/GoMad`:
+**Cómo se despliega (paso 2 del front, 15/10):** el `Dockerfile` del front es multi-stage (`node:22.23.3-alpine` compila con `npm ci` + `npm run build`; `caddy:2.8.4` solo lleva el `Caddyfile` y `dist`), así que la imagen se construye desde un clon limpio y la página de prueba queda sustituida por la SPA (se borra `app/frontend/dist` de la VM, ya no se usa).
+
+**Primer despliegue** (antes del primer `git pull` la VM no tiene `deploy.sh`, así que se actualiza a mano y el guion va con `--no-pull`). Desde el PC:
 
 ```bash
-app/deploy/deploy.sh
+ssh -i ~/.ssh/gomad-oci.key ubuntu@<SERVER_IP>
 ```
 
-El guion comprueba que existen `app/.env` y `app/deploy/.env` (sin leerlos), hace `git pull --ff-only`, `docker compose -f deploy/docker-compose.yml up -d --build`, espera a que respondan `/` (el `index.html` del build) y `/api/health`, y resume el commit desplegado y los contenedores. Sin `sudo` ni borrado de volúmenes; si algo falla, sale con error y dice qué mirar (`docker compose … ps` y `logs`). Imagen del front: 71,2 MB (Caddy 69,8 MB + estáticos).
+En la VM:
+
+```bash
+cd ~/GoMad
+git status --short          # debe salir vacío
+git pull --ff-only          # la primera vez: así ya existe app/deploy/deploy.sh
+rm -r app/frontend/dist     # solo la página de prueba creada a mano
+app/deploy/deploy.sh --no-pull
+```
+
+Comprobación desde el PC (y abrir `http://<SERVER_IP>/` en el navegador del móvil):
+
+```bash
+curl -s http://<SERVER_IP>/ | grep -o '<title>.*</title>'                              # <title>GoMad</title>
+curl -s http://<SERVER_IP>/api/health                                                  # {"status":"ok"}
+curl -s -o /dev/null -w "%{http_code} %{content_type}\n" http://<SERVER_IP>/resultados/x   # 200 text/html
+```
+
+Si falla, en la VM desde `~/GoMad/app`:
+
+```bash
+docker compose -f deploy/docker-compose.yml ps
+docker compose -f deploy/docker-compose.yml logs --tail=80
+```
+
+**Despliegues siguientes:** `app/deploy/deploy.sh` desde `~/GoMad` (ya hace el `git pull --ff-only`).
+
+El guion comprueba que existen `app/.env` y `app/deploy/.env` (sin leerlos), hace `git pull --ff-only`, `docker compose -f deploy/docker-compose.yml up -d --build`, espera a que respondan `/` (el `index.html` del build) y `/api/health`, y resume el commit desplegado y los contenedores. Sin `sudo` ni borrado de volúmenes; si algo falla, sale con error; a partir de `docker compose up` dice además qué mirar (`ps` y `logs`). Imagen del front: 71,2 MB (Caddy 69,8 MB + estáticos).
 
 **Resultado en la VM:** pendiente de confirmar en la VM (commit desplegado, `curl http://<SERVER_IP>/` con la SPA y `/api/health`).
 

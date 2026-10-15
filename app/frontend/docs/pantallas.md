@@ -488,4 +488,5 @@ Paso 1 del front (rama `front/jue15-todas-pantallas`): todas las pantallas con d
 - Deploy: Ruling: no se toca `app/deploy/docker-compose.yml` ni el `Caddyfile` — no hacía falta — ninguno.
 - Deploy: Ruling: `deploy.sh` admite `--no-pull`, `GOMAD_URL` (por defecto `http://localhost`, para el HTTPS con dominio) y `GOMAD_WAIT_S` (90 s); da por buena la portada solo si referencia `/assets/index-` (así distingue la SPA de la página de prueba) — ninguno; con dominio, `GOMAD_URL=https://<dominio>`.
 - Deploy: Ruling: `deploy.sh` reconstruye también la `api` (`up -d --build` de todo el Compose) — un despliegue = el commit entero — el primer build de la api en la VM tarda ~1 min (pip).
-
+- Deploy: Ruling: `deploy.sh` separa `fail` (configuración, docker, `git pull`: sin pista) de `fail_compose` (desde `docker compose up`: con `ps`/`logs`) y guarda las respuestas de `curl` en variables antes del `grep` — verificación del paso 2 — ninguno.
+- Deploy: Ruling: el primer despliegue es `git pull --ff-only` a mano + `deploy.sh --no-pull` — antes del primer pull la VM no tiene el guion — ninguno; los siguientes, `deploy.sh` a secas.
