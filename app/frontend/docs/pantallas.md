@@ -479,3 +479,14 @@ Paso 1 del front (rama `front/jue15-todas-pantallas`): todas las pantallas con d
 - Front: Ruling: `role="list"` en todas las `ul`/`ol` de los componentes, porque `main.css` quita `list-style` a todas — VoiceOver — ninguno.
 - Front: Ruling: en Resultados vacío o con 422 hay dos botones «Ajustar preferencias» (cabecera y aviso) que abren lo mismo — mismo nombre, misma acción — ninguno.
 - Front: Ruling: la comprobación `grep -rn "FALLBACK_WEIGHTS\|>= 7" src --include=*.tsx` no sale vacía: encaja con el punto de corte `>= 768` de `Results.tsx` y de un comentario de `Header.tsx`; no son cortes del motor — ninguno.
+
+### Despliegue del front (paso 2)
+- Deploy: Ruling: imagen de Node fijada a `node:22.23.3-alpine` (no `node:22-alpine` como en guia §3 paso 0 punto 7) — la última de la rama 22 con más de dos semanas (23/09/2026), build reproducible — las correcciones de Node 22 hay que subirlas a mano.
+- Deploy: Ruling: `npm ci` con el npm de la imagen (10.9.9), sin npm 11 y sin tocar el `package-lock.json` — el fallo de arborist era de npm 10.8.2 en local; en la imagen `npm ci` instala 159 paquetes sin error — si un lock futuro lo rompe, cambiar a `RUN npx -y npm@11 ci`.
+- Deploy: Ruling: el `.dockerignore` **no** excluye las pruebas (`*.test.*`, `setupTests.ts`) — `tsc -b` del build comprueba los tipos de todo `src`, pruebas incluidas, y eso sirve de red; solo viven en la etapa de build, la imagen final solo lleva `dist` — ~1 s más de build.
+- Deploy: Ruling: el `.dockerignore` además deja fuera `dist-ssr/`, `*.local`, `*.log`, `coverage/`, `.vscode/`, `.idea/`, `.DS_Store`, `Dockerfile`, `.dockerignore` y `README.md` — nada de eso hace falta para compilar — si algún día el build necesita uno, falla en `docker build` y se ve enseguida.
+- Deploy: Ruling: no se toca `app/deploy/docker-compose.yml` ni el `Caddyfile` — no hacía falta — ninguno.
+- Deploy: Ruling: `deploy.sh` admite `--no-pull`, `GOMAD_URL` (por defecto `http://localhost`, para el HTTPS con dominio) y `GOMAD_WAIT_S` (90 s); da por buena la portada solo si referencia `/assets/index-` (así distingue la SPA de la página de prueba) — ninguno; con dominio, `GOMAD_URL=https://<dominio>`.
+- Deploy: Ruling: `deploy.sh` reconstruye también la `api` (`up -d --build` de todo el Compose) — un despliegue = el commit entero — el primer build de la api en la VM tarda ~1 min (pip).
+- Deploy: Ruling: `deploy.sh` separa `fail` (configuración, docker, `git pull`: sin pista) de `fail_compose` (desde `docker compose up`: con `ps`/`logs`) y guarda las respuestas de `curl` en variables antes del `grep` — verificación del paso 2 — ninguno.
+- Deploy: Ruling: el primer despliegue es `git pull --ff-only` a mano + `deploy.sh --no-pull` — antes del primer pull la VM no tiene el guion — ninguno; los siguientes, `deploy.sh` a secas.
