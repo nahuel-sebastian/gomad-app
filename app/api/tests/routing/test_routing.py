@@ -104,3 +104,39 @@ def test_astar_matches_dijkstra_when_lengths_are_shorter_than_local_xy(tmp_path)
             d = costs[shortest_path(g, int(a), int(b), costs, "dijkstra")].sum()
             s = costs[shortest_path(g, int(a), int(b), costs, "astar")].sum()
             assert s == pytest.approx(d)
+
+
+def _write_graph(path, lon, lat, rows, extra=None):
+    nodes = pd.DataFrame({"node": range(len(lon)), "osm_id": range(len(lon)), "lon": lon, "lat": lat})
+    edges = pd.DataFrame(rows, columns=["u", "v", "length_m"])
+    edges["traffic"], edges["green_pct"], edges["highway"] = 0.0, np.nan, "footway"
+    edges["near_fountain"] = edges["near_bench"] = edges["near_aed"] = False
+    for column, values in (extra or {}).items():
+        edges[column] = values
+    edges["geom"] = [LineString([(lon[u], lat[u]), (lon[v], lat[v])]).wkb for u, v, _ in rows]
+    nodes.to_parquet(path / "nodes.parquet")
+    edges.to_parquet(path / "edges.parquet")
+    return load_graph(path)
+
+
+def test_one_fountain_counts_once(tmp_path):
+    # una fuente marca todos los tramos a menos de 25 m: se cuenta una vez por id
+    lon, lat = [-3.7300, -3.7299, -3.7298, -3.7297], [40.305] * 4
+    g = _write_graph(tmp_path, lon, lat, [(0, 1, 9), (1, 2, 9), (2, 3, 9)],
+                     {"near_fountain": [True, True, True], "fountain_id": ["f1", "f1", "f2"],
+                      "bench_id": [None, None, None], "aed_id": [None, None, None]})
+    assert summarize(g, [0, 1, 2])["fountains"] == 2
+
+
+def test_duplicate_edges_are_not_summed(tmp_path):
+    # vias OSM superpuestas dan el mismo par (u, v) dos veces: la matriz no debe sumar las longitudes
+    g = _write_graph(tmp_path, [-3.7300, -3.7298], [40.305, 40.305], [(0, 1, 17.5), (1, 0, 17.5)])
+    assert bounded_distances(g, 0, 100)[1] == pytest.approx(17.5)
+
+
+def test_nearest_node_skips_small_fragments(tmp_path):
+    # un trozo suelto de red junto a la red principal no debe atrapar el origen (RouteNotFound en la demo)
+    lon = [-3.7300, -3.7290, -3.7280, -3.7300, -3.7299]
+    lat = [40.3050, 40.3050, 40.3050, 40.3054, 40.3054]          # 3 y 4 a ~45 m de 0, sin conexion
+    g = _write_graph(tmp_path, lon, lat, [(0, 1, 90), (1, 2, 90), (3, 4, 9)])
+    assert nearest_node(g, -3.7300, 40.3054) == 0

@@ -67,6 +67,7 @@ def test_poi():
     R["poi"]()
     p = read("poi")
     check_points(p)
+    p = p[p.source != "osm"]                                                 # el mobiliario OSM lo anade graph.py
     assert (p["type"] == "bench").sum() >= 76_000                             # ay_bancos por COORD_GIS (76.627)
     assert (p["type"] == "dog_area").sum() == 112
     assert (p["type"] == "aed").sum() > 12_000

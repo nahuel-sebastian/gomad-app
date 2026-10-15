@@ -144,13 +144,14 @@ Cada uno se prueba por separado:
 
   | Grafo (caja del municipio) | Nodos / tramos | Construir (`python -m graph`) | Cargar | Memoria API (RSS) | Dijkstra p50 / máx | A\* p50 / máx | Dijkstra con límite 5 km |
   |---|---|---|---|---|---|---|---|
-  | Getafe (28065) | 59.751 / 68.000 | 80 s, 0,5 GB | 0,09 s | 221 MB | 0,016 / 0,030 s | 0,069 / 0,218 s | < 1 s |
-  | Madrid capital (28079)\* | 980.138 / 1.129.705 | 98 s, 1,7 GB | 1,6 s | 1,2 GB | 0,458 / 1,147 s | 0,949 / 2,518 s | < 1 s |
+  | Getafe (28065) | 59.751 / 68.000 | 77 s, 0,5 GB | 0,11 s | 221 MB | 0,015 / 0,034 s | 0,072 / 0,222 s | < 1 s |
+  | Madrid capital (28079)\* | 980.138 / 1.129.705 | 101 s, 2,0 GB | 2,0 s | 1,2 GB | 0,446 / 1,060 s | 0,958 / 2,432 s | < 1 s |
 
   \* La caja de 28079 incluye parte de los municipios vecinos; los pares al azar cruzan toda la caja (peor caso).
 - **Algoritmo elegido: Dijkstra de igraph** (`algorithm="dijkstra"`, por defecto). A\* es 2–4 veces más lento porque igraph llama a la heurística en Python por nodo. Las dos cumplen < 5 s también en la capital, así que **no hacen falta Contraction Hierarchies**.
 - La heurística de A\* usa como escala `min(coste / línea recta)` por tramo: con el factor mínimo × 0,999 no era consistente (`length_m` en UTM llega a ser un 0,3 % menor que la distancia en la proyección local) y igraph 0.11.6 fallaba con *segfault*.
-- El % verde por tramo se calcula con índice espacial (`sjoin` tramo–zona): con la unión de todas las zonas, la caja de la capital pasaba de 25 min.
+- El % verde por tramo se calcula con índice espacial (`sjoin` tramo–zona): con la unión de todas las zonas, la caja de la capital pasaba de 25 min. Es `NaN` (sin dato, no 0) en los tramos cuyo punto medio cae en un municipio sin VPLA.
+- Cada tramo guarda el id del punto más cercano (`fountain_id`, `bench_id`, `aed_id`): el resumen cuenta puntos distintos, no tramos. Las fuentes con `working = false` no cuentan. El nodo más cercano se busca solo en la componente principal de la red.
 
 ---
 

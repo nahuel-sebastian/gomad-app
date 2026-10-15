@@ -46,7 +46,15 @@ def test_getafe_graph_exists():
     n = pd.read_parquet(DATA_DIR / "graph" / "getafe" / "nodes.parquet")
     assert len(e) > 1000 and (e["length_m"] > 0).all()
     assert e[["u", "v"]].max().max() < len(n)
-    assert e["green_pct"].notna().mean() > 0.9          # Getafe esta en VPLA
+    # la caja de Getafe incluye trozos de Madrid capital y vecinos sin VPLA: alli NaN (sin dato), no 0
+    import shapely
+    from common import municipalities
+    middle = gpd.GeoSeries(shapely.from_wkb(e["geom"]), crs=4326).to_crs(25830).interpolate(0.5, normalized=True)
+    muni = gpd.sjoin(gpd.GeoDataFrame(geometry=middle.to_crs(4326)), municipalities()[["ine_code", "geometry"]],
+                     predicate="within")
+    ine = muni["ine_code"][~muni.index.duplicated()].reindex(e.index)
+    assert e.loc[ine == "28065", "green_pct"].notna().mean() > 0.9          # Getafe esta en VPLA
+    assert e.loc[ine == "28079", "green_pct"].isna().all()                  # Madrid capital no
 
 
 def test_overlapping_green_zones_count_once():
@@ -71,3 +79,43 @@ def test_green_pct_uses_spatial_index(monkeypatch):
     f = edge_factors(e, park, gpd.GeoDataFrame({"type": []}, geometry=[], crs=4326), CONFIG, has_green=True)
     assert f.loc[0, "green_pct"] == pytest.approx(0.5, abs=0.05)
 
+
+
+def _two_edges():
+    a, b, c = (-3.7300, 40.3050), (-3.7288, 40.3050), (-3.7276, 40.3050)
+    return gpd.GeoDataFrame({"highway": ["footway", "footway"]},
+                            geometry=[LineString([a, b]), LineString([b, c])], crs=4326)
+
+
+NO_POI = gpd.GeoDataFrame({"type": []}, geometry=[], crs=4326)
+
+
+def test_green_is_nan_outside_covered_municipalities():
+    # la caja de Madrid capital trae zonas VPLA de los vecinos; en la capital (sin VPLA) es NaN, no 0
+    park = gpd.GeoDataFrame(geometry=[Polygon([(-3.7300, 40.3040), (-3.7294, 40.3040),
+                                               (-3.7294, 40.3060), (-3.7300, 40.3060)])], crs=4326)
+    covered = gpd.GeoDataFrame(geometry=[Polygon([(-3.7310, 40.3000), (-3.7288, 40.3000),
+                                                  (-3.7288, 40.3100), (-3.7310, 40.3100)])], crs=4326)
+    f = edge_factors(_two_edges(), park, NO_POI, CONFIG, has_green=True, covered=covered)
+    assert f.loc[0, "green_pct"] == pytest.approx(0.5, abs=0.05)
+    assert pd.isna(f.loc[1, "green_pct"])
+
+
+def test_broken_fountains_do_not_count():
+    # CLAUDE.md §6.1: la ruta solo cuenta working IS NOT FALSE
+    poi = gpd.GeoDataFrame({"id": ["f1", "f2"], "type": ["fountain", "fountain"],
+                            "working": pd.array([False, pd.NA], dtype="boolean")},
+                           geometry=[Point(-3.7294, 40.30505), Point(-3.7282, 40.30505)], crs=4326)
+    poi = poi.iloc[[0]]
+    f = edge_factors(_two_edges(), gpd.GeoDataFrame(geometry=[], crs=4326), poi, CONFIG, has_green=False)
+    assert list(f["near_fountain"]) == [False, False]
+
+
+def test_nearest_poi_id_per_edge():
+    # una fuente marca varios tramos seguidos: se guarda su id para contarla una sola vez en la ruta
+    poi = gpd.GeoDataFrame({"id": ["ay_fuentes:1"], "type": ["fountain"], "working": pd.array([True], dtype="boolean")},
+                           geometry=[Point(-3.7288, 40.30505)], crs=4326)
+    f = edge_factors(_two_edges(), gpd.GeoDataFrame(geometry=[], crs=4326), poi, CONFIG, has_green=False)
+    assert list(f["near_fountain"]) == [True, True]
+    assert list(f["fountain_id"]) == ["ay_fuentes:1", "ay_fuentes:1"]
+    assert f["bench_id"].isna().all()

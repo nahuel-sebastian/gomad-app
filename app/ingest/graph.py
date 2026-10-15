@@ -43,24 +43,39 @@ def index_nodes(nodes, edges):
     return n.rename(columns={"id": "osm_id"})[["node", "osm_id", "lon", "lat"]], e
 
 
-def edge_factors(edges, green, poi, config, has_green):
+def edge_factors(edges, green, poi, config, has_green, covered=None):
+    """Factores por tramo. covered: poligonos de los municipios con datos de verde (VPLA); fuera, NaN."""
     e = edges.to_crs(25830).reset_index(drop=True)
     e["length_m"] = e.length
     e["traffic"] = (e["highway"].astype(str).map(config["traffic_by_highway"])
                     .fillna(config["default_traffic"]).astype(float))
     if has_green and len(green):
         e["green_pct"] = (_green_length(e, green.to_crs(25830)) / e["length_m"]).clip(0, 1)
+        if covered is not None:
+            # la caja de un municipio sin VPLA (Madrid capital) trae zonas de los vecinos: sin dato, no 0
+            middle = gpd.GeoDataFrame(geometry=e.geometry.interpolate(0.5, normalized=True), crs=25830)
+            inside = gpd.sjoin(middle, covered[["geometry"]].to_crs(25830), how="inner", predicate="within")
+            e.loc[~e.index.isin(inside.index), "green_pct"] = np.nan
     else:
         e["green_pct"] = np.nan
     p = poi.to_crs(25830)
-    for kind, column in (("fountain", "near_fountain"), ("bench", "near_bench"), ("aed", "near_aed")):
+    if "working" in p:
+        # CLAUDE.md §6.1: la ruta solo cuenta working IS NOT FALSE (las fuentes cerradas se muestran, no cuentan)
+        p = p[~p["working"].eq(False).fillna(False).astype(bool)]
+    ids = p["id"].astype(str) if "id" in p else pd.Series(p.index.astype(str), index=p.index)
+    for kind, column, id_column in (("fountain", "near_fountain", "fountain_id"), ("bench", "near_bench", "bench_id"),
+                                    ("aed", "near_aed", "aed_id")):
         pts = p[p["type"] == kind]
+        e[id_column] = None
         if len(pts):
-            near = gpd.sjoin_nearest(e[["geometry"]], pts[["geometry"]], how="left",
+            pts = gpd.GeoDataFrame({"poi_id": ids[pts.index].to_numpy()}, geometry=pts.geometry.to_numpy(),
+                                   crs=25830)
+            near = gpd.sjoin_nearest(e[["geometry"]], pts, how="inner",
                                      max_distance=config["poi_radius_m"], distance_col="d")
-            e[column] = near.groupby(level=0)["d"].min().notna().reindex(e.index, fill_value=False).to_numpy()
-        else:
-            e[column] = False
+            # el mas cercano de cada tramo: su id permite contar cada punto una vez en la ruta
+            nearest = near.sort_values("d").groupby(level=0)["poi_id"].first()
+            e.loc[nearest.index, id_column] = nearest.to_numpy()
+        e[column] = e[id_column].notna().to_numpy()
     return e.to_crs(4326)
 
 
@@ -192,15 +207,17 @@ def build_graph(pbf, bbox, out_dir, config):
     poi["working"] = poi["working"].astype("boolean")
     write(poi, "poi")
     green = gpd.read_parquet(CLEAN / "green.parquet")
+    covered = municipalities()[municipalities()["ine_code"].isin(set(green["ine_code"].dropna()))]
     if bbox:
         green = green.cx[bbox[0]:bbox[2], bbox[1]:bbox[3]]
         poi = poi.cx[bbox[0]:bbox[2], bbox[1]:bbox[3]]
-    f = edge_factors(edges, green, poi, config, has_green=len(green) > 0)
+    f = edge_factors(edges, green, poi, config, has_green=len(green) > 0, covered=covered)
     n, e = index_nodes(nodes, f)
     out_dir.mkdir(parents=True, exist_ok=True)
     n.to_parquet(out_dir / "nodes.parquet", index=False)
     e = e.assign(geom=e.geometry.to_wkb())
-    cols = ["u", "v", "length_m", "highway", "traffic", "green_pct", "near_fountain", "near_bench", "near_aed", "geom"]
+    cols = ["u", "v", "length_m", "highway", "traffic", "green_pct", "near_fountain", "near_bench", "near_aed",
+            "fountain_id", "bench_id", "aed_id", "geom"]
     pd.DataFrame(e[cols]).to_parquet(out_dir / "edges.parquet", index=False)
     return {"nodes": len(n), "edges": len(e), "osm_poi": len(new_poi),
             "seconds": round(time.perf_counter() - t0, 1)}

@@ -6,7 +6,7 @@ import igraph as ig
 import numpy as np
 import pandas as pd
 from scipy.sparse import csr_matrix
-from scipy.sparse.csgraph import dijkstra
+from scipy.sparse.csgraph import connected_components, dijkstra
 from scipy.spatial import cKDTree
 from shapely import wkb
 
@@ -34,6 +34,10 @@ class Graph:
     csr: csr_matrix
     tree: cKDTree
     cos_lat0: float
+    tree_nodes: np.ndarray | None = None                  # nodo de cada punto del KD-tree (componente principal)
+    fountain_id: np.ndarray | None = None                 # id del punto mas cercano por tramo (None si no hay)
+    bench_id: np.ndarray | None = None
+    aed_id: np.ndarray | None = None
     _geom: dict = field(default_factory=dict)
 
     def geom(self, i):
@@ -55,20 +59,29 @@ def load_graph(directory):
     length = e["length_m"].to_numpy(float)
     count = len(n)
     graph_ig = ig.Graph(n=count, edges=np.column_stack([u, v]).tolist(), directed=False)
-    csr = csr_matrix((np.concatenate([length, length]), (np.concatenate([u, v]), np.concatenate([v, u]))),
-                     shape=(count, count))
+    # vias OSM superpuestas repiten el par (u, v): csr_matrix sumaria las longitudes, se queda la menor
+    pairs = (pd.DataFrame({"a": np.minimum(u, v), "b": np.maximum(u, v), "length": length})
+             .groupby(["a", "b"], as_index=False)["length"].min())
+    a, b, w = pairs["a"].to_numpy(), pairs["b"].to_numpy(), pairs["length"].to_numpy()
+    csr = csr_matrix((np.concatenate([w, w]), (np.concatenate([a, b]), np.concatenate([b, a]))), shape=(count, count))
+    # el KD-tree solo tiene la componente principal: un trozo suelto de red no atrapa el origen
+    _, labels = connected_components(csr, directed=False)
+    tree_nodes = np.flatnonzero(labels == np.bincount(labels).argmax()) if count else np.arange(0)
+    xy = _xy(n["lon"].to_numpy(float), n["lat"].to_numpy(float), cos_lat0)
+    ids = {k: e[f"{k}_id"].to_numpy(object) if f"{k}_id" in e else None for k in ("fountain", "bench", "aed")}
     return Graph(lon=n["lon"].to_numpy(float), lat=n["lat"].to_numpy(float), u=u, v=v, length=length,
                  traffic=e["traffic"].to_numpy(float), green=e["green_pct"].to_numpy(float),
                  near_fountain=e["near_fountain"].to_numpy(bool), near_bench=e["near_bench"].to_numpy(bool),
                  near_aed=e["near_aed"].to_numpy(bool), geom_wkb=list(e["geom"]), ig=graph_ig, csr=csr,
-                 tree=cKDTree(_xy(n["lon"], n["lat"], cos_lat0)), cos_lat0=cos_lat0)
+                 tree=cKDTree(xy[tree_nodes]), cos_lat0=cos_lat0, tree_nodes=tree_nodes,
+                 fountain_id=ids["fountain"], bench_id=ids["bench"], aed_id=ids["aed"])
 
 
 def nearest_node(g, lon, lat, max_m=300):
     d, i = g.tree.query(_xy([lon], [lat], g.cos_lat0)[0])
     if d > max_m:
         raise RouteNotFound(f"No hay red peatonal a menos de {max_m} m")
-    return int(i)
+    return int(g.tree_nodes[i]) if g.tree_nodes is not None else int(i)
 
 
 def edge_costs(g, weights, floor):
@@ -100,6 +113,13 @@ def bounded_distances(g, origin, limit_m):
     return dijkstra(g.csr, directed=False, indices=origin, limit=limit_m)
 
 
+def _count(ids, flags, idx):
+    # cada punto una vez: un banco o una fuente marca todos los tramos a menos de poi_radius_m
+    if ids is None:
+        return int(flags[idx].sum())
+    return len({x for x in ids[idx] if x is not None and x == x})
+
+
 def summarize(g, edges, traffic_threshold=0.5):
     idx = np.asarray(edges, dtype=np.int64)
     length = g.length[idx]
@@ -109,5 +129,5 @@ def summarize(g, edges, traffic_threshold=0.5):
         100 * (green[has_data] * length[has_data]).sum() / length[has_data].sum())
     return {"distance_m": float(length.sum()), "green_pct": green_pct,
             "traffic_m": float(length[g.traffic[idx] >= traffic_threshold].sum()),
-            "fountains": int(g.near_fountain[idx].sum()), "benches": int(g.near_bench[idx].sum()),
-            "aeds": int(g.near_aed[idx].sum())}
+            "fountains": _count(g.fountain_id, g.near_fountain, idx),
+            "benches": _count(g.bench_id, g.near_bench, idx), "aeds": _count(g.aed_id, g.near_aed, idx)}

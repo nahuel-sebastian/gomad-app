@@ -1,6 +1,7 @@
+import geopandas as gpd
 import pandas as pd
 
-from common import RAW, assign_municipality, filter_region, ine_code, latest_csv, points, read_csv, write
+from common import CLEAN, RAW, assign_municipality, filter_region, ine_code, latest_csv, points, read_csv, write
 from normalize import normalizer
 
 CITY_COUNCIL = {"ay_fuentes": "fountain", "ay_bancos": "bench", "ay_areas_caninas": "dog_area"}
@@ -11,6 +12,20 @@ def working_from_status(status):
     working = (status.str.strip() == "OPERATIVO").astype("boolean")
     working[status.str.strip().fillna("") == ""] = pd.NA
     return working
+
+
+def keep_osm_rows(allpoi, previous):
+    """Conserva las filas source == "osm" que graph.py anadio a poi.parquet (se rehacen cada semana)."""
+    if not previous.exists():
+        return allpoi
+    old = gpd.read_parquet(previous)
+    osm = old[old["source"] == "osm"]
+    if osm.empty:
+        return allpoi
+    out = gpd.GeoDataFrame(pd.concat([allpoi, osm.reindex(columns=allpoi.columns)], ignore_index=True),
+                           geometry="geometry", crs=allpoi.crs)
+    out["working"] = out["working"].astype("boolean")
+    return out
 
 
 @normalizer("poi")
@@ -38,4 +53,4 @@ def run():
     allpoi = allpoi.drop_duplicates("id")
     broken = int(allpoi["working"].eq(False).sum())
     print(f"   poi: {len(allpoi)} puntos ({dropped} fuera, {broken} fuera de servicio)")
-    return write(allpoi, "poi")
+    return write(keep_osm_rows(allpoi, CLEAN / "poi.parquet"), "poi")
