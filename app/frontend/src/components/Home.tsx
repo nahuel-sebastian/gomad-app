@@ -11,6 +11,7 @@ import ErrorMessage from "./ErrorMessage";
 import Hero from "./Hero";
 import Icon from "./Icon";
 import LocationPicker from "./LocationPicker";
+import PreferencesDialog from "./PreferencesDialog";
 
 // Estado del momento (P-01): primera hora de la recomendacion de la zona
 function MomentChips() {
@@ -149,9 +150,13 @@ export default function Home() {
                             </h2>
                             <strong>{preferencesSummary(preferences)}</strong>
                         </div>
-                        <button type="button" className="button" onClick={() => navigate("/perfil")}>
-                            <span>Ajustar</span>
-                        </button>
+                        <PreferencesDialog
+                            trigger={
+                                <button type="button" className="button">
+                                    <span>Ajustar</span>
+                                </button>
+                            }
+                        />
                     </section>
                 </div>
 

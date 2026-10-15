@@ -13,6 +13,7 @@ import Chip, { AqiChip } from "./Chip";
 import ErrorMessage from "./ErrorMessage";
 import MapView from "./MapView";
 import PageHeading from "./PageHeading";
+import PreferencesDialog from "./PreferencesDialog";
 
 function ResultCard({ item, index }: { item: Recommendation; index: number }) {
     const verdict = verdictFor(item.score);
@@ -136,9 +137,13 @@ export default function Results() {
     else if (first.data) announcement = items.length === 0 ? "Ningún resultado." : `${items.length} resultados actualizados`;
     const stale = first.status === "loading" && first.data;
     const adjust = (
-        <button type="button" className="button" onClick={() => navigate("/perfil")}>
-            Ajustar preferencias
-        </button>
+        <PreferencesDialog
+            trigger={
+                <button type="button" className="button">
+                    Ajustar preferencias
+                </button>
+            }
+        />
     );
 
     return (
@@ -161,21 +166,25 @@ export default function Results() {
                 </button>
 
                 <div className="results-filters">
-                    <button className="filter-button" type="button" onClick={() => navigate("/perfil")}>
-                        <svg
-                            width="18"
-                            height="18"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            strokeWidth="2"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            aria-hidden="true">
-                            <path d="M4 5h16M7 12h10M10 19h4" />
-                        </svg>
-                        Ajustar
-                    </button>
+                    <PreferencesDialog
+                        trigger={
+                            <button className="filter-button" type="button">
+                                <svg
+                                    width="18"
+                                    height="18"
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    strokeWidth="2"
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    aria-hidden="true">
+                                    <path d="M4 5h16M7 12h10M10 19h4" />
+                                </svg>
+                                Ajustar
+                            </button>
+                        }
+                    />
                 </div>
             </div>
 

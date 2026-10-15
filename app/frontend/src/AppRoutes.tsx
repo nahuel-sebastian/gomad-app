@@ -5,6 +5,7 @@ import Layout from "./components/Layout";
 import Municipalities from "./components/Municipalities";
 import Municipality from "./components/Municipality";
 import NotFound from "./components/NotFound";
+import Profile from "./components/Profile";
 import Recommendation from "./components/Recommendation";
 import Results from "./components/Results";
 import RouteView from "./components/RouteView";
@@ -19,10 +20,7 @@ export default function AppRoutes() {
                 <Route path="ruta/:id" element={<RouteView />} />
                 <Route path="municipios" element={<Municipalities />} />
                 <Route path="municipios/:ine_code" element={<Municipality />} />
-                <Route
-                    path="perfil"
-                    element={<ComingSoon title="Tus preferencias" />}
-                />
+                <Route path="perfil" element={<Profile />} />
                 <Route
                     path="asistente"
                     element={<ComingSoon title="Asistente de rutas" />}
