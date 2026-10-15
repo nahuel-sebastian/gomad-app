@@ -80,7 +80,6 @@ def test_green_pct_uses_spatial_index(monkeypatch):
     assert f.loc[0, "green_pct"] == pytest.approx(0.5, abs=0.05)
 
 
-
 def _two_edges():
     a, b, c = (-3.7300, 40.3050), (-3.7288, 40.3050), (-3.7276, 40.3050)
     return gpd.GeoDataFrame({"highway": ["footway", "footway"]},
@@ -106,9 +105,9 @@ def test_broken_fountains_do_not_count():
     poi = gpd.GeoDataFrame({"id": ["f1", "f2"], "type": ["fountain", "fountain"],
                             "working": pd.array([False, pd.NA], dtype="boolean")},
                            geometry=[Point(-3.7294, 40.30505), Point(-3.7282, 40.30505)], crs=4326)
-    poi = poi.iloc[[0]]
     f = edge_factors(_two_edges(), gpd.GeoDataFrame(geometry=[], crs=4326), poi, CONFIG, has_green=False)
-    assert list(f["near_fountain"]) == [False, False]
+    assert list(f["near_fountain"]) == [False, True]      # f1 cerrada no cuenta; f2 sin dato si
+    assert f.loc[1, "fountain_id"] == "f2"
 
 
 def test_nearest_poi_id_per_edge():
