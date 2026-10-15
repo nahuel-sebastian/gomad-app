@@ -5,6 +5,7 @@ import Layout from "./components/Layout";
 import NotFound from "./components/NotFound";
 import Recommendation from "./components/Recommendation";
 import Results from "./components/Results";
+import RouteView from "./components/RouteView";
 
 export default function AppRoutes() {
     return (
@@ -13,10 +14,7 @@ export default function AppRoutes() {
                 <Route index element={<Home />} />
                 <Route path="resultados" element={<Results />} />
                 <Route path="resultados/:id" element={<Recommendation />} />
-                <Route
-                    path="ruta/:id"
-                    element={<ComingSoon title="Ruta saludable" />}
-                />
+                <Route path="ruta/:id" element={<RouteView />} />
                 <Route
                     path="municipios"
                     element={<ComingSoon title="Municipios" />}

@@ -2,14 +2,11 @@ import { Link, Navigate, useParams } from "react-router";
 import type { HourEvaluation, Recommendation as Rec } from "../api/types";
 import { formatDistance, formatHour, formatMinutes, formatScore } from "../lib/format";
 import { aqiLabel, DESTINATION_TYPE_LABELS, FACTOR_LABELS, verdictFor } from "../lib/labels";
-import { FOOTER_DISCLAIMER } from "../lib/texts";
+import { FOOTER_DISCLAIMER, NO_SEARCH_NOTICE } from "../lib/texts";
 import { useAppState } from "../state/context";
 import { AqiChip } from "./Chip";
 import PageHeading from "./PageHeading";
 import SourceList from "./SourceList";
-
-const NO_DATA_NOTICE =
-    "Elige una actividad para ver recomendaciones: los resultados no se guardan al recargar la página.";
 
 function outdoorText(h: HourEvaluation) {
     if (h.outdoor_ok === null) return "sin datos";
@@ -37,7 +34,7 @@ export default function Recommendation() {
     const { results, medicalDisclaimer } = useAppState();
     const index = results.findIndex((r) => r.destination.id === id);
     if (index === -1) {
-        return <Navigate to="/" replace state={{ notice: NO_DATA_NOTICE }} />;
+        return <Navigate to="/" replace state={{ notice: NO_SEARCH_NOTICE }} />;
     }
     const item = results[index];
     const verdict = verdictFor(item.score);

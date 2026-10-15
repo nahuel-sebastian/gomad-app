@@ -1942,3 +1942,174 @@ textarea.field__input {
     color: var(--navy);
     font-size: 14px;
 }
+
+/* ---------- Ruta saludable ---------- */
+
+.route-page .back-button {
+    align-self: flex-start;
+    min-height: var(--tap-min);
+    margin-bottom: 0px;
+}
+
+/* control segmentado con radios reales (tambien en Perfil) */
+.seg {
+    display: grid;
+    grid-auto-columns: minmax(0px, 1fr);
+    grid-auto-flow: column;
+    gap: 4px;
+    padding: 4px;
+    border-radius: var(--radius-sm);
+    background: var(--bg);
+    border: 1px solid var(--border);
+}
+
+.seg__option {
+    position: relative;
+    display: flex;
+    cursor: pointer;
+}
+
+.seg__option input {
+    position: absolute;
+    opacity: 0;
+    inset: 0px;
+    margin: 0px;
+    cursor: pointer;
+}
+
+.seg__option span {
+    display: flex;
+    flex: 1 1 0%;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: var(--tap-min);
+    padding: 6px 10px;
+    border-radius: 9px;
+    color: var(--muted);
+    font-weight: 600;
+    text-align: center;
+    transition: background var(--transition);
+}
+
+.seg__option small {
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.seg__option input:checked + span {
+    background: var(--surface);
+    box-shadow: inset 0px 0px 0px 2px var(--green-dark);
+    color: var(--green-dark);
+    font-weight: 700;
+}
+
+.seg__option input:focus-visible + span {
+    outline: 3px solid var(--focus);
+    outline-offset: 2px;
+}
+
+.route-layout {
+    display: grid;
+    gap: 16px;
+}
+
+.route-map {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.route-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px 16px;
+    color: var(--muted);
+    font-size: 14px;
+}
+
+.route-legend li {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.route-legend__line {
+    width: 24px;
+    height: 4px;
+    border-radius: 999px;
+    background: var(--green-dark);
+}
+
+.route-legend__line--secondary {
+    background: repeating-linear-gradient(90deg, var(--muted) 0px 6px, transparent 6px 10px);
+}
+
+.route-metrics {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1px;
+    overflow: hidden;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    background: var(--border);
+}
+
+.route-metrics li {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 12px 14px;
+    background: var(--surface);
+}
+
+.route-metrics span {
+    color: var(--muted);
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.route-metrics strong {
+    font-size: 18px;
+}
+
+.route-metrics .route-metrics__nodata {
+    color: var(--muted);
+    font-size: 15px;
+}
+
+.route-pois {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.route-pois li {
+    padding: 6px 12px;
+    border-radius: 999px;
+    background: var(--green-tint);
+    color: var(--green-dark);
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.route-description {
+    color: var(--muted);
+}
+
+.route-sources {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+@media (min-width: 768px) {
+    .route-layout {
+        grid-template-columns: minmax(0px, 1.2fr) minmax(0px, 1fr);
+        align-items: start;
+    }
+
+    .route-map .map-view--block {
+        height: 420px;
+    }
+}

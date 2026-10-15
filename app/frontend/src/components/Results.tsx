@@ -7,14 +7,12 @@ import { useAsync } from "../data/useAsync";
 import { formatDistance, formatHour, formatMinutes, formatScore } from "../lib/format";
 import { DESTINATION_TYPE_LABELS, verdictFor } from "../lib/labels";
 import { buildRecommendRequest, preferencesKey } from "../lib/request";
+import { NO_SEARCH_NOTICE } from "../lib/texts";
 import { useAppState } from "../state/context";
 import Chip, { AqiChip } from "./Chip";
 import ErrorMessage from "./ErrorMessage";
 import MapView from "./MapView";
 import PageHeading from "./PageHeading";
-
-const NO_SEARCH_NOTICE =
-    "Elige una actividad para ver recomendaciones: los resultados no se guardan al recargar la página.";
 
 function ResultCard({ item, index }: { item: Recommendation; index: number }) {
     const verdict = verdictFor(item.score);
