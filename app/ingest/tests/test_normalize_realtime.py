@@ -105,3 +105,17 @@ def test_bad_aemet_file_does_not_block_other_municipalities(tmp_path, monkeypatc
         aemet.run()
     assert (clean / "forecast" / "28065.parquet").exists()
     assert not (clean / "forecast" / "28001.parquet").exists()
+
+
+def test_air_discards_n_with_value():
+    row = _all_n_row() | {"h05": "30", "v05": "N", "h06": "25", "v06": "V"}
+    long = long_readings(pd.DataFrame([row]))
+    assert list(long["ts"]) == [pd.Timestamp("2026-10-15 06:00")]
+    assert list(long["value"]) == [25.0]
+
+
+def test_air_uses_row_date_not_today():
+    row = _all_n_row() | {"ano": "2020", "mes": "1", "dia": "1",
+                          "h01": "10", "v01": "V", "h24": "12", "v24": "T"}
+    long = long_readings(pd.DataFrame([row]))
+    assert list(long["ts"]) == [pd.Timestamp("2020-01-01 01:00"), pd.Timestamp("2020-01-02 00:00")]
