@@ -99,7 +99,10 @@ def get_geocoder(request: Request) -> Geocoder:
 
 @app.get("/location", response_model=s.LocationResponse)
 def location(text: str = Query(min_length=3, max_length=200), geocoder: Geocoder = Depends(get_geocoder)):
-    return s.LocationResponse(candidates=[s.LocationCandidate(**c) for c in geocoder.search(text)])
+    try:
+        return s.LocationResponse(candidates=[s.LocationCandidate(**c) for c in geocoder.search(text)])
+    except DataUnavailable as e:
+        raise HTTPException(status_code=503, detail=str(e))
 
 
 @app.post("/route", response_model=s.RouteResponse)

@@ -139,3 +139,21 @@ def test_route_capital(real):
     elapsed = time.perf_counter() - t0
     print(f"\n/route capital: {elapsed:.2f} s · {r.json()['healthy']['description']}")
     assert r.status_code == 200 and elapsed < 5.0
+
+
+@pytest.mark.slow
+def test_route_capital_four_at_once_under_5s(real):
+    # el jurado entra a la vez tras la demo: 4 rutas largas simultaneas en la capital
+    from concurrent.futures import ThreadPoolExecutor
+    payload = {"origin": SOL, "destination": {"lat": 40.3800, "lon": -3.6200}}   # ~8,9 km, ~1 s sola
+
+    def timed(_):
+        t0 = time.perf_counter()
+        r = real.post("/route", json=payload)
+        assert r.status_code == 200
+        return time.perf_counter() - t0
+    real.post("/route", json=payload)                                   # calentar
+    with ThreadPoolExecutor(4) as pool:
+        times = list(pool.map(timed, range(4)))
+    print(f"\n4 rutas a la vez en la capital: {[round(t, 2) for t in times]} s")
+    assert max(times) < 5.0

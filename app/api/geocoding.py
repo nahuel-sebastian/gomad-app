@@ -12,6 +12,8 @@ import httpx
 import pyarrow.parquet as pq
 import shapely
 
+from repository import DataUnavailable
+
 SEARCH_URL = ("https://apiscm.comunidad.madrid/t/ciudadanos.comunidad.madrid/sector-publico/"
               "nomecalles-buscador/v1/direcciones")
 STREET_TYPES = {"calle", "c", "cl", "avenida", "avda", "av", "plaza", "pza", "pl", "paseo", "po", "camino", "cmno",
@@ -46,6 +48,8 @@ class Geocoder:
     def municipalities(self):
         """[(ine_code, nombre, nombre llano, lon, lat)]: centro del contorno y nombre del callejero."""
         if self._municipalities is None:
+            if not self.municipality_file.exists():
+                raise DataUnavailable("Los datos de municipios todavía no están cargados en el servidor.")
             names = {}
             if self.addresses.exists():
                 con = duckdb.connect()

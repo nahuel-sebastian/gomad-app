@@ -93,14 +93,16 @@ class Repository:
         self.addresses = data_dir / "clean" / "addresses.parquet"
         self._names = None
 
-    def _query(self, path, sql, params=(), required=False):
+    def _query(self, path, sql, params=(), required=False, numpy=False):
         if not path.exists():
             if required:
                 raise DataUnavailable("Los datos todavía no están cargados en el servidor.")
             return []
-        con = duckdb.connect(str(path), read_only=True)
+        # un hilo por consulta: con varias peticiones a la vez, los hilos de DuckDB de cada una se pisaban
+        con = duckdb.connect(str(path), read_only=True, config={"threads": 1})
         try:
-            return con.execute(sql, list(params)).fetchall()
+            result = con.execute(sql, list(params))
+            return result.fetchnumpy() if numpy else result.fetchall()
         finally:
             con.close()
 
@@ -179,6 +181,7 @@ class Repository:
         return self._names
 
     def route_pois(self, min_lon, min_lat, max_lon, max_lat):
+        """{columna: ndarray} (id, type, source, lon, lat): en columnas, sin crear una tupla por punto."""
         return self._query(self.main, """SELECT id, type, source, lon, lat FROM route_poi
                                          WHERE working IS NOT FALSE AND lon BETWEEN ? AND ? AND lat BETWEEN ? AND ?""",
-                           [min_lon, max_lon, min_lat, max_lat], required=True)
+                           [min_lon, max_lon, min_lat, max_lat], required=True, numpy=True)

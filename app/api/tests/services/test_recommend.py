@@ -113,5 +113,34 @@ def test_hour_without_air_data_does_not_win(tmp_path):
     assert [h.aqi_category for h in rec.hours] == ["fair", "fair", "fair", None]
     assert rec.best_hour == NOW
     air = next(f for f in rec.factors if f.factor == "air")
-    assert air.value == 8.0 and air.weight == 0                    # dato solo en parte de la ventana: no puntua
-    assert rec.score == pytest.approx(rec.hours[0].score)
+    assert air.value == 8.0 and air.weight > 0                     # la nota del sitio si usa el aire medido
+    weighted = sum(f.value * f.weight for f in rec.factors if f.value is not None)
+    assert rec.score == pytest.approx(weighted, abs=0.01)
+    assert "Aire: solo hay medición para parte de la ventana; se usa la última para la nota, no para elegir la hora." in res.warnings
+
+
+def test_all_weight_on_air_with_partial_air_is_not_silent_zero(tmp_path):
+    weights = {"proximity": 0, "suitability": 0, "green": 0, "air": 1, "weather": 0}
+    res = run(tmp_path, request(window_end=NOW + timedelta(hours=4), weights=weights), no2=50.0)
+    rec = res.results[0]
+    assert rec.score == pytest.approx(8.0) and rec.best_hour == NOW
+
+
+def _scored(id_, source, name, lon, lat, score=5.0):
+    from repository import Candidate
+    from services.recommend import Scored
+    c = Candidate(id_, source, name, "park", False, "28079", lon, lat, None, "walk", 1.0, 0.0)
+    return Scored(c, 100.0, False, False, [], None, score, {}, {})
+
+
+def test_dedupe_across_sources_and_same_name_far():
+    from services.recommend import _page
+    retiro = _scored("nmc_parques:133", "nmc_parques", "Parque del Buen Retiro", -3.6845, 40.4153, 9)
+    jardines = _scored("ay_parques:5896013", "ay_parques", "Jardines de El Buen Retiro", -3.68450, 40.41564, 8)  # 38 m
+    prado_ay = _scored("ay_parques:1", "ay_parques", "Parque del Museo del Prado", -3.6920, 40.4140, 7)
+    prado_nmc = _scored("nmc_parques:9", "nmc_parques", "Parque del Museo del Prado", -3.6920, 40.41534, 6)  # 149 m
+    other = _scored("ay_parques:2", "ay_parques", "Parque de Otro Sitio", -3.70, 40.42, 5)
+    req = s.RecommendRequest(origin=ORIGIN, activity="walk", window_start=NOW, window_end=NOW + timedelta(hours=1),
+                             duration_min=45, max_distance_m=3000, limit=5)
+    page, _ = _page([retiro, jardines, prado_ay, prado_nmc, other], req, 50, 300)
+    assert [x.cand.id for x in page] == ["nmc_parques:133", "ay_parques:1", "ay_parques:2"]

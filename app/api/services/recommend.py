@@ -11,7 +11,7 @@ import numpy as np
 import schemas as s
 import settings
 from engine import explanation as ex
-from engine.rules import HourContext
+from engine.rules import CATEGORIES, HourContext
 from engine.scoring import FACTORS, air_factor, compute_score, normalize_weights, proximity_factor, weather_factor
 from engine.slots import best_hour, evaluate_hours, needs_indoor, window_hours
 from repository import category_at, haversine_m
@@ -37,8 +37,9 @@ class Scored:
     best: object
     score: float
     fixed: dict
-    weights: dict
+    factors: dict                      # factores del sitio (0-1) con los que se calcula su nota
     indoor_alternative: bool = False
+    partial_air: bool = False          # hay medicion de aire solo para parte de la ventana
 
     @property
     def viable(self):
@@ -50,27 +51,36 @@ def _plain(text):
     return " ".join(t.split())
 
 
-def _same_place(a, b, radius_m):
+def _same_place(a, b, radius_m, same_name_radius_m):
+    """Mismo sitio: mismo id; dos fuentes distintas a menos de radius_m (nombres distintos: «Parque del Buen Retiro»
+    y «Jardines de El Buen Retiro»); o el mismo nombre a menos de same_name_radius_m (centroides de parques grandes)."""
     if a.cand.id == b.cand.id:
         return True
-    return (_plain(a.cand.name) == _plain(b.cand.name)
-            and float(haversine_m(a.cand.lon, a.cand.lat, b.cand.lon, b.cand.lat)) <= radius_m)
+    d = float(haversine_m(a.cand.lon, a.cand.lat, b.cand.lon, b.cand.lat))
+    if a.cand.source != b.cand.source and d <= radius_m:
+        return True
+    return _plain(a.cand.name) == _plain(b.cand.name) and d <= same_name_radius_m
 
 
-def _page(scored, req, radius_m):
+def _page(scored, req, radius_m, same_name_radius_m):
     """Pagina sin repetir sitio; en «Sorprendeme», como mucho un resultado por actividad (RF-03)."""
     need = req.offset + req.limit
     kept, activities = [], set()
     for x in scored:
         if req.activity is None and x.cand.activity in activities:
             continue
-        if any(_same_place(k, x, radius_m) for k in kept):
+        if any(_same_place(k, x, radius_m, same_name_radius_m) for k in kept):
             continue
         kept.append(x)
         activities.add(x.cand.activity)
         if len(kept) > need:
             break
     return kept[req.offset:need], len(kept) > need
+
+
+def _category_of(factor):
+    # inversa de air_factor: categoria del ICA a partir del factor 0-1
+    return CATEGORIES[round((1 - factor) * (len(CATEGORIES) - 1))]
 
 
 def _hour(h):
@@ -162,19 +172,35 @@ class _Run:
             weights = self._comparable_weights(contexts)
             hours = evaluate_hours(contexts, self.window, covered, self.req.profile, self.cfg["rules"], fixed, weights)
             best = best_hour(hours)
-            score = best.score if best else compute_score({**fixed, "air": None, "weather": None}, weights).value
-            out.append(Scored(c, float(d), bool(a), covered, hours, best, score, fixed, weights))
+            factors = self._site_factors(fixed, covered, hours, best)
+            score = compute_score(factors, self.weights).value
+            known = [h.ctx.aqi_category is not None for h in hours if h.ctx is not None]
+            out.append(Scored(c, float(d), bool(a), covered, hours, best, score, fixed, factors,
+                              partial_air=not covered and any(known) and not all(known)))
         return out
 
     def _comparable_weights(self, contexts):
-        # un factor con dato solo en algunas horas no puntua: si no, la hora sin dato (renormalizada) ganaria a
-        # una hora con dato regular. Las reglas (lluvia, aire) siguen usando el dato donde lo hay.
+        # para elegir la hora, un factor con dato solo en algunas horas no cuenta: si no, la hora sin dato
+        # (renormalizada) ganaria a una con dato regular. Las reglas siguen usando el dato donde lo hay, y la nota
+        # del sitio lo usa (_site_factors). Si quitarlo deja todos los pesos a 0, se compara con el.
         weights = dict(self.weights)
         for factor, attr in (("air", "aqi_category"), ("weather", "precip_prob")):
             known = [getattr(c, attr) is not None for c in contexts.values()]
             if any(known) and not all(known):
                 weights[factor] = 0.0
-        return weights
+        return weights if sum(weights.values()) > 0 else dict(self.weights)
+
+    @staticmethod
+    def _site_factors(fixed, covered, hours, best):
+        """Factores de la nota del sitio: los de la mejor hora; el aire, el de esa hora o la ultima medicion de
+        la ventana. Sin hora viable, sin aire ni tiempo (la nota es la del sitio)."""
+        if covered or best is None or best.ctx is None:
+            return {**fixed, "air": None, "weather": None}
+        aqi = best.ctx.aqi_category
+        if aqi is None:
+            measured = [h.ctx.aqi_category for h in hours if h.ctx is not None and h.ctx.aqi_category is not None]
+            aqi = measured[-1] if measured else None
+        return {**fixed, "air": air_factor(aqi), "weather": weather_factor(best.ctx.precip_prob)}
 
     def _own_rule(self, first):
         if first is None or first.outdoor_ok is not False:
@@ -216,16 +242,15 @@ class _Run:
         duration = x.distance_m / 1000 / walking_speed_kmh(req.profile, self.cfg["weights"]) * 60
         ref = x.best.ctx if x.best else None
         shown = ref or next((h.ctx for h in x.hours if h.ctx is not None), None)
-        factors = {**x.fixed,
-                   "air": None if x.covered or ref is None else air_factor(ref.aqi_category),
-                   "weather": None if x.covered or ref is None else weather_factor(ref.precip_prob)}
-        score = compute_score(factors, x.weights)
+        factors = x.factors
+        score = compute_score(factors, self.weights)
         factor_scores = [
             s.FactorScore(factor=f, value=None if factors[f] is None else round(10 * factors[f], 1),
                           weight=round(score.effective_weights.get(f, 0.0), 4),
                           text=ex.factor_text(f, None if factors[f] is None else 10 * factors[f],
                                               distance_m=x.distance_m, green=c.green,
-                                              aqi_category=shown.aqi_category if shown else None,
+                                              aqi_category=_category_of(factors["air"]) if factors["air"] is not None
+                                              else (shown.aqi_category if shown else None),
                                               precip_prob=shown.precip_prob if shown else None, covered=x.covered))
             for f in FACTORS]
         sources = self._sources(x)
@@ -259,6 +284,8 @@ class _Run:
                 out.append(f"Previsión: sin datos para {', '.join(no_fc)}.")
             if any(not x.covered and all(h.ctx is None or h.ctx.aqi_category is None for h in x.hours) for x in picked):
                 out.append("Aire: sin medición reciente cerca; la nota no lo tiene en cuenta.")
+        if any(x.partial_air for x in picked):
+            out.append("Aire: solo hay medición para parte de la ventana; se usa la última para la nota, no para elegir la hora.")
         if (self.cfg["rules"].get("heat") or {}).get("max_feels_like_c") is None:
             out.append("Calor: todavía no hay un umbral oficial cargado; no se evalúa.")
         if any(x.approximate for x in picked):
@@ -298,7 +325,7 @@ def recommend(req, repo, graphs, now=None):
                         if any(x.covered for x in scored) else
                         "Ahora no se recomienda actividad al aire libre en la ventana elegida: prueba otra franja.")
     scored.sort(key=lambda x: (not x.viable, -x.score, x.distance_m))
-    picked, has_more = _page(scored, req, rc["dedupe_radius_m"])
+    picked, has_more = _page(scored, req, rc["dedupe_radius_m"], rc["same_name_radius_m"])
     results = [run.recommendation(x, surprise=req.activity is None) for x in picked]
     warnings += run.warnings(picked)
     if not scored:

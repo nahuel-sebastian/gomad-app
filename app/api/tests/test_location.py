@@ -113,3 +113,13 @@ def test_location_real_calle_madrid_10_getafe():
     assert out[0]["precision"] == "address" and out[0]["ine_code"] == "28065"
     assert out[0]["coordinate"]["lon"] == pytest.approx(-3.7314934, abs=1e-6)
     assert out[0]["coordinate"]["lat"] == pytest.approx(40.3056775, abs=1e-6)
+
+
+def test_location_without_municipality_file_is_503_not_500(data):
+    (data / "clean" / "municipality.parquet").unlink()
+    app.dependency_overrides[get_geocoder] = lambda: Geocoder(data)
+    try:
+        r = TestClient(app, raise_server_exceptions=False).get("/location", params={"text": "calle madrid 10 getafe"})
+    finally:
+        app.dependency_overrides.clear()
+    assert r.status_code == 503 and "datos" in r.json()["detail"]

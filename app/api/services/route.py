@@ -3,7 +3,6 @@
 Fuera de la red o desconectado: linea recta marcada approximate y aviso. Nunca un 500 por una ruta imposible."""
 import math
 from collections import Counter
-from concurrent.futures import ThreadPoolExecutor
 
 import numpy as np
 import shapely
@@ -15,7 +14,6 @@ from repository import M_PER_DEG_LAT, haversine_m
 from routing.graph import RouteNotFound, edge_costs, shortest_path, summarize
 from services.common import data_source, walking_speed_kmh
 
-POOL = ThreadPoolExecutor(max_workers=4)
 POI_TYPES = set(s.RoutePoi.model_fields["type"].annotation.__args__)
 NO_NETWORK = "No hay red peatonal cargada para este trayecto: se muestra la línea recta (aproximada)."
 DISCONNECTED = "Origen y destino no están conectados por la red peatonal: se muestra la línea recta (aproximada)."
@@ -36,22 +34,42 @@ def path_coordinates(g, origin_node, edges):
     return coords
 
 
+class PoiIndex:
+    """Puntos de route_poi (solo working IS NOT FALSE) de la caja de unas rutas, con indice espacial en metros
+    locales: una consulta a DuckDB por peticion y STRtree para no medir miles de bancos contra la linea."""
+
+    def __init__(self, repo, coord_lists, radius_m):
+        lons = np.array([c[0] for coords in coord_lists for c in coords])
+        lats = np.array([c[1] for coords in coord_lists for c in coords])
+        self.cos0 = math.cos(math.radians(float(lats.mean())))
+        pad_lat = radius_m / M_PER_DEG_LAT
+        pad_lon = pad_lat / self.cos0
+        cols = repo.route_pois(lons.min() - pad_lon, lats.min() - pad_lat, lons.max() + pad_lon, lats.max() + pad_lat)
+        keep = np.isin(cols["type"], list(POI_TYPES)) if len(cols) and len(cols["id"]) else np.zeros(0, dtype=bool)
+        self.cols = {k: np.asarray(v)[keep] for k, v in cols.items()} if keep.any() else {}
+        self.radius_m = radius_m
+        self.tree = shapely.STRtree(shapely.points(self._xy(self.cols["lon"], self.cols["lat"]))) if self.cols else None
+
+    def _xy(self, lons, lats):
+        return np.column_stack([np.asarray(lons, dtype=float) * M_PER_DEG_LAT * self.cos0,
+                                np.asarray(lats, dtype=float) * M_PER_DEG_LAT])
+
+    def along(self, coords):
+        if self.tree is None:
+            return []
+        xy = self._xy([c[0] for c in coords], [c[1] for c in coords])
+        # un segmento por consulta: la caja de la linea entera de una ruta larga traeria miles de candidatos
+        segments = shapely.linestrings(np.stack([xy[:-1], xy[1:]], axis=1))
+        _, hits = self.tree.query(segments, predicate="dwithin", distance=self.radius_m)
+        hits = sorted(set(hits.tolist()))
+        c = self.cols
+        return [s.RoutePoi(type=str(c["type"][i]), coordinate=s.Coordinate(lat=float(c["lat"][i]), lon=float(c["lon"][i])),
+                           source=str(c["source"][i])) for i in hits]
+
+
 def pois_along(repo, coords, radius_m):
     """Puntos de route_poi (solo working IS NOT FALSE) a menos de radius_m de la linea de la ruta."""
-    lons, lats = np.array([c[0] for c in coords]), np.array([c[1] for c in coords])
-    cos0 = math.cos(math.radians(float(lats.mean())))
-    pad_lat = radius_m / M_PER_DEG_LAT
-    pad_lon = pad_lat / cos0
-    rows = repo.route_pois(lons.min() - pad_lon, lats.min() - pad_lat, lons.max() + pad_lon, lats.max() + pad_lat)
-    rows = [r for r in rows if r[1] in POI_TYPES]
-    if not rows:
-        return []
-    xy = lambda lo, la: np.column_stack([np.asarray(lo) * M_PER_DEG_LAT * cos0, np.asarray(la) * M_PER_DEG_LAT])
-    line = shapely.LineString(xy(lons, lats))
-    points = shapely.points(xy([r[3] for r in rows], [r[4] for r in rows]))
-    near = shapely.distance(line, points) <= radius_m
-    return [s.RoutePoi(type=t, coordinate=s.Coordinate(lat=lat, lon=lon), source=src)
-            for (_, t, src, lon, lat), ok in zip(rows, near) if ok]
+    return PoiIndex(repo, [coords], radius_m).along(coords)
 
 
 def _straight(kind, origin, destination, speed):
@@ -63,17 +81,19 @@ def _straight(kind, origin, destination, speed):
         description=route_description(d, minutes, None, 0, {}, approximate=True))
 
 
-def _variant(kind, g, req, nodes, snaps, edges, routing, speed, repo):
+def _coordinates(g, req, nodes, edges):
     coords = [[req.origin.lon, req.origin.lat], *path_coordinates(g, int(nodes[0]), edges),
               [req.destination.lon, req.destination.lat]]
     # sin puntos repetidos seguidos (origen = nodo, tramos que empiezan donde acaba el anterior)
     coords = [c for i, c in enumerate(coords) if i == 0 or c != coords[i - 1]]
-    if len(coords) < 2:
-        coords = coords * 2         # origen y destino en el mismo punto: LineString de dos puntos iguales
+    return coords if len(coords) >= 2 else coords * 2   # origen = destino: LineString de dos puntos iguales
+
+
+def _variant(kind, g, edges, coords, snaps, routing, speed, pois_index):
     summary = summarize(g, edges, routing["traffic_display_threshold"])
     distance = summary["distance_m"] + float(snaps[0]) + float(snaps[1])
     minutes = distance / 1000 / speed * 60
-    pois = pois_along(repo, coords, routing["poi_radius_m"])
+    pois = pois_index.along(coords)
     green = summary["green_pct"]
     return s.RouteVariant(kind=kind, geometry=s.LineString(type="LineString", coordinates=coords),
                           distance_m=round(distance, 1), duration_min=round(minutes, 1),
@@ -98,13 +118,18 @@ def route(req, repo, graphs):
     g = zone.graph
     weights = req.weights.model_dump() if req.weights else routing["default_route_weights"]
     costs = edge_costs(g, weights, routing["cost_floor"])
-    futures = [POOL.submit(shortest_path, g, int(nodes[0]), int(nodes[1]), c) for c in (g.length, costs)]
+    # en serie dentro del hilo de la peticion: un pool compartido con igraph empeoraba la latencia con varias
+    # peticiones a la vez (medido: 4 rutas simultaneas en la capital pasaban de 6 s)
     try:
-        direct_edges, healthy_edges = (f.result() for f in futures)
+        direct_edges = shortest_path(g, int(nodes[0]), int(nodes[1]), g.length)
+        healthy_edges = shortest_path(g, int(nodes[0]), int(nodes[1]), costs)
     except RouteNotFound:
         return straight(DISCONNECTED)
-    direct = _variant("direct", g, req, nodes, snaps, direct_edges, routing, speed, repo)
-    healthy = _variant("healthy", g, req, nodes, snaps, healthy_edges, routing, speed, repo)
+    direct_coords = _coordinates(g, req, nodes, direct_edges)
+    healthy_coords = _coordinates(g, req, nodes, healthy_edges)
+    pois_index = PoiIndex(repo, [direct_coords, healthy_coords], routing["poi_radius_m"])
+    direct = _variant("direct", g, direct_edges, direct_coords, snaps, routing, speed, pois_index)
+    healthy = _variant("healthy", g, healthy_edges, healthy_coords, snaps, routing, speed, pois_index)
     warnings = []
     if direct.green_pct is None or healthy.green_pct is None:
         warnings.append("Zona verde: sin datos en parte del recorrido.")

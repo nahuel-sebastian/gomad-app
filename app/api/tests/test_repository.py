@@ -69,7 +69,7 @@ def test_municipality_names_prefer_callejero(repo):
 
 
 def test_route_pois_skip_not_working(repo):
-    ids = {r[0] for r in repo.route_pois(-3.74, 40.30, -3.72, 40.31)}
+    ids = set(repo.route_pois(-3.74, 40.30, -3.72, 40.31)["id"].tolist())
     assert ids == {"ay_fuentes:1", "osm:node/1"}
 
 
