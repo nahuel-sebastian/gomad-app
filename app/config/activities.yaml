@@ -5,6 +5,11 @@
 # en `sports`), type, suitability. Campos existentes en destination_raw: name, label, facility_type, sports, type.
 # Las suitability son CRITERIO PROPIO. «Sorprendeme» (RF-03) puede elegir cualquier actividad del catalogo.
 # EIEL `NATACION` esta vacia en las 726 filas: nadar va por facility_type (TIPOINSTAL).
+# osm_sport: OSM filtrado (ODbL) como fuente de destinos, decidido el 16/10 (ficha B3): centros con sport y nombre,
+# pistas de tenis/baloncesto/padel y piscinas solo con nombre o acceso publico. `sport` = valor de la etiqueta OSM.
+# suitability 0.8: por debajo de las fuentes oficiales (criterio propio).
+# Solo en estos municipios (16/10, para acotar la ingesta; Getafe es el piloto sin piscina, tenis ni baloncesto):
+osm_sport_municipalities: ["28065", "28079", "28148", "28040"]   # Getafe, Madrid, Torrejon de Ardoz, Ciempozuelos
 own_criterion: true
 activities:
   - id: walk
@@ -31,6 +36,7 @@ activities:
       - {source: ay_parques, suitability: 0.8}
       - {source: areas_recreativas, suitability: 0.8}
       - {source: vpla_redes, field: label, in: ["Parques Municipales y Urbanos", "Vías Pecuarias", "Espacios Naturales Protegidos", "Ribera"], suitability: 0.8}
+      - {source: osm_sport, sport: athletics, suitability: 0.8}
 
   - id: swim
     label: Nadar
@@ -41,6 +47,7 @@ activities:
       - {source: ay_piscinas, suitability: 1.0}
       - {source: nmc_deporte, field: name, contains: ["piscina"], suitability: 0.9}
       - {source: ay_polideportivos, field: label, contains: ["piscina"], suitability: 0.9}
+      - {source: osm_sport, sport: swimming, suitability: 0.8}
 
   - id: padel
     label: Pádel
@@ -50,6 +57,7 @@ activities:
       - {source: eiel_deporte, sport: PADEL, suitability: 1.0}
       - {source: nmc_deporte, field: name, contains: ["pádel", "padel"], suitability: 0.9}
       - {source: ay_polideportivos, field: label, contains: ["pádel", "padel"], suitability: 0.9}
+      - {source: osm_sport, sport: padel, suitability: 0.8}
 
   - id: tennis
     label: Tenis
@@ -59,6 +67,7 @@ activities:
       - {source: eiel_deporte, sport: TENIS, suitability: 1.0}
       - {source: nmc_deporte, field: name, contains: ["tenis"], suitability: 0.9}
       - {source: ay_polideportivos, field: label, contains: ["pistas de tenis", "pista de tenis"], suitability: 0.9}
+      - {source: osm_sport, sport: tennis, suitability: 0.8}
 
   - id: football
     label: Fútbol
@@ -69,6 +78,7 @@ activities:
       - {source: nmc_deporte, field: name, contains: ["fútbol", "futbol"], suitability: 0.9}
       - {source: ay_idb, field: label, contains: ["fútbol", "futbol"], suitability: 0.9}
       - {source: ay_polideportivos, field: label, contains: ["fútbol", "futbol"], suitability: 0.9}
+      - {source: osm_sport, sport: soccer, suitability: 0.8}
 
   - id: basketball
     label: Baloncesto
@@ -79,6 +89,7 @@ activities:
       - {source: nmc_deporte, field: name, contains: ["baloncesto"], suitability: 0.9}
       - {source: ay_idb, field: label, contains: ["baloncesto"], suitability: 0.9}
       - {source: ay_polideportivos, field: label, contains: ["baloncesto"], suitability: 0.9}
+      - {source: osm_sport, sport: basketball, suitability: 0.8}
 
   - id: gym
     label: Gimnasio y cubierto
@@ -89,3 +100,4 @@ activities:
       - {source: ay_polideportivos, field: label, contains: ["musculación", "sala multiusos", "salas multiusos"], suitability: 0.9}
       - {source: nmc_deporte, field: name, contains: ["gimnasio", "pabellón", "polideportivo"], suitability: 0.6}
       - {source: eiel_deporte, sport: GIMNASIA, suitability: 0.6}
+      - {source: osm_sport, sport: fitness, suitability: 0.8}

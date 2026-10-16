@@ -1,9 +1,13 @@
+import os
+
 import geopandas as gpd
 import pandas as pd
 import shapely
 from shapely.geometry import LineString, Point, Polygon
 
-from common import RAW, assign_municipality, filter_region, ine_code, latest_csv, points, read_csv, to_float, write
+import yaml
+
+from common import CONFIG_DIR, RAW, assign_municipality, filter_region, ine_code, latest_csv, points, read_csv, to_float, write
 from normalize import normalizer
 
 SPORT_COLUMNS = ["SUBACUATIC", "ATLETISMO", "BEISBOL", "BALONCESTO", "BALONMANO", "BOLOS", "BALONVOLEA",
@@ -118,16 +122,49 @@ def _osm_row(kind, osm_id, tags, sports, geometry):
             "covered": covered, "access": tags.get("access"), "geometry": geometry}
 
 
-def _way_point(coords):
+def _way_shape(coords):
     if len(coords) >= 4 and coords[0] == coords[-1]:
         poly = Polygon(coords)
         if poly.is_valid:
-            return poly.representative_point()
-    return LineString(coords).interpolate(0.5, normalized=True) if len(coords) > 1 else Point(coords[0])
+            return poly
+    return LineString(coords) if len(coords) > 1 else Point(coords[0])
 
 
-def osm_sports(pbf):
-    """Destinos deportivos de OSM filtrado (nodos, vias y multipoligonos) como puntos EPSG:4326."""
+def _point(shape):
+    if shape.geom_type == "Point":
+        return shape
+    if shape.geom_type == "LineString":
+        return shape.interpolate(0.5, normalized=True)
+    return shape.representative_point()
+
+
+def _inherits_pitches(tags):
+    """Centro con nombre y sin sport=* (los polideportivos de Getafe): toma los deportes de sus pistas."""
+    return (tags.get("leisure") in OSM_CENTRES and str(tags.get("name") or "").strip() != ""
+            and not _sports(tags.get("sport")) and tags.get("access") != "private")
+
+
+def _centres_with_pitches(centres, pitches):
+    """Criterio propio (16/10): deportes del centro = los de las pistas (no privadas) que hay dentro."""
+    if not centres or not pitches:
+        return []
+    tree = shapely.STRtree([p for p, _ in pitches])
+    rows = []
+    for kind, osm_id, tags, shape in centres:
+        inside = tree.query(shape, predicate="contains")
+        sports = sorted({s for i in inside for s in pitches[i][1]})
+        if sports:
+            rows.append(_osm_row(kind, osm_id, tags, sports, shape.representative_point()))
+    return rows
+
+
+def osm_sports(pbf, ine_codes=None):
+    """Destinos deportivos de OSM filtrado (nodos, vias y multipoligonos) como puntos EPSG:4326.
+
+    ine_codes: si se pasa, solo los destinos de esos municipios (cruce espacial con municipios)."""
+    # con el pool de hilos por defecto, libosmium se bloquea a menudo en Windows (16/10); con uno lee el
+    # extracto de la Comunidad en ~18 s. Se lee al crear el pool: antes del primer apply_file del proceso
+    os.environ.setdefault("OSMIUM_POOL_THREADS", "1")
     import osmium
 
     wkb_factory = osmium.geom.WKBFactory()
@@ -135,40 +172,53 @@ def osm_sports(pbf):
     class Reader(osmium.SimpleHandler):
         def __init__(self):
             super().__init__()
-            self.rows = []
+            self.rows, self.centres, self.pitches = [], [], []
+
+        def take(self, kind, osm_id, tags, shape):
+            sports = osm_sport_tags(tags)
+            if sports:
+                self.rows.append(_osm_row(kind, osm_id, tags, sports, _point(shape)))
+            elif _inherits_pitches(tags) and shape.geom_type in ("Polygon", "MultiPolygon"):
+                self.centres.append((kind, osm_id, tags, shape))
+            leisure_pitch = tags.get("leisure") == "pitch" and tags.get("access") != "private"
+            pitch_sports = [s for s in _sports(tags.get("sport")) if s in OSM_PITCH_SPORTS] if leisure_pitch else []
+            if pitch_sports:
+                self.pitches.append((_point(shape), pitch_sports))
 
         def node(self, n):
-            tags = dict(n.tags)
-            sports = osm_sport_tags(tags) if "leisure" in tags else None
-            if sports and n.location.valid():
-                self.rows.append(_osm_row("node", n.id, tags, sports, Point(n.location.lon, n.location.lat)))
+            if "leisure" in n.tags and n.location.valid():
+                self.take("node", n.id, dict(n.tags), Point(n.location.lon, n.location.lat))
 
         def way(self, w):
-            tags = dict(w.tags)
-            sports = osm_sport_tags(tags) if "leisure" in tags else None
-            if sports:
+            if "leisure" in w.tags:
                 coords = [(n.location.lon, n.location.lat) for n in w.nodes if n.location.valid()]
                 if coords:
-                    self.rows.append(_osm_row("way", w.id, tags, sports, _way_point(coords)))
+                    self.take("way", w.id, dict(w.tags), _way_shape(coords))
 
         def area(self, a):
-            if a.from_way():
+            if a.from_way() or "leisure" not in a.tags:
                 return                      # las vias cerradas ya entran por way()
-            tags = dict(a.tags)
-            sports = osm_sport_tags(tags) if "leisure" in tags else None
-            if sports:
-                try:
-                    geom = shapely.from_wkb(bytes.fromhex(wkb_factory.create_multipolygon(a)))
-                except RuntimeError:
-                    return                  # multipoligono roto en OSM: se salta
-                self.rows.append(_osm_row("relation", a.orig_id(), tags, sports, geom.representative_point()))
+            try:
+                shape = shapely.from_wkb(bytes.fromhex(wkb_factory.create_multipolygon(a)))
+            except RuntimeError:
+                return                      # multipoligono roto en OSM: se salta
+            self.take("relation", a.orig_id(), dict(a.tags), shape)
 
     r = Reader()
     r.apply_file(str(pbf), locations=True)
+    r.rows += _centres_with_pitches(r.centres, r.pitches)
     columns = ["id", "source", "source_id", "type", "name", "sports", "facility_type", "covered", "access", "geometry"]
     g = gpd.GeoDataFrame(pd.DataFrame(r.rows, columns=columns), geometry="geometry", crs=4326)
     g["ine_code"] = None
+    if ine_codes is not None:
+        g = assign_municipality(g)
+        g = g[g["ine_code"].isin(list(ine_codes))].reset_index(drop=True)
     return g
+
+
+def osm_sport_municipalities():
+    cfg = yaml.safe_load((CONFIG_DIR / "activities.yaml").read_text(encoding="utf-8"))
+    return cfg.get("osm_sport_municipalities")
 
 
 @normalizer("destination_raw")
@@ -177,7 +227,7 @@ def run():
     parts = [eiel_sports(), nmc_sports()] + [city_council(s) for s in ("ay_polideportivos", "ay_idb", "ay_piscinas")]
     parts += green_destinations()
     if OSM_PBF.exists():
-        parts.append(osm_sports(OSM_PBF))   # id propio osm:<tipo>/<id>, como route_poi
+        parts.append(osm_sports(OSM_PBF, osm_sport_municipalities()))   # id propio osm:<tipo>/<id>, como route_poi
     else:
         print(f"   aviso: falta {OSM_PBF}; destination_raw sin destinos de OSM")
     alldest = pd.concat([p.reindex(columns=COLUMNS) for p in parts], ignore_index=True)
