@@ -240,3 +240,13 @@ def test_snapshot_mode_serves_recorded_forecast(tmp_path):
     feed = ForecastFeed(store, cfg, codes=["28065"], key=None)
     assert feed.step() == "ok:28065"
     assert feed.get("28065")[1] == ISSUED                  # 48 h despues: en modo grabado no caduca
+
+
+def test_night_hours_take_band_from_previous_day():
+    """La franja 2002 de un dia cubre las 00 y 01 del siguiente (como la ingesta): nunca probabilidad vacia."""
+    series, _ = parse_forecast(DOC)
+    assert series[datetime(2026, 10, 15, 0)][2] == 0.0 and series[datetime(2026, 10, 15, 1)][2] == 0.0
+    doc = copy.deepcopy(DOC)
+    doc["prediccion"]["dia"][0]["probPrecipitacion"] = [{"value": "60", "periodo": "2002"}]
+    series, _ = parse_forecast(doc)
+    assert series[datetime(2026, 10, 15, 1)][2] == 60.0

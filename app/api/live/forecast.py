@@ -75,11 +75,15 @@ def _by_band(items, day):
 
 def parse_forecast(doc):
     """({hora: (temp, feels_like, precip_prob, precip)}, elaborado). Solo horas con temperatura."""
+    days = [(datetime.fromisoformat(d["fecha"][:10]), d) for d in doc["prediccion"]["dia"]]
+    # las franjas se unen entre dias: la 2002 de hoy cubre las 00 y 01 de manana (como la ingesta)
+    prob = {}
+    for day, d in days:
+        prob.update(_by_band(d.get("probPrecipitacion"), day))
     series = {}
-    for d in doc["prediccion"]["dia"]:
-        day = datetime.fromisoformat(d["fecha"][:10])
+    for day, d in days:
         temp, feels = _hourly(d.get("temperatura"), day), _hourly(d.get("sensTermica"), day)
-        prob, precip = _by_band(d.get("probPrecipitacion"), day), _hourly(d.get("precipitacion"), day)
+        precip = _hourly(d.get("precipitacion"), day)
         for ts, t in temp.items():
             if t is not None:
                 series[ts] = (t, feels.get(ts), prob.get(ts), precip.get(ts))

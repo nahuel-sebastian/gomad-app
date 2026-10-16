@@ -70,9 +70,10 @@ def test_yesterday_file_after_midnight_has_no_current_reading():
     assert store.get("air_cm") is None
 
 
-def test_last_reading_3h10_is_none():
-    assert store_at(datetime(2026, 10, 16, 12, 10)).get("air_cm") is None     # ultima: 09:00
-    assert store_at(datetime(2026, 10, 16, 11, 50)).get("air_cm") is not None
+def test_last_reading_4h10_is_none():
+    # tope de 4 h (decidido el 16/10: la red CM publica con ~3 h de retraso)
+    assert store_at(datetime(2026, 10, 16, 13, 10)).get("air_cm") is None     # ultima: 09:00
+    assert store_at(datetime(2026, 10, 16, 12, 50)).get("air_cm") is not None
 
 
 def test_buffer_keeps_24h_and_merges():
@@ -126,3 +127,21 @@ def test_cold_start_seeds_buffer_from_ingest(tmp_path):
     # PM10 24 h = (15 x 60 + 11+9+1+1+1+2+8+18+35) / 24 = 41,1 -> moderate (sin semilla: solo 9 h, no cuenta -> fair)
     assert cats[DAY + timedelta(hours=9)] == "moderate"
     assert all(type(r[2]) is datetime for r in store.get("air_cm").value)    # nunca pandas.Timestamp
+
+
+def test_station_older_than_max_age_is_dropped_in_fresh_network(tmp_path):
+    """El tope es por estacion: una estacion parada dentro de una red con dato reciente no se sirve."""
+    stopped = CM.decode("utf-8-sig")                                              # Getafe: ultima a las 09:00
+    fresh_row = AY.decode("utf-8-sig").splitlines()[1].replace("28;079;8;", "28;5;2;")   # 28005002 hasta 11:00
+    cm = (stopped.rstrip("\n") + "\n" + fresh_row + "\n").encode()
+    now = datetime(2026, 10, 16, 13, 30)                                          # Getafe 4 h 30; 28005002 2 h 30
+    repo = Repository(tmp_path, live=store_at(now, cm=cm))
+    cats = repo.air_categories(DAY + timedelta(hours=13), DAY + timedelta(hours=14), ICA, 4)
+    assert "28065014" not in cats                       # la mas cercana con dato valido la sustituye en /recommend
+    assert "28005002" in cats and "28079008" in cats
+
+
+def test_valid_h_matches_station_max_age():
+    """La ultima medicion de la estacion vale para /recommend lo mismo que su tope (sin dudas: la ultima, con su hora)."""
+    rt = settings.load("realtime")["sources"]
+    assert settings.load("recommend")["air_reading_valid_h"] == rt["air_cm"]["max_age_h"] == rt["air_ay"]["max_age_h"] == 4

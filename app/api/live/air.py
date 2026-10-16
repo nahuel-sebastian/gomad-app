@@ -109,6 +109,15 @@ def register_air(store, cfg, seed_dir=None):
         store.register(name, feed.fetch)
 
 
+def drop_stale_stations(readings, now, max_age_h):
+    """Solo las estaciones cuya ultima medicion tiene como mucho max_age_h (el tope es por estacion, no por red)."""
+    last = {}
+    for station, _, ts, _ in readings:
+        last[station] = max(ts, last.get(station, ts))
+    oldest = now - timedelta(hours=max_age_h)
+    return [r for r in readings if last[r[0]] >= oldest]
+
+
 def air_categories(readings_lists, start, end, ica, valid_h):
     """Misma salida que Repository.air_categories: {estacion: [(hora, categoria)]} entre start - valid_h y end.
 

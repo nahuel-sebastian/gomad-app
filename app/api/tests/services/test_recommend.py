@@ -47,9 +47,9 @@ def test_missing_factors_renormalize_with_warnings(tmp_path):
 
 
 def test_air_from_nearest_station_with_coverage(tmp_path):
-    rec = run(tmp_path, request(window_end=NOW + timedelta(hours=4))).results[0]
+    rec = run(tmp_path, request(window_end=NOW + timedelta(hours=5))).results[0]
     assert rec.hours[0].aqi_category == "good"                             # NO2 30; PM10 sin cobertura no cuenta
-    assert rec.hours[-1].aqi_category is None                              # mas de 3 h tras la medicion: sin dato
+    assert rec.hours[-1].aqi_category is None                              # mas de 4 h tras la medicion: sin dato
     assert any(d.source == "aire_dia" and "Getafe" in d.label for d in rec.sources)
 
 
@@ -107,10 +107,10 @@ def test_rain_blocks_even_if_a_place_has_no_forecast(tmp_path):
 
 
 def test_hour_without_air_data_does_not_win(tmp_path):
-    # aire «razonablemente buena» de 10 a 12 y sin dato a las 13: la falta de dato no puede puntuar mejor
-    res = run(tmp_path, request(window_end=NOW + timedelta(hours=4)), no2=50.0)
+    # aire «razonablemente buena» de 10 a 13 y sin dato a las 14 (tope de 4 h): la falta de dato no puede puntuar mejor
+    res = run(tmp_path, request(window_end=NOW + timedelta(hours=5)), no2=50.0)
     rec = res.results[0]
-    assert [h.aqi_category for h in rec.hours] == ["fair", "fair", "fair", None]
+    assert [h.aqi_category for h in rec.hours] == ["fair", "fair", "fair", "fair", None]
     assert rec.best_hour == NOW
     air = next(f for f in rec.factors if f.factor == "air")
     assert air.value == 8.0 and air.weight > 0                     # la nota del sitio si usa el aire medido

@@ -9,12 +9,12 @@ sources:
   air_cm:                  # aire_dia (CKAN Comunidad): misma URL que el manifiesto de la ingesta
     url: "https://datos.comunidad.madrid/dataset/3dacd589-ecca-485c-81b9-a61606b7199f/resource/ee75d31c-8042-4067-bbd7-739bb3eb8059/download/calidad_aire_datos_dia.csv"
     ttl_s: 600
-    max_age_h: 3           # la red CM publica con ~3 h de retraso (medido el 16/10)
+    max_age_h: 4           # tope POR ESTACION (16/10): la red CM publica con ~3 h de retraso; se usa la ultima medicion
     timeout_s: 10
   air_ay:                  # ay_aire (Ayuntamiento de Madrid)
     url: "https://ciudadesabiertas.madrid.es/dynamicAPI/API/query/calair_tiemporeal.csv?pageSize=5000"
     ttl_s: 600
-    max_age_h: 3
+    max_age_h: 4
     timeout_s: 10
   forecast:                # AEMET horaria por municipio; la clave va en la cabecera api_key (app/.env)
     url: "https://opendata.aemet.es/opendata/api/prediccion/especifica/municipio/horaria/{ine}"

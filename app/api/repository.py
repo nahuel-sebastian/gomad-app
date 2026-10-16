@@ -10,7 +10,7 @@ import duckdb
 import numpy as np
 
 from engine.rules import aqi_category
-from live.air import air_categories as live_air_categories
+from live.air import air_categories as live_air_categories, drop_stale_stations
 
 EARTH_RADIUS_M = 6_371_008.8
 M_PER_DEG_LAT = 111_320.0
@@ -170,8 +170,12 @@ class Repository:
     def air_categories(self, start, end, ica, valid_h):
         """{estacion: [(hora, categoria)]} ordenado, con las medias que cumplen la cobertura minima del ICA."""
         if self.live is not None:
-            # en vivo (DEC-15): solo las redes cuya ultima medicion cumple max_age_h
-            fresh = [e.value for e in (self.live.get("air_cm"), self.live.get("air_ay")) if e is not None]
+            # en vivo (DEC-15): la ultima medicion de cada estacion, solo si cumple max_age_h (por estacion)
+            fresh = []
+            for name in ("air_cm", "air_ay"):
+                e = self.live.get(name)
+                if e is not None:
+                    fresh.append(drop_stale_stations(e.value, self.live.now(), self.live.sources[name]["max_age_h"]))
             return live_air_categories(fresh, start, end, ica, valid_h)
         rows = self._query(self.realtime, """SELECT station_id, ts, pollutant, mean, n_hours FROM aqi_hourly
                                              WHERE ts BETWEEN ? AND ? ORDER BY station_id, ts""",
