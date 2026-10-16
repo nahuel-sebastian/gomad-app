@@ -55,6 +55,8 @@ echo "==> Comprobando configuración"
 # solo se comprueba que existen; su contenido (claves) no se lee ni se muestra
 [[ -f "$app_dir/.env" ]] || fail "falta app/.env (cópialo de app/.env.example y pon las claves)."
 [[ -f "$app_dir/deploy/.env" ]] || fail "falta app/deploy/.env (cópialo de app/deploy/.env.example; DOMAIN=:80 sin dominio)."
+# la cache de la prevision en vivo se monta con escritura; si no existe, Docker la crearia como root
+mkdir -p "$app_dir/data/live"
 command -v docker >/dev/null || fail "no se encuentra docker."
 command -v curl >/dev/null || fail "no se encuentra curl."
 docker info >/dev/null 2>&1 || fail "docker no responde (¿estás en el grupo docker? abre una sesión nueva)."
