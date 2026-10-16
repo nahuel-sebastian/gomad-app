@@ -14,6 +14,8 @@ PROFILES = ("general", "senior", "stroller", "sensitive")
 COMPANIONS = ("dog", "kids")
 REQUIRED = ("key", "category", "label", "source", "unit", "no_rows", "year")
 NO_ROWS = ("zero", "null")
+# que dice el encaje si no hay nada, segun la cobertura de la fuente (API: services/municipality.py ABSENT)
+WHEN_ABSENT = ("none", "not_listed", "no_data")
 # tipos de route_poi: furniture.py (Ayto. y DEA) y graph.py (OSM); test_poi_types_in_sync_with_route_poi los compara
 POI_TYPES = ("fountain", "bench", "bin", "dog_area", "playground", "aed")
 CATALOG_UNIT = re.compile(r"^de (\d+)$")   # «de 8»: actividades del catalogo con destino (activities.yaml)
@@ -43,11 +45,19 @@ def _check_indicator(ind, n, activities_count):
         _fail(f"el indicador «{name}» necesita «source» como lista de ids de fuente")
     if ind["year"] is not None and (isinstance(ind["year"], bool) or not isinstance(ind["year"], int)):
         _fail(f"el indicador «{name}» tiene «year» {ind['year']!r}; debe ser un año o null")
+    if "unit_one" in ind and (not isinstance(ind["unit_one"], str) or not ind["unit_one"].strip()):
+        _fail(f"el indicador «{name}» tiene «unit_one» {ind['unit_one']!r}; debe ser la unidad en singular")
     unit = CATALOG_UNIT.match(str(ind["unit"]))
     if activities_count is not None and "destination_activity" in ind["source"] and unit \
             and int(unit.group(1)) != activities_count:
         _fail(f"el indicador «{name}» tiene la unidad «{ind['unit']}», pero activities.yaml tiene "
               f"{activities_count} actividades: debe ser «de {activities_count}»")
+
+
+def _check_absent(where, spec):
+    value = (spec or {}).get("when_absent", "none")
+    if value not in WHEN_ABSENT:
+        _fail(f"fit: {where} tiene when_absent «{value}»; debe ser {', '.join(WHEN_ABSENT)}")
 
 
 def _check_refs(kind, allowed, mapping, keys):
@@ -60,6 +70,10 @@ def _check_refs(kind, allowed, mapping, keys):
             if refs["route_poi"] not in POI_TYPES:
                 _fail(f"fit: {kind} «{who}» cita el tipo de route_poi «{refs['route_poi']}», que no existe "
                       f"({', '.join(POI_TYPES)})")
+            missing = [f for f in ("label", "unit") if not refs.get(f)]
+            if missing:
+                _fail(f"fit: {kind} «{who}» necesita {' y '.join(missing)} (texto de la frase del encaje)")
+            _check_absent(f"{kind} «{who}»", refs)
             continue
         for ref in refs:
             if ref not in keys:
@@ -87,6 +101,7 @@ def validate(config, activities_count=None):
         _fail(f"fit: «met_if_above» debe ser un número; es {threshold!r}")
     if fit.get("own_criterion") is not True:
         _fail("fit: es criterio propio y debe llevar «own_criterion: true»")
+    _check_absent("activities", fit.get("activities"))
     _check_refs("perfil", PROFILES, fit.get("profiles"), seen)
     _check_refs("acompañante", COMPANIONS, fit.get("companions"), seen)
     return config

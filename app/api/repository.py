@@ -185,3 +185,38 @@ class Repository:
         return self._query(self.main, """SELECT id, type, source, lon, lat FROM route_poi
                                          WHERE working IS NOT FALSE AND lon BETWEEN ? AND ? AND lat BETWEEN ? AND ?""",
                            [min_lon, max_lon, min_lat, max_lat], required=True, numpy=True)
+
+    def municipality(self, ine_code):
+        """(nombre de la tabla, poblacion) o None si el codigo no es de los 179."""
+        rows = self._query(self.main, "SELECT name, population FROM municipality WHERE ine_code = ?", [ine_code],
+                           required=True)
+        return rows[0] if rows else None
+
+    def municipality_indicators(self, ine_code):
+        """{key: (value, unit, year, source)} de municipality_indicator (Task 35); value None = «sin datos»."""
+        try:
+            rows = self._query(self.main, """SELECT key, value, unit, year, source FROM municipality_indicator
+                                             WHERE ine_code = ?""", [ine_code], required=True)
+        except duckdb.Error as e:                 # base anterior a la Task 35 o con otras columnas
+            raise DataUnavailable("Los indicadores de municipio todavía no están cargados en el servidor.") from e
+        return {key: (_number(value), unit, year, source) for key, value, unit, year, source in rows}
+
+    def _municipality_query(self, sql, params):
+        try:
+            return self._query(self.main, sql, params, required=True)
+        except duckdb.Error as e:                 # tablas con otra forma: 503 legible, no 500
+            raise DataUnavailable("Los datos del municipio no están completos en el servidor.") from e
+
+    def activity_counts(self, ine_code):
+        """{actividad: n.º de destinos distintos del municipio} (destination_activity, como catalog_activities)."""
+        rows = self._municipality_query("""SELECT a.activity, count(DISTINCT d.id) FROM destination d
+                                           JOIN destination_activity a ON a.destination_id = d.id
+                                           WHERE d.ine_code = ? GROUP BY a.activity""", [ine_code])
+        return dict(rows)
+
+    def poi_count(self, ine_code, poi_type):
+        """N.º de puntos de ruta de un tipo en el municipio (los fuera de servicio no cuentan)."""
+        rows = self._municipality_query("""SELECT count(*) FROM route_poi
+                                           WHERE ine_code = ? AND type = ? AND working IS NOT FALSE""",
+                                        [ine_code, poi_type])
+        return rows[0][0]

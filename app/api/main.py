@@ -14,6 +14,7 @@ from engine.scoring import validate_weights
 from geocoding import Geocoder
 from repository import DataUnavailable, Repository
 from routing.store import GraphStore
+from services import municipality as municipality_service
 from services import recommend as recommend_service
 from services import route as route_service
 
@@ -31,6 +32,8 @@ async def lifespan(app: FastAPI):
     # un error de configuracion para el arranque, no sale como 500 en una peticion
     validate_rules(settings.load("rules"))
     validate_weights(settings.load("weights")["defaults"])
+    municipality_service.validate_fit(settings.load("indicators"),
+                                      [a["id"] for a in settings.load("activities")["activities"]])
     app.state.repo = Repository(settings.DATA_DIR)
     t0 = time.perf_counter()
     app.state.graphs = GraphStore.load(settings.DATA_DIR / "graph")
@@ -114,8 +117,18 @@ def route(request: s.RouteRequest, repo: Repository = Depends(get_repo), graphs:
 
 
 @app.get("/municipality/{ine_code}", response_model=s.MunicipalityResponse)
-def municipality(ine_code: str):
-    _not_implemented()
+def municipality(ine_code: str,
+                 activities: list[str] = Query(default=[], description="Actividades del catálogo para el encaje (RF-18)"),
+                 profile: s.Profile = "general", companions: list[s.Companion] = Query(default=[]),
+                 repo: Repository = Depends(get_repo)):
+    try:
+        return municipality_service.municipality(ine_code, repo, activities, profile, companions)
+    except municipality_service.UnknownActivity as e:
+        raise HTTPException(status_code=422, detail=str(e))
+    except municipality_service.UnknownMunicipality as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except DataUnavailable as e:
+        raise HTTPException(status_code=503, detail=str(e))
 
 
 @app.post("/assistant/interpret", response_model=s.InterpretResponse)

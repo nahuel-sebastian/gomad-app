@@ -34,7 +34,7 @@ export function municipalityMock(ineCode: string): MunicipalityResponse {
     const n = (max: number) => Math.round(rnd() * max * scale) + 1;
     const inEiel = !NOT_IN_EIEL.has(ineCode);
 
-    const indicators: Indicator[] = [
+    const sample: Omit<Indicator, "extra_sources">[] = [
         { category: "sport", key: "sport_facilities", label: "Instalaciones deportivas", value: n(30), unit: "instalaciones", year: 2025, source: SAMPLE_SOURCE("Nomecalles") },
         { category: "sport", key: "pools", label: "Piscinas", value: n(4), unit: "piscinas", year: 2023, source: SAMPLE_SOURCE("EIEL 2023") },
         { category: "nature", key: "green_m2_per_inhabitant", label: "Zona verde por habitante", value: big ? null : Math.round(rnd() * 150 + 10), unit: "m²/hab", year: 2025, source: SAMPLE_SOURCE(big ? "Planeamiento 2025 · no cubre este municipio" : "Planeamiento 2025") },
@@ -48,6 +48,7 @@ export function municipalityMock(ineCode: string): MunicipalityResponse {
         { category: "connectivity", key: "coverage_4g", label: "Cobertura 4G", value: inEiel ? Math.round(rnd() * 30 + 70) : null, unit: "% de núcleos", year: 2023, source: SAMPLE_SOURCE(inEiel ? "EIEL 2023" : "EIEL 2023 · no cubre este municipio") },
         { category: "social", key: "social_centres", label: "Centros de atención social", value: n(6), unit: "centros", year: 2026, source: SAMPLE_SOURCE("Comunidad de Madrid") },
     ];
+    const indicators: Indicator[] = sample.map((i) => ({ ...i, extra_sources: [] }));
 
     return {
         ine_code: item.ine_code,
@@ -59,5 +60,6 @@ export function municipalityMock(ineCode: string): MunicipalityResponse {
             "Hay parques con juegos infantiles cerca del centro (ejemplo).",
             "La conectividad móvil no se conoce en todos los núcleos.",
         ],
+        fit_own_criterion: true,
     };
 }

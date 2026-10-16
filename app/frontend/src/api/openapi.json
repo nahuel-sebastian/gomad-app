@@ -172,6 +172,54 @@
        "type": "string",
        "title": "Ine Code"
       }
+     },
+     {
+      "name": "activities",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "array",
+       "items": {
+        "type": "string"
+       },
+       "description": "Actividades del catálogo para el encaje (RF-18)",
+       "default": [],
+       "title": "Activities"
+      },
+      "description": "Actividades del catálogo para el encaje (RF-18)"
+     },
+     {
+      "name": "profile",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "enum": [
+        "general",
+        "senior",
+        "stroller",
+        "sensitive"
+       ],
+       "type": "string",
+       "default": "general",
+       "title": "Profile"
+      }
+     },
+     {
+      "name": "companions",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "array",
+       "items": {
+        "enum": [
+         "dog",
+         "kids"
+        ],
+        "type": "string"
+       },
+       "default": [],
+       "title": "Companions"
+      }
      }
     ],
     "responses": {
@@ -866,6 +914,14 @@
      },
      "source": {
       "$ref": "#/components/schemas/DataSource"
+     },
+     "extra_sources": {
+      "items": {
+       "$ref": "#/components/schemas/DataSource"
+      },
+      "type": "array",
+      "title": "Extra Sources",
+      "default": []
      }
     },
     "additionalProperties": false,
@@ -1062,6 +1118,11 @@
       },
       "type": "array",
       "title": "Fit"
+     },
+     "fit_own_criterion": {
+      "type": "boolean",
+      "title": "Fit Own Criterion",
+      "default": false
      }
     },
     "additionalProperties": false,

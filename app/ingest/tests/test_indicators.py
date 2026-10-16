@@ -30,7 +30,11 @@ def test_real_yaml_is_valid_with_dec09_indicators():
     assert fit["profiles"]["senior"] == ["health_centres", "aed_per_1000"]
     assert fit["profiles"]["stroller"] == ["green_m2_per_inhabitant"]
     assert fit["companions"]["kids"] == ["schools"]
-    assert fit["companions"]["dog"] == {"route_poi": "dog_area", "when_absent": "no_data"}
+    assert fit["companions"]["dog"] == {"route_poi": "dog_area", "label": "Áreas caninas", "unit": "áreas",
+                                        "unit_one": "área", "when_absent": "no_data"}
+    # el catalogo de destinos es parcial: una actividad sin destinos «no consta», no «no hay» (16/10)
+    assert fit["activities"] == {"when_absent": "not_listed"}
+    assert by_key["health_centres"]["unit_one"] == "centro" and "unit_one" not in by_key["aed_per_1000"]
 
 
 def test_unknown_category_fails_readably(real):
@@ -75,6 +79,10 @@ def test_contract_enums_in_sync(root):
     (lambda c: c["indicators"].append("health_centres"), r"n\.º 15.*mapa"),
     (lambda c: c["fit"].update(met_if_above="0"), r"met_if_above"),
     (lambda c: c["fit"]["companions"]["dog"].update(route_poi="dog_park"), r"route_poi «dog_park»"),
+    (lambda c: c["fit"]["companions"]["dog"].pop("label"), r"acompañante «dog».*label"),
+    (lambda c: c["fit"]["companions"]["dog"].update(when_absent="quizas"), r"«dog».*when_absent «quizas»"),
+    (lambda c: c["fit"]["activities"].update(when_absent="nunca"), r"activities.*when_absent «nunca»"),
+    (lambda c: c["indicators"][8].update(unit_one=""), r"health_centres.*unit_one"),
 ])
 def test_more_bad_values_fail_readably(real, change, message):
     change(real)

@@ -198,6 +198,7 @@ class Indicator(Strict):
     unit: str
     year: int | None
     source: DataSource
+    extra_sources: list[DataSource] = []       # RF-19: el resto de fuentes del indicador (p. ej. padron en las tasas)
 
 
 class MunicipalityResponse(Strict):
@@ -206,6 +207,7 @@ class MunicipalityResponse(Strict):
     population: int | None
     indicators: list[Indicator]
     fit: list[str]                             # frases sin ranking (RF-18)
+    fit_own_criterion: bool = False            # True si hay encaje: es criterio propio y la app lo dice (§2.9)
 
 
 class AssistantParams(Strict):
