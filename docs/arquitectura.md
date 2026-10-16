@@ -239,13 +239,14 @@ ingest   cron: horario (aire, previsión), diario 04:00 (servicios, Nomecalles, 
 | Campo | Valor |
 |---|---|
 | Nombre | `gomad-vm` |
+| URL pública | **https://<YOUR_DOMAIN>** (DuckDNS → `<SERVER_IP>`; certificado de Let's Encrypt que Caddy renueva solo, guardado en el volumen `caddy_data`) |
 | Región | `eu-madrid-1` |
 | Forma | **VM.Standard.E5.Flex** (AMD, de pago con créditos), 2 OCPU, 16 GB, 2 Gbps, solo *block storage* |
 | Sistema | Canonical Ubuntu 24.04 (x86_64) |
 | IP pública | `<SERVER_IP>` (efímera: cambia si se termina la instancia) |
 | Red | VCN `gomad-vcn` (asistente «VCN with Internet Connectivity»), subred pública; entrada TCP 22, 80 y 443 desde `0.0.0.0/0` en la *security list* y en iptables (antes del `REJECT`) |
 | Repositorio | `~/GoMad`, clonado con una *deploy key* de solo lectura (`~/.ssh/gomad_deploy`, `core.sshCommand`); actualizar con `git pull` |
-| Configuración | `app/.env` creado a mano (`chmod 600`); `app/deploy/.env` con `DOMAIN=:80` hasta tener dominio (V-F4) |
+| Configuración | `app/.env` creado a mano (`chmod 600`); `app/deploy/.env` con `DOMAIN=<YOUR_DOMAIN>` desde el 16/10 (V-F4; copia de la versión HTTP en `app/deploy/.env.bak-http`) |
 
 **Motivo de la forma:** la Always Free `VM.Standard.A1.Flex` daba «out of capacity» en la región y E5.Flex era la única con capacidad. 16 GB dejan sitio para la API (~1–1,5 GB) y para construir el grafo regional (~3,1 GB, §3.4). Coste aproximado ~2,2 $/día encendida (precios de lista, sin verificar); al terminar el reto, parar o terminar la instancia.
 
@@ -285,6 +286,14 @@ docker compose -f deploy/docker-compose.yml logs --tail=80
 ```
 
 **Despliegues siguientes:** `app/deploy/deploy.sh` desde `~/GoMad` (ya hace el `git pull --ff-only`).
+
+**Despliegue del 16/10 (V-F4, comprobado desde fuera):** datos copiados (los 9 ficheros, 103 MB), `main` en `5e57b33` desplegado y `restart api` (grafos `getafe` y `madrid` en 2,0 s); después `DOMAIN=<YOUR_DOMAIN>` y `GOMAD_URL=https://<YOUR_DOMAIN> app/deploy/deploy.sh --no-pull` (con dominio, la comprobación por `http://localhost` ya no vale: Caddy solo atiende al dominio). Resultado: `/` → `<title>GoMad</title>`, `/api/health` → `{"status":"ok"}`, HTTP → 308 a HTTPS, `/resultados/x` → 200, certificado Let's Encrypt válido hasta el 14/01/2027, `/api/recommend` (caminar en Getafe) → 200 en 0,08 s. Aire y previsión de la VM son los copiados del 15–16/10 hasta que entre la recarga (bloque B2). La IP sigue siendo efímera: si cambiara, actualizarla en DuckDNS.
+
+**Despliegues siguientes con dominio** (desde `~/GoMad` en la VM):
+
+```bash
+GOMAD_URL=https://<YOUR_DOMAIN> app/deploy/deploy.sh
+```
 
 **Llevar los datos a la VM** (16/10; en la VM `app/data` está vacío y la ingesta todavía no corre allí). La api solo lee estos ficheros (`repository.py`, `geocoding.py`, `routing/store.py`): `app/data/gomad.duckdb`, `app/data/realtime.duckdb`, `app/data/graph/<zona>/{nodes,edges}.parquet` (hoy `getafe` y `madrid`), `app/data/clean/addresses.parquet` y `app/data/clean/municipality.parquet`. Ocupan unos **103 MB** (`du -sh`, 16/10: 8,6 MB + 1,1 MB + 72 MB + 20 MB + 3,0 MB). Sin `municipality.parquet`, `/location` responde 503; sin `gomad.duckdb`, `/recommend` y `/route` responden 503; sin `graph/`, las rutas salen en línea recta aproximada.
 
