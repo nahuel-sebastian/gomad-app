@@ -17,6 +17,7 @@ from routing.store import GraphStore
 from services import municipality as municipality_service
 from services import recommend as recommend_service
 from services import route as route_service
+from services import sources as sources_service
 
 log = logging.getLogger("gomad.api")
 if not log.handlers:
@@ -142,5 +143,5 @@ def assistant_route(request: s.AssistantRouteRequest):
 
 
 @app.get("/sources", response_model=s.SourcesResponse)
-def sources():
-    _not_implemented()
+def sources(repo: Repository = Depends(get_repo)):
+    return sources_service.sources(repo, repo.main.parent)

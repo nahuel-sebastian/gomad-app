@@ -1,11 +1,20 @@
-# Texto de cada fuente para la persona (DataSource.label). S-D1 anadira editor, licencia y URL.
+# Fuentes que usa la app (RF-19, CLAUDE.md §2.11).
+# labels: texto de cada fuente para la persona (DataSource.label y nombre en /sources).
+# catalog: editor, licencia y URL de cada fuente usada; /sources las lista en este orden (B1 Task 38).
+# Licencias comprobadas el 16/10/2026: CKAN Comunidad y Ayuntamiento (package_show) e IDEM (CSW, ficha EIEL)
+# dicen CC BY 4.0. Nomecalles no publica licencia localizable: se cita su atribucion (Ruling de la Task 38).
 labels:
   eiel_deporte: "Instalaciones deportivas (EIEL 2023, Comunidad de Madrid)"
   eiel_parques: "Parques (EIEL 2023, Comunidad de Madrid)"
+  eiel_nucleos: "Cobertura móvil por núcleo (EIEL 2023, Comunidad de Madrid)"
   nmc_deporte: "Instalaciones deportivas (Nomecalles, Comunidad de Madrid)"
   nmc_parques: "Parques (Nomecalles, Comunidad de Madrid)"
+  nmc_busparadas: "Paradas de autobús (Nomecalles, Comunidad de Madrid)"
+  nmc_estmetro: "Estaciones de metro (Nomecalles, Comunidad de Madrid)"
+  nmc_estcerca: "Estaciones de Cercanías (Nomecalles, Comunidad de Madrid)"
   vpla_redes: "Zonas verdes del planeamiento (Comunidad de Madrid)"
   areas_recreativas: "Áreas recreativas (Comunidad de Madrid)"
+  vias_pecuarias: "Vías pecuarias (Comunidad de Madrid)"
   ay_idb: "Instalaciones deportivas básicas (Ayuntamiento de Madrid)"
   ay_piscinas: "Piscinas públicas (Ayuntamiento de Madrid)"
   ay_polideportivos: "Polideportivos (Ayuntamiento de Madrid)"
@@ -18,7 +27,80 @@ labels:
   ay_bancos: "Bancos (Ayuntamiento de Madrid)"
   ay_areas_caninas: "Áreas caninas (Ayuntamiento de Madrid)"
   desfibriladores: "Desfibriladores (Comunidad de Madrid)"
+  sanitarios: "Centros sanitarios (Comunidad de Madrid)"
+  farmacias: "Oficinas de farmacia (Comunidad de Madrid)"
+  educativos: "Centros educativos (Comunidad de Madrid)"
+  atencion_social: "Centros de atención social (Comunidad de Madrid)"
+  padron: "Padrón continuo por sexo (Comunidad de Madrid)"
   callejero: "Callejero (Comunidad de Madrid)"
+  boe_ica: "Índice Nacional de Calidad del Aire (BOE-A-2020-10426)"
+  sanidad_calor: "Umbrales de calor (Plan Nacional de Exceso de Temperaturas 2026, Ministerio de Sanidad)"
   "config:weights": "Pesos por defecto de la nota (criterio propio)"
   "config:routing": "Pesos de la ruta saludable (criterio propio)"
   "config:straight_line": "Distancia aproximada: línea recta (criterio propio)"
+  "config:recommend": "Distancia aproximada: línea recta"
+
+catalog:
+  eiel_deporte: {publisher: "Comunidad de Madrid (IDEM)", license: "CC BY 4.0",
+                 url: "https://idem.comunidad.madrid/catalogocartografia"}
+  eiel_parques: {publisher: "Comunidad de Madrid (IDEM)", license: "CC BY 4.0",
+                 url: "https://idem.comunidad.madrid/catalogocartografia"}
+  eiel_nucleos: {publisher: "Comunidad de Madrid (IDEM)", license: "CC BY 4.0",
+                 url: "https://idem.comunidad.madrid/catalogocartografia"}
+  vpla_redes: {publisher: "Comunidad de Madrid (IDEM)", license: "CC BY 4.0",
+               url: "https://idem.comunidad.madrid/catalogocartografia"}
+  areas_recreativas: {publisher: "Comunidad de Madrid (IDEM)", license: "CC BY 4.0",
+                      url: "https://idem.comunidad.madrid/catalogocartografia"}
+  vias_pecuarias: {publisher: "Comunidad de Madrid (IDEM)", license: "CC BY 4.0",
+                   url: "https://idem.comunidad.madrid/catalogocartografia"}
+  nmc_deporte: &nomecalles {publisher: "Instituto de Estadística de la Comunidad de Madrid (Nomecalles)",
+                            license: "Atribución «© Nomecalles, Instituto de Estadística de la Comunidad de Madrid»",
+                            url: "https://gestiona.comunidad.madrid/nomecalles_web/"}
+  nmc_parques: *nomecalles
+  nmc_busparadas: *nomecalles
+  nmc_estmetro: *nomecalles
+  nmc_estcerca: *nomecalles
+  callejero: *nomecalles
+  aire_dia: {publisher: "Comunidad de Madrid", license: "CC BY 4.0",
+             url: "https://datos.comunidad.madrid/dataset/calidad_aire_datos_dia"}
+  desfibriladores: {publisher: "Comunidad de Madrid", license: "CC BY 4.0",
+                    url: "https://datos.comunidad.madrid/dataset/desfibriladores_externos_fuera_ambito_sanitario"}
+  sanitarios: {publisher: "Comunidad de Madrid", license: "CC BY 4.0",
+               url: "https://datos.comunidad.madrid/dataset/centros_servicios_establecimientos_sanitarios"}
+  farmacias: {publisher: "Comunidad de Madrid", license: "CC BY 4.0",
+              url: "https://datos.comunidad.madrid/dataset/oficinas_farmacia"}
+  educativos: {publisher: "Comunidad de Madrid", license: "CC BY 4.0",
+               url: "https://datos.comunidad.madrid/dataset/centros_educativos"}
+  atencion_social: {publisher: "Comunidad de Madrid", license: "CC BY 4.0",
+                    url: "https://datos.comunidad.madrid/dataset/atencion_social_registro_centros"}
+  padron: {publisher: "Comunidad de Madrid", license: "CC BY 4.0",
+           url: "https://datos.comunidad.madrid/dataset/padron_por_sexo"}
+  ay_idb: {publisher: "Ayuntamiento de Madrid", license: "CC BY 4.0",
+           url: "https://datos.madrid.es/dataset/200215-0-instalaciones-deportivas"}
+  ay_piscinas: {publisher: "Ayuntamiento de Madrid", license: "CC BY 4.0",
+                url: "https://datos.madrid.es/dataset/210227-0-piscinas-publicas"}
+  ay_polideportivos: {publisher: "Ayuntamiento de Madrid", license: "CC BY 4.0",
+                      url: "https://datos.madrid.es/dataset/200186-0-polideportivos"}
+  ay_parques: {publisher: "Ayuntamiento de Madrid", license: "CC BY 4.0",
+               url: "https://datos.madrid.es/dataset/200761-0-parques-jardines"}
+  ay_aire: {publisher: "Ayuntamiento de Madrid", license: "CC BY 4.0",
+            url: "https://datos.madrid.es/dataset/212531-0-calidad-aire-tiempo-real"}
+  ay_fuentes: {publisher: "Ayuntamiento de Madrid", license: "CC BY 4.0",
+               url: "https://datos.madrid.es/dataset/300051-0-fuentes"}
+  ay_bancos: {publisher: "Ayuntamiento de Madrid", license: "CC BY 4.0",
+              url: "https://datos.madrid.es/dataset/300095-0-mobiliario-bancos"}
+  ay_areas_caninas: {publisher: "Ayuntamiento de Madrid", license: "CC BY 4.0",
+                     url: "https://datos.madrid.es/dataset/300094-0-areas-caninas"}
+  aemet: {publisher: "Agencia Estatal de Meteorología (AEMET)", license: "Aviso legal de AEMET («© AEMET»)",
+          url: "https://www.aemet.es/es/nota_legal"}
+  osm: {publisher: "Colaboradores de OpenStreetMap (extracto de Geofabrik)", license: "ODbL 1.0",
+        url: "https://www.openstreetmap.org/copyright"}
+  boe_ica: {publisher: "Ministerio para la Transición Ecológica (BOE)", license: "BOE: norma oficial, reutilización libre",
+            url: "https://www.boe.es/diario_boe/txt.php?id=BOE-A-2020-10426"}
+  sanidad_calor: {publisher: "Ministerio de Sanidad", license: "Publicación oficial del Ministerio de Sanidad",
+                  url: "https://www.sanidad.gob.es/areas/sanidadAmbiental/riesgosAmbientales/calorExtremo/publicaciones/docs/planNacionalExcesoTemperaturas_2026.pdf"}
+  "config:weights": &own {publisher: "Equipo GoMad (criterio propio)", license: "CC BY 4.0",
+                          url: "https://<YOUR_DOMAIN>"}
+  "config:routing": *own
+  "config:straight_line": *own
+  "config:recommend": *own
