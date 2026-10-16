@@ -5,7 +5,7 @@ import pandas as pd
 import pytest
 
 from common import ROOT, read_csv
-from normalize.aemet import municipality_forecast
+from normalize.open_meteo import FORECAST_COLUMNS, municipality_forecast
 from normalize.air import long_readings
 
 DATA = ROOT / "tests" / "data"
@@ -40,15 +40,18 @@ def test_air_city_council_uppercase():
     assert long["station_id"].item() == "28079004" and long["value"].item() == 55.0
 
 
-@pytest.mark.skipif(not (DATA / "aemet_28065.json").exists(), reason="muestra de Task 4")
-def test_aemet_hourly_forecast():
-    doc = json.loads((DATA / "aemet_28065.json").read_text(encoding="utf-8"))
-    f = municipality_forecast(doc[0] if isinstance(doc, list) else doc, "28065")
-    assert len(f) >= 24
-    assert f["ts"].is_monotonic_increasing and f["ts"].is_unique
-    assert f["temp"].notna().all()
-    assert f["precip_prob"].between(0, 100).all()
-    assert (f["precip"] >= 0).all()
+def test_open_meteo_hourly_forecast():
+    """Muestra real de Open-Meteo (16/10, Getafe): 72 horas, probabilidad horaria y Tmax diaria (DEC-16)."""
+    doc = json.loads((DATA / "open_meteo_sample.json").read_text(encoding="utf-8"))
+    f = municipality_forecast(doc[0], "28065", "2026-10-16T10:00:00")
+    assert list(f.columns) == FORECAST_COLUMNS and FORECAST_COLUMNS[-1] == "temp_max_day"
+    assert len(f) == 72 and f["ts"].is_monotonic_increasing and f["ts"].is_unique
+    assert f["temp"].notna().all() and f["precip_prob"].between(0, 100).all() and (f["precip"] >= 0).all()
+    row = f[f["ts"] == datetime(2026, 10, 16, 17)].iloc[0]
+    assert (row.temp, row.feels_like, row.precip_prob, row.precip, row.wind, row.sky) == (
+        26.4, 26.1, 0.0, 0.0, 1.8, "Despejado")
+    assert f[f["ts"].dt.date == datetime(2026, 10, 17).date()]["temp_max_day"].unique().tolist() == [23.3]
+    assert (f["ine_code"] == "28065").all() and (f["issued"] == "2026-10-16T10:00:00").all()
 
 
 @pytest.mark.slow
@@ -92,19 +95,40 @@ def test_air_file_without_valid_hours_does_not_stop_the_rest(tmp_path, monkeypat
     assert long_readings(pd.DataFrame([_all_n_row()])).empty
 
 
-def test_bad_aemet_file_does_not_block_other_municipalities(tmp_path, monkeypatch):
-    import normalize.aemet as aemet
+def _raw_open_meteo(raw, items, codes):
+    (raw / "open_meteo").mkdir(parents=True)
+    (raw / "open_meteo" / "forecast.json").write_text(json.dumps(items), encoding="utf-8")
+    (raw / "open_meteo" / "points.csv").write_text(
+        "ine_code,name,lat,lon\n" + "".join(f"{c},X,40.3,-3.7\n" for c in codes), encoding="utf-8")
+    (raw / "manifest.json").write_text(json.dumps({"open_meteo": {"downloaded": "2026-10-16T10:00:00"}}))
+
+
+def test_open_meteo_writes_one_parquet_per_point(tmp_path, monkeypatch):
+    import normalize.open_meteo as om
 
     raw, clean = tmp_path / "raw", tmp_path / "clean"
-    (raw / "aemet").mkdir(parents=True)
-    (raw / "aemet" / "28001.json").write_text('{"descripcion": "Too Many Requests", "estado": 429}')
-    (raw / "aemet" / "28065.json").write_bytes((DATA / "aemet_28065.json").read_bytes())
-    monkeypatch.setattr(aemet, "RAW", raw)
-    monkeypatch.setattr(aemet, "CLEAN", clean)
-    with pytest.raises(RuntimeError, match="28001"):
-        aemet.run()
-    assert (clean / "forecast" / "28065.parquet").exists()
-    assert not (clean / "forecast" / "28001.parquet").exists()
+    doc = json.loads((DATA / "open_meteo_sample.json").read_text(encoding="utf-8"))
+    _raw_open_meteo(raw, doc, ["28065", "28079", "28131"])
+    monkeypatch.setattr(om, "RAW", raw)
+    monkeypatch.setattr(om, "CLEAN", clean)
+    written = om.run()
+    assert sorted(p.name for p in written) == ["28065.parquet", "28079.parquet", "28131.parquet"]
+    madrid = pd.read_parquet(clean / "forecast" / "28079.parquet")
+    assert madrid[madrid["ts"] == datetime(2026, 10, 16, 17)]["temp"].item() == 26.1    # el 2.o de la lista
+    assert (madrid["issued"] == "2026-10-16T10:00:00").all()
+
+
+def test_open_meteo_length_mismatch_keeps_old_parquets(tmp_path, monkeypatch):
+    import normalize.open_meteo as om
+
+    raw, clean = tmp_path / "raw", tmp_path / "clean"
+    doc = json.loads((DATA / "open_meteo_sample.json").read_text(encoding="utf-8"))
+    _raw_open_meteo(raw, doc[:2], ["28065", "28079", "28131"])
+    monkeypatch.setattr(om, "RAW", raw)
+    monkeypatch.setattr(om, "CLEAN", clean)
+    with pytest.raises(RuntimeError, match="2 puntos de 3"):
+        om.run()
+    assert not (clean / "forecast").exists() or not any((clean / "forecast").iterdir())
 
 
 def test_air_discards_n_with_value():

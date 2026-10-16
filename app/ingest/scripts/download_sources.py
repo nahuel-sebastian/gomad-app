@@ -37,7 +37,6 @@ import fcntl
 import os
 import re
 import tempfile
-import time
 import urllib.error
 from collections import namedtuple
 
@@ -45,6 +44,7 @@ ROOT = pathlib.Path(__file__).resolve().parent.parent       # app/ingest
 APP_DIR = ROOT.parent                                        # app (donde esta .env)
 DATA_DIR = pathlib.Path(os.environ.get("GOMAD_DATA_DIR", APP_DIR / "data"))   # volumen compartido
 RAW_DIR = DATA_DIR / "raw"
+CONFIG_DIR = pathlib.Path(os.environ.get("GOMAD_CONFIG_DIR", APP_DIR / "config"))   # forecast_points.csv
 
 Source = namedtuple("Source", "kind ident group heavy desc refresh")
 REFRESH_LEVELS = ("reference", "weekly", "daily", "hourly", "on_demand")
@@ -55,7 +55,10 @@ UA = {"User-Agent": "Mozilla/5.0 (MAD Open Data Challenge 2026; proyecto Muevete
 CKAN_CM = "https://datos.comunidad.madrid/api/3/action"
 CKAN_AY = "https://datos.madrid.es/api/3/action"
 WFS = "https://idem.comunidad.madrid/geoidem/wfs?service=WFS&version=2.0.0&request=GetFeature&outputFormat=application/json&typeNames="
-AEMET_URL = "https://opendata.aemet.es/opendata/api/prediccion/especifica/municipio/horaria/"
+# Open-Meteo (DEC-16): misma URL que sources.forecast.url de config/realtime.yaml (una prueba lo comprueba)
+OPEN_METEO_URL = ("https://api.open-meteo.com/v1/forecast?hourly=temperature_2m,apparent_temperature,"
+                  "precipitation_probability,precipitation,weather_code,wind_speed_10m"
+                  "&daily=temperature_2m_max&forecast_days=3&timezone=Europe%2FMadrid")
 NMC = "https://apiscm.comunidad.madrid/t/ciudadanos.comunidad.madrid/sector-publico/nomecalles-descargas/v1/paquetes/"
 
 # id: (kind, identificador, grupo, pesada, descripcion, refresh)
@@ -119,8 +122,8 @@ _SOURCES = {
                   "Extracto OSM de la Comunidad de Madrid (Geofabrik, ODbL): red peatonal y mobiliario", "weekly"),
     "callejero": ("nmc", "callejero_completo_2025", "full", True,
                   "Callejero completo 2025: 855.909 portales con coordenadas (geocodificación RF-01, D-04)", "reference"),
-    "aemet":     ("aemet", "prediccion/especifica/municipio/horaria", "minimal", False,
-                  "AEMET: predicción horaria por municipio (clave en .env)", "hourly"),
+    "open_meteo": ("open_meteo", "v1/forecast", "minimal", False,
+                   "Open-Meteo: previsión horaria de los 179 municipios (una petición, sin clave)", "hourly"),
 }
 SOURCES = {key: Source(*value) for key, value in _SOURCES.items()}
 
@@ -222,50 +225,22 @@ def download_nomecalles(ref, folder):
     return [zip_path], [NMC + ref]
 
 
-def read_env(path=None):
-    """Lee app/.env (CLAVE=valor por linea) sin dependencias. Las variables de entorno reales mandan."""
-    path = pathlib.Path(path or (APP_DIR / ".env"))
-    values = {}
-    if path.exists():
-        for line in path.read_text(encoding="utf-8").splitlines():
-            line = line.strip()
-            if line and not line.startswith("#") and "=" in line:
-                k, v = line.split("=", 1)
-                values[k.strip()] = v.strip().strip('"').strip("'")
-    values.update({k: v for k, v in os.environ.items() if k.startswith("AEMET_")})
-    return values
+def download_open_meteo(folder):
+    """Prevision de los 179 municipios en UNA peticion (DEC-16), con los puntos de config/forecast_points.csv.
 
-
-def aemet_municipalities(value):
-    if value and value != "todos":
-        return [c.strip() for c in value.split(",") if c.strip()]
-    path = RAW_DIR / "municipios" / "municipios.geojson"
-    if not path.exists():
-        raise RuntimeError("Falta municipios.geojson: ejecuta antes --only municipios "
-                           "(o indica códigos INE en --aemet-municipalities)")
-    geo = json.loads(path.read_text(encoding="utf-8"))
-    return sorted("28" + str(f["properties"]["CDMUNICIPIO"]).zfill(3) for f in geo["features"])
-
-
-def download_aemet(folder, municipalities):
-    """Prevision horaria de AEMET por municipio. La clave va en la cabecera api_key, nunca en la URL."""
-    env = read_env()
-    key = env.get("AEMET_API_KEY")
-    if not key:
-        raise RuntimeError("Falta AEMET_API_KEY en app/.env (ver app/.env.example)")
-    pause = float(env.get("AEMET_PAUSE_S", "1.5"))
-    codes = aemet_municipalities(municipalities or env.get("AEMET_MUNICIPALITIES", "todos"))
-    paths, urls = [], []
-    for code in codes:
-        first = json.loads(fetch(AEMET_URL + code, timeout=60, headers={"api_key": key}))
-        if first.get("estado") != 200:
-            raise RuntimeError(f"AEMET {code}: estado {first.get('estado')} {first.get('descripcion', '')}")
-        paths.append(save(folder, f"{code}.json", fetch(first["datos"], timeout=60)))
-        meta = {k: v for k, v in first.items() if k != "api_key"}
-        paths.append(save(folder, f"{code}.meta.json", json.dumps(meta, ensure_ascii=False).encode("utf-8")))
-        urls.append(AEMET_URL + code)
-        time.sleep(pause)
-    return paths, urls
+    A Open-Meteo solo van esos puntos (CLAUDE.md 2.8). Guarda la respuesta tal cual y los puntos usados, en el mismo
+    orden: el normalizador asigna el elemento i de la lista al punto i.
+    """
+    points_text = (CONFIG_DIR / "forecast_points.csv").read_text(encoding="utf-8")
+    rows = [line.split(",") for line in points_text.splitlines()[1:] if line.strip()]
+    url = (OPEN_METEO_URL + "&latitude=" + ",".join(r[2] for r in rows)
+           + "&longitude=" + ",".join(r[3] for r in rows))
+    content = fetch(url, timeout=120)
+    doc = json.loads(content)
+    n = len(doc) if isinstance(doc, list) else 1
+    if n != len(rows):
+        raise RuntimeError(f"Open-Meteo devolvió {n} puntos de {len(rows)}")
+    return [save(folder, "forecast.json", content), save(folder, "points.csv", points_text.encode("utf-8"))], [url]
 
 
 def select(args):
@@ -282,7 +257,7 @@ def now():
     return dt.datetime.now().isoformat(timespec="seconds")
 
 
-def download_source(key, src, previous, force, aemet_municipalities=None):
+def download_source(key, src, previous, force):
     """Descarga una fuente si ha cambiado. Devuelve la entrada nueva del manifiesto."""
     folder = RAW_DIR / key
     # si responde bien (aunque sin cambios), el fallo anterior ya no vale
@@ -307,8 +282,8 @@ def download_source(key, src, previous, force, aemet_municipalities=None):
         base = CKAN_CM if src.kind == "ckan_cm" else CKAN_AY
         paths, urls, modified = download_ckan(base, src.ident, folder, src.heavy)
         extra = {"modified": modified}
-    elif src.kind == "aemet":
-        paths, urls = download_aemet(folder, aemet_municipalities)
+    elif src.kind == "open_meteo":
+        paths, urls = download_open_meteo(folder)
     else:
         content, extra = fetch_conditional(src.ident, {} if force else previous)
         if content is None:
@@ -365,7 +340,7 @@ def run(args):
         print(f"-> {key} [{src.refresh}]: {src.desc}", flush=True)
         previous = read_manifest(manifest_path).get(key, {})
         try:
-            entry = download_source(key, src, previous, args.force, args.aemet_municipalities)
+            entry = download_source(key, src, previous, args.force)
             state = "cambiado" if entry["changed"] else "sin cambios"
             print(f"   ok, {state} ({entry.get('bytes', 0) / 1e6:.1f} MB)")
         except Exception as e:  # una fuente caida no debe parar el resto (RNF-08)
@@ -385,7 +360,6 @@ def main():
     ap.add_argument("--refresh", choices=REFRESH_LEVELS, help="solo las fuentes de ese nivel de recarga (CLAUDE.md §6.4)")
     ap.add_argument("--include-heavy", action="store_true", help="incluye capas grandes y todos los CSV históricos")
     ap.add_argument("--force", action="store_true", help="descarga aunque la fuente no haya cambiado")
-    ap.add_argument("--aemet-municipalities", help="códigos INE separados por comas o 'todos' (por defecto, AEMET_MUNICIPALITIES de .env)")
     return run(ap.parse_args())
 
 
