@@ -50,11 +50,11 @@ def test_own_criterion_is_marked():
 
 def test_surprise_activity_indoor_and_sources():
     text = explain(carmen(activity_label="Nadar", indoor_alternative=True,
-                          sources=[("Previsión horaria (AEMET)", datetime(2026, 7, 15, 12, 1)), ("Aire", None)],
+                          sources=[("Previsión horaria (Open-Meteo)", datetime(2026, 7, 15, 12, 1)), ("Aire", None)],
                           approximate_distance=True))
     assert "Para nadar: Parque Uno, a 1,2 km aprox. (16 min a pie)" in text
     assert "Es un sitio cubierto" in text
-    assert text.endswith("Fuentes: Previsión horaria (AEMET) (15/07 a las 12:01); Aire.")
+    assert text.endswith("Fuentes: Previsión horaria (Open-Meteo) (15/07 a las 12:01); Aire.")
 
 
 def test_factor_texts():

@@ -6,7 +6,7 @@ from zoneinfo import ZoneInfo
 from engine.rules import HourContext, evaluate_outdoor, is_heat_day
 from engine.scoring import air_factor, compute_score, weather_factor
 
-# tope de la ventana: la prevision horaria de AEMET cubre ~48 h (3 dias); mas alla no hay datos
+# tope de la ventana: la prevision horaria de Open-Meteo cubre 3 dias (forecast_days=3); mas alla no hay datos
 MAX_WINDOW_HOURS = 72
 
 

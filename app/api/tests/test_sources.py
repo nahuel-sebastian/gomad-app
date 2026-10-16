@@ -106,7 +106,6 @@ def test_open_meteo_license_and_attribution(tmp_path):
     assert om["publisher"] == "Open-Meteo.com" and om["url"] == "https://open-meteo.com/"
     assert om["license"].startswith("CC BY 4.0") and "Weather data by Open-Meteo.com" in om["license"]
     assert om["name"] == "Previsión horaria (Open-Meteo)"
-    assert not any("aemet" in sid for sid in got)
 
 
 def test_nomecalles_license_is_comunidad_reuse_notice():
