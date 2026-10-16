@@ -91,6 +91,7 @@ class Repository:
     def __init__(self, data_dir, live=None):
         # live: LiveStore (B2); con el, aire y prevision salen de memoria y no de realtime.duckdb
         self.live = live
+        self.forecast_notes = {}     # ine -> «Prevision de <municipio>» cuando se usa la del vecino
         self.main = data_dir / "gomad.duckdb"
         self.realtime = data_dir / "realtime.duckdb"
         self.addresses = data_dir / "clean" / "addresses.parquet"
@@ -132,6 +133,8 @@ class Repository:
     def forecast(self, ine_codes, start, end):
         if not ine_codes:
             return {}, {}
+        if self.live is not None and getattr(self.live, "forecast", None) is not None:
+            return self._live_forecast(ine_codes, start, end)
         marks = ", ".join("?" for _ in ine_codes)
         rows = self._query(self.realtime, f"""SELECT ine_code, ts, temp, feels_like, precip_prob, issued FROM forecast
                                               WHERE ine_code IN ({marks}) AND ts BETWEEN ? AND ? ORDER BY ts""",
@@ -140,6 +143,24 @@ class Repository:
         for ine, ts, temp, feels, prob, iss in rows:
             by.setdefault(ine, {})[_naive(ts)] = (_number(temp), _number(feels), _number(prob))
             issued[ine] = parse_date(iss)
+        return by, issued
+
+    def _live_forecast(self, ine_codes, start, end):
+        """Prevision en memoria (DEC-15). Sin prevision: se pide con prioridad. La del vecino queda en forecast_notes."""
+        by, issued, missing = {}, {}, []
+        for ine in ine_codes:
+            got = self.live.forecast.get(ine)
+            if got is None:
+                missing.append(ine)
+                continue
+            series, iss, note = got
+            hours = {ts: v[:3] for ts, v in series.items() if start <= ts <= end}
+            if hours:
+                by[ine], issued[ine] = hours, iss
+                if note:
+                    self.forecast_notes[ine] = note
+        if missing:
+            self.live.forecast.request(missing)
         return by, issued
 
     def stations(self):

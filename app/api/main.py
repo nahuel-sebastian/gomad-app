@@ -40,15 +40,17 @@ async def lifespan(app: FastAPI):
                                       [a["id"] for a in settings.load("activities")["activities"]])
     realtime = settings.load("realtime")
     validate_realtime(realtime)
-    # datos en vivo en memoria (DEC-15); GOMAD_LIVE=off (pruebas) deja la lectura de realtime.duckdb
-    live = None if os.environ.get("GOMAD_LIVE") == "off" else build_live(
-        realtime, httpx.Client(), snapshot_dir=os.environ.get("GOMAD_LIVE_SNAPSHOT") or None)
-    app.state.live = live
-    app.state.repo = Repository(settings.DATA_DIR, live=live)
     t0 = time.perf_counter()
     app.state.graphs = GraphStore.load(settings.DATA_DIR / "graph")
     log.info("grafos cargados: %s en %.1f s", [z.name for z in app.state.graphs.zones], time.perf_counter() - t0)
-    app.state.geocoder = Geocoder(settings.DATA_DIR, httpx.Client())
+    app.state.geocoder = geocoder = Geocoder(settings.DATA_DIR, httpx.Client())
+    # datos en vivo en memoria (DEC-15); GOMAD_LIVE=off (pruebas) deja la lectura de realtime.duckdb
+    live = None if os.environ.get("GOMAD_LIVE") == "off" else build_live(
+        realtime, httpx.Client(), snapshot_dir=os.environ.get("GOMAD_LIVE_SNAPSHOT") or None,
+        centers=lambda: [(m[0], m[1], m[3], m[4]) for m in geocoder.municipalities()],
+        cache_path=settings.DATA_DIR / "live" / "forecast.json")
+    app.state.live = live
+    app.state.repo = Repository(settings.DATA_DIR, live=live)
     if live is not None:
         live.start()
     yield
