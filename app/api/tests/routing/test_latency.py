@@ -39,7 +39,7 @@ def test_direct_and_healthy_under_5s(g, algorithm, request):
     print(f"{algorithm}: p50 {np.median(times):.3f} s, max {max(times):.3f} s")
     if algorithm == "astar" and request.node.callspec.params["g"] == "region":
         # solo informativo: la app usa Dijkstra (services/route.py) y A* con pares a ~100 km pasa de 5 s
-        return
+        pytest.skip(f"A* en la region solo se mide (max {max(times):.1f} s); la app usa Dijkstra")
     assert max(times) < 5.0
 
 
