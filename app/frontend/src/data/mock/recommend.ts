@@ -297,7 +297,7 @@ function build(place: MockPlace, ctx: Context, sampleDate: string): Recommendati
 
     const sources: DataSource[] = [
         { source: place.sourceId, label: place.sourceLabel, date: "2026-10-14T04:00:00", own_criterion: false },
-        { source: "aemet", label: "Previsión: AEMET", date: sampleDate, own_criterion: false },
+        { source: "open_meteo", label: "Previsión horaria (Open-Meteo)", date: sampleDate, own_criterion: false },
         {
             source: "aire_dia",
             label: "Aire: Comunidad de Madrid (estación más cercana)",

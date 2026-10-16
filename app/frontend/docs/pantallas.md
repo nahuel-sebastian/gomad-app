@@ -357,7 +357,7 @@ Tres bloques siempre visibles:
 
 ### Contenido y textos
 - `h1` «Fuentes, licencias y aviso».
-- Tabla de fuentes: nombre, publicador, licencia (CC BY 4.0 Comunidad y Ayuntamiento; ODbL OpenStreetMap; aviso legal de AEMET), enlace, «actualizado hace 12 min» (de `last_refresh`), aviso si `last_failure` es posterior a `last_refresh` («última recarga fallida: se muestra el dato anterior»).
+- Tabla de fuentes: nombre, publicador, licencia (CC BY 4.0 Comunidad y Ayuntamiento; ODbL OpenStreetMap; CC BY 4.0 de Open-Meteo con su atribución «Weather data by Open-Meteo.com» y enlace a https://open-meteo.com/), enlace, «actualizado hace 12 min» (de `last_refresh`), aviso si `last_failure` es posterior a `last_refresh` («última recarga fallida: se muestra el dato anterior»).
 - **Aviso médico** completo: «GoMad da recomendaciones orientativas a partir de datos abiertos. No es consejo médico.» + referencia a las recomendaciones oficiales del ICA (BOE-A-2020-10426) y al plan de calor de Sanidad (`umbrales.md`).
 - **Privacidad:** sin registro; la ubicación solo se usa para la consulta y no se guarda ni se escribe en los registros; las preferencias se guardan solo en este dispositivo (`localStorage`) y se borran con «Borrar mis preferencias»; al proveedor de IA no se envía la ubicación; fuentes tipográficas e iconos servidos desde nuestro servidor; mapa base (OpenFreeMap en desarrollo; PMTiles propio en la demo).
 - Atribución del mapa (© OpenStreetMap) también visible en el propio mapa.
