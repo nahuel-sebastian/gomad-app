@@ -7,14 +7,13 @@ services:
     build: ../ingest
     # escribe app/data con el usuario del equipo, no como root (en Linux, `id -u` / `id -g` si no es 1000)
     user: "${GOMAD_UID:-1000}:${GOMAD_GID:-1000}"
-    # claves (AEMET) de app/.env si existe; sin el, todo menos la prevision
+    # app/.env si existe (ninguna fuente de la ingesta necesita clave: la prevision es Open-Meteo, DEC-16)
     env_file:
       - path: ../.env
         required: false
     environment:
       GOMAD_DATA_DIR: /data
       GOMAD_CONFIG_DIR: /config
-      INIT_AEMET_MUNICIPALITIES: ${INIT_AEMET_MUNICIPALITIES:-28065,28079}
     volumes:
       # GOMAD_DATA_PATH permite generar en otra carpeta (por defecto, app/data)
       - ${GOMAD_DATA_PATH:-../data}:/data
