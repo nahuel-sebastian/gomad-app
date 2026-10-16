@@ -5,7 +5,8 @@ import type { MapViewProps } from "./MapView";
 
 // Teselas de OpenFreeMap: gratis y sin clave (decidido el 16/10); PMTiles local el lunes (L-4)
 export const TILE_STYLE_URL = "https://tiles.openfreemap.org/styles/liberty";
-export const MAP_ATTRIBUTION = "© OpenStreetMap · OpenFreeMap";
+// la que pide OpenFreeMap en su TileJSON: «OpenFreeMap © OpenMapTiles Data from OpenStreetMap»
+export const MAP_ATTRIBUTION = "© OpenStreetMap · OpenMapTiles · OpenFreeMap";
 
 // Estilo de respaldo si no llega el de OpenFreeMap: fondo liso del color de .map-view, para
 // que se puedan dibujar la ruta y los marcadores (react-map-gl solo anade fuentes con estilo)

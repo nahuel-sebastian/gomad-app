@@ -64,10 +64,10 @@ describe("MapView", () => {
         expect(setWorkerUrlMock).toHaveBeenCalledWith(expect.stringContaining("maplibre-gl-worker"));
     });
 
-    it("muestra la atribucion de OpenStreetMap y OpenFreeMap", async () => {
+    it("muestra la atribucion de OpenStreetMap, OpenMapTiles y OpenFreeMap", async () => {
         withWebGL();
         render(<MapView markers={MARKERS} />);
-        expect(await screen.findByText("© OpenStreetMap · OpenFreeMap")).toBeVisible();
+        expect(await screen.findByText("© OpenStreetMap · OpenMapTiles · OpenFreeMap")).toBeVisible();
     });
 
     it("el mapa esta oculto a lectores y fuera del teclado", async () => {
