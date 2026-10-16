@@ -2,16 +2,22 @@
 import react from "@vitejs/plugin-react";
 import { defineConfig } from "vite";
 
+// API de desarrollo: por defecto uvicorn local en :8000 (sin el prefijo /api, como Caddy).
+// Con GOMAD_API (p. ej. GOMAD_API=https://<YOUR_DOMAIN> npm run dev) se usa la API
+// desplegada, que ya atiende en /api: solo lectura, sirve para trabajar el diseño sin backend local.
+const remoteApi = process.env.GOMAD_API;
+
 // https://vite.dev/config/
 export default defineConfig({
     plugins: [react()],
-    // proxy de desarrollo para /api (guia §3, paso 0, punto 3): uvicorn en el puerto 8000
     server: {
         proxy: {
-            "/api": {
-                target: "http://localhost:8000",
-                rewrite: (path) => path.replace(/^\/api/, ""),
-            },
+            "/api": remoteApi
+                ? { target: remoteApi, changeOrigin: true, secure: true }
+                : {
+                      target: "http://localhost:8000",
+                      rewrite: (path) => path.replace(/^\/api/, ""),
+                  },
         },
     },
     test: {
