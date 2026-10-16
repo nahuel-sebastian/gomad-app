@@ -99,7 +99,7 @@ class _Run:
         self.labels = (cfg["sources"] or {}).get("labels", {})
         self.located = graphs.locate([(req.origin.lon, req.origin.lat)], cfg["routing"]["snap_max_m"])
         self.net = None
-        self.forecasts, self.issued, self.loaded = {}, {}, set()
+        self.forecasts, self.issued, self.loaded, self.notes = {}, {}, set(), {}
         self.air, self.stations, self.station_of, self.contexts = None, [], {}, {}
         self.dates = repo.source_dates()
         self.names = repo.municipality_names()
@@ -126,6 +126,8 @@ class _Run:
             by, issued = self.repo.forecast(new, self.window[0], self.window[-1])
             self.forecasts.update(by)
             self.issued.update(issued)
+            notes = getattr(self.repo, "forecast_notes", {})
+            self.notes.update({ine: notes[ine] for ine in new if ine in notes})
             self.loaded |= set(new)
         if self.air is None:
             self.air = self.repo.air_categories(self.window[0], self.window[-1], self.cfg["ica_thresholds"],
@@ -222,7 +224,10 @@ class _Run:
         if c.green is not None and c.source != "vpla_redes":     # el verde sale de VPLA: no repetir la fuente
             out.append(data_source("vpla_redes", self.labels, self.dates.get("vpla_redes")))
         if c.ine_code in self.issued:
-            out.append(data_source("aemet", self.labels, self.issued[c.ine_code]))
+            aemet = data_source("aemet", self.labels, self.issued[c.ine_code])
+            if c.ine_code in self.notes:             # prevision del municipio vecino (RF-19)
+                aemet.label = f"{aemet.label} · {self.notes[c.ine_code]}"
+            out.append(aemet)
         station = self.station_of.get(c.id)
         if station and not x.covered:
             sid = "aire_dia" if station.network == "CM" else "ay_aire"

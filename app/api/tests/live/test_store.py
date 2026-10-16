@@ -21,7 +21,7 @@ class Clock:
 
 
 def cfg(**air):
-    return {"tick_s": 5, "sources": {"air_cm": {"url": "https://example.org/aire.csv", "ttl_s": 600,
+    return {"tick_s": 5, "retry_failed_s": 60, "sources": {"air_cm": {"url": "https://example.org/aire.csv", "ttl_s": 600,
                                                 "max_age_h": 3, "timeout_s": 1, **air}}}
 
 

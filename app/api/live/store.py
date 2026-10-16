@@ -13,8 +13,8 @@ from zoneinfo import ZoneInfo
 log = logging.getLogger("gomad.api")
 
 REQUIRED = ("ttl_s", "max_age_h", "timeout_s")
+GLOBAL = ("tick_s", "retry_failed_s")
 MADRID = ZoneInfo("Europe/Madrid")
-RETRY_FAILED_S = 60          # tras un fallo se reintenta como mucho cada minuto (o antes si el TTL es menor)
 
 
 def madrid_now():
@@ -44,6 +44,10 @@ def validate_realtime(cfg):
     sources = (cfg or {}).get("sources")
     if not isinstance(sources, dict) or not sources:
         raise ValueError("realtime.yaml: falta la seccion «sources»")
+    for key in GLOBAL:
+        value = cfg.get(key)
+        if isinstance(value, bool) or not isinstance(value, (int, float)) or value <= 0:
+            raise ValueError(f"realtime.yaml: falta {key} (número > 0)")
     for name, src in sources.items():
         for key in REQUIRED:
             value = (src or {}).get(key)
@@ -86,7 +90,7 @@ class LiveStore:
             now, old = self.now(), self._entries.get(name)
             ttl = self.sources[name]["ttl_s"]
             if old is not None:
-                wait = ttl if old.status == "ok" else min(ttl, RETRY_FAILED_S)
+                wait = ttl if old.status == "ok" else min(ttl, self.cfg["retry_failed_s"])
                 if (now - old.fetched_at).total_seconds() < wait:
                     return False
             try:
@@ -135,15 +139,23 @@ class LiveStore:
                     step()
                 except Exception as e:      # un paso roto no para el hilo
                     log.warning("tarea en vivo fallida: %s", type(e).__name__)
-            self._stop.wait(self.cfg.get("tick_s", 5))
+            self._stop.wait(self.cfg["tick_s"])
 
     def start(self):
         if self._thread is None:
             self._thread = threading.Thread(target=self._loop, name="gomad-live", daemon=True)
             self._thread.start()
 
+    def stop_timeout_s(self):
+        """Lo que puede tardar el paso en curso: dos peticiones (AEMET) con el mayor timeout_s, mas un tick."""
+        return 2 * max(src["timeout_s"] for src in self.sources.values()) + self.cfg["tick_s"]
+
     def stop(self):
+        """Para el hilo. False si sigue vivo (descarga colgada): entonces no se debe cerrar el cliente."""
         self._stop.set()
         if self._thread is not None:
-            self._thread.join(timeout=5)
+            self._thread.join(timeout=self.stop_timeout_s())
+            if self._thread.is_alive():
+                return False
             self._thread = None
+        return True

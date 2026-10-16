@@ -44,7 +44,10 @@ def parse_air_csv(text):
         r = {k.strip().lower(): v for k, v in row.items() if k}
         try:
             magnitude = int(r["magnitud"])
-            municipality, station = int(r["municipio"]), int(r["estacion"])
+            code = (r["municipio"] or "").strip()
+            # «65», «079» o, por si acaso, el INE completo «28079»
+            municipality = int(code[2:]) if len(code) == 5 and code.startswith("28") else int(code)
+            station = int(r["estacion"])
             day = datetime(int(r["ano"]), int(r["mes"]), int(r["dia"]))
         except (KeyError, TypeError, ValueError):
             continue
@@ -75,7 +78,13 @@ class AirFeed:
 
     def fetch(self, store):
         content, _ = store.http_get(self.source, self.url)
-        readings = self.merge(parse_air_csv(decode(content)), store.now())
+        parsed = parse_air_csv(decode(content))
+        if store.snapshot and parsed:
+            # demo sin red: lo grabado se reproduce como si fuera de ahora (la app dice «datos grabados»)
+            now = store.now().replace(minute=0, second=0, microsecond=0)
+            shift = now - max(r[2] for r in parsed)
+            parsed = [(st, m, ts + shift, v) for st, m, ts, v in parsed]
+        readings = self.merge(parsed, store.now())
         observed = max((r[2] for r in readings), default=None)
         return readings, observed
 

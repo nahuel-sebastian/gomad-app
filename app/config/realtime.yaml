@@ -1,9 +1,10 @@
 # Datos en vivo en memoria (DEC-15, B2): la API los pide en segundo plano y nunca muestra un dato
 # observado hace mas de max_age_h. Por fuente: url, ttl_s (cada cuanto se vuelve a pedir), max_age_h
 # (antiguedad maxima del dato que se muestra) y timeout_s. Sin persistencia salvo la cache de arranque de AEMET.
-# CRITERIO PROPIO salvo max_issued_age_h (12 h, DEC-13).
+# CRITERIO PROPIO salvo el max_age_h de 12 h de la prevision (DEC-13).
 own_criterion: true
 tick_s: 5                  # cada cuanto mira el hilo de fondo si toca refrescar algo
+retry_failed_s: 60         # tras un fallo, una fuente se reintenta como mucho cada tanto (o su TTL si es menor)
 air_buffer_h: 24           # lecturas de aire que se guardan para las medias moviles del ICA (PM 24 h)
 sources:
   air_cm:                  # aire_dia (CKAN Comunidad): misma URL que el manifiesto de la ingesta
@@ -19,11 +20,10 @@ sources:
   forecast:                # AEMET horaria por municipio; la clave va en la cabecera api_key (app/.env)
     url: "https://opendata.aemet.es/opendata/api/prediccion/especifica/municipio/horaria/{ine}"
     ttl_s: 3600            # un municipio que acaba de fallar o sigue sin elaborado nuevo no se repite antes
-    max_age_h: 12
+    max_age_h: 12          # DEC-13: prevision elaborada hace mas de 12 h no se usa
     timeout_s: 15
     requests_per_min: 4    # DEC-13: el 429 llega a ~6/min (CLAUDE.md §7.1)
     retry_429_s: 120
     refetch_after_h: 6     # AEMET elabora ~3 veces al dia
     pilots: ["28065", "28079", "28131"]
     forecast_fallback_km: 10
-    max_issued_age_h: 12   # DEC-13: aviso de prevision antigua

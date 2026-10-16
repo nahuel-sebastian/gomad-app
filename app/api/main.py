@@ -56,8 +56,8 @@ async def lifespan(app: FastAPI):
         live.start()
     yield
     if live is not None:
-        live.stop()
-        live.client.close()
+        if live.stop():          # si una descarga sigue colgada, el hilo (daemon) muere con el proceso
+            live.client.close()
     app.state.geocoder.client.close()
 
 

@@ -8,6 +8,7 @@ import json
 import logging
 import math
 import os
+import threading
 from datetime import datetime, timedelta
 from pathlib import Path
 
@@ -125,11 +126,18 @@ class ForecastFeed:
         self.attempt = {}                               # ine -> ultimo intento
         self.retry = {}                                 # ine -> hora del reintento tras un 429
         self.requested = set()
+        self.lock = threading.Lock()                    # requested lo tocan las peticiones y el hilo de fondo
         self.last_error = None
 
     # --- cola ------------------------------------------------------------------------------------------------
     def request(self, ines):
-        self.requested |= {str(i) for i in ines}
+        with self.lock:
+            self.requested |= {str(i) for i in ines}
+
+    def _log_name(self, ine):
+        # privacidad: el municipio que ha pedido una persona no va al log (es su ubicacion aproximada)
+        with self.lock:
+            return "un municipio pedido" if ine in self.requested else ine
 
     def _due(self, ine, now):
         if ine in self.retry:
@@ -142,7 +150,9 @@ class ForecastFeed:
 
     def next_due(self):
         now, seen = self.store.now(), set()
-        for ine in [*sorted(self.requested), *self.pilots, *self.codes]:
+        with self.lock:
+            requested = sorted(self.requested)
+        for ine in [*requested, *self.pilots, *self.codes]:
             if ine not in seen and self._due(ine, now):
                 return ine
             seen.add(ine)
@@ -160,7 +170,7 @@ class ForecastFeed:
             self.data[ine] = self._fetch(ine)
         except PortalError as e:
             self.last_error = f"HTTP {e.status}"
-            log.warning("prevision de %s sin descargar: HTTP %s", ine, e.status)
+            log.warning("prevision de %s sin descargar: HTTP %s", self._log_name(ine), e.status)
             if e.status == 429 and ine not in self.retry:
                 self.retry[ine] = now + timedelta(seconds=self.src["retry_429_s"])   # un reintento
                 return f"429:{ine}"
@@ -169,13 +179,14 @@ class ForecastFeed:
             return f"{e.status}:{ine}"
         except Exception as e:                          # red, JSON roto: solo el tipo, nunca el mensaje
             self.last_error = type(e).__name__
-            log.warning("prevision de %s sin descargar: %s", ine, self.last_error)
+            log.warning("prevision de %s sin descargar: %s", self._log_name(ine), self.last_error)
             self.retry.pop(ine, None)
             self.attempt[ine] = now
             return f"error:{ine}"
         self.retry.pop(ine, None)
         self.attempt[ine] = now
-        self.requested.discard(ine)
+        with self.lock:
+            self.requested.discard(ine)
         self.save_cache()
         return f"ok:{ine}"
 
@@ -200,7 +211,7 @@ class ForecastFeed:
             return None
         if self.store.snapshot:          # demo sin red: lo grabado se sirve (la app dice «datos grabados»)
             return have
-        return have if now - have[1] <= timedelta(hours=self.src["max_issued_age_h"]) else None
+        return have if now - have[1] <= timedelta(hours=self.src["max_age_h"]) else None
 
     def get(self, ine):
         """(serie, elaborado, nota) o None. Sin prevision propia: la del municipio mas cercano con prevision."""
@@ -239,7 +250,7 @@ class ForecastFeed:
             log.warning("cache de prevision sin guardar: %s", type(e).__name__)
 
     def load_cache(self):
-        """Carga la cache descartando lo elaborado hace mas de max_issued_age_h. Devuelve cuantos municipios carga."""
+        """Carga la cache descartando lo elaborado hace mas de max_age_h. Devuelve cuantos municipios carga."""
         if self.cache_path is None or not self.cache_path.exists():
             return 0
         try:
@@ -254,7 +265,7 @@ class ForecastFeed:
                 series = {datetime.fromisoformat(r[0]): tuple(r[1:]) for r in item["series"]}
             except (KeyError, TypeError, ValueError):
                 continue
-            if now - issued <= timedelta(hours=self.src["max_issued_age_h"]):
+            if now - issued <= timedelta(hours=self.src["max_age_h"]):
                 self.data[ine] = (series, issued)
                 self.attempt[ine] = now
                 loaded += 1

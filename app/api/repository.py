@@ -149,6 +149,7 @@ class Repository:
         """Prevision en memoria (DEC-15). Sin prevision: se pide con prioridad. La del vecino queda en forecast_notes."""
         by, issued, missing = {}, {}, []
         for ine in ine_codes:
+            self.forecast_notes.pop(ine, None)        # se recalcula en cada consulta
             got = self.live.forecast.get(ine)
             if got is None:
                 missing.append(ine)
@@ -159,6 +160,7 @@ class Repository:
                 by[ine], issued[ine] = hours, iss
                 if note:
                     self.forecast_notes[ine] = note
+                    missing.append(ine)               # la del vecino vale mientras llega la propia: pedirla
         if missing:
             self.live.forecast.request(missing)
         return by, issued
