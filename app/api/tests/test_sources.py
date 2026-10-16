@@ -31,7 +31,7 @@ def get_sources(base):
 def test_sources_all_have_license():
     cfg = settings.load("sources")
     ids = used_ids(cfg, settings.load("indicators"))
-    assert {"aemet", "osm", "nmc_deporte", "sanitarios", "padron", "boe_ica", "sanidad_calor",
+    assert {"open_meteo", "osm", "nmc_deporte", "sanitarios", "padron", "boe_ica", "sanidad_calor",
             "config:weights"} <= ids
     for sid in ids:
         entry = cfg["catalog"].get(sid)
@@ -46,13 +46,13 @@ def test_sources_endpoint_dates(tmp_path):
     (base / "raw").mkdir()
     (base / "raw" / "manifest.json").write_text(json.dumps({
         "eiel_parques": {"downloaded": "2026-10-14T15:51:38", "checked": "2026-10-16T11:47:46"},
-        "aemet": {"last_failure": {"date": "2026-10-16T11:48:08", "error": "Falta AEMET_API_KEY"}},
+        "open_meteo": {"last_failure": {"date": "2026-10-16T11:48:08", "error": "HTTP Error 429"}},
     }), encoding="utf-8")
     got = get_sources(base)
     assert list(got) == list(settings.load("sources")["catalog"])          # todas, en el orden del YAML
     assert got["eiel_parques"]["last_refresh"] == "2026-10-16T11:47:46"
     assert got["eiel_parques"]["last_failure"] is None
-    assert got["aemet"]["last_refresh"] is None and got["aemet"]["last_failure"] == "2026-10-16T11:48:08"
+    assert got["open_meteo"]["last_refresh"] is None and got["open_meteo"]["last_failure"] == "2026-10-16T11:48:08"
     assert got["osm"]["license"].startswith("ODbL")
     assert got["eiel_parques"]["name"] == settings.load("sources")["labels"]["eiel_parques"]
 
@@ -97,6 +97,16 @@ def test_every_response_source_is_listed(tmp_path):
         assert d.source in listed, d.source
         # la etiqueta de la respuesta empieza por el nombre de /sources («… · estación X», «… × 1,3»)
         assert d.label.startswith(listed[d.source]["name"]), (d.label, listed[d.source]["name"])
+
+
+def test_open_meteo_license_and_attribution(tmp_path):
+    """Open-Meteo (DEC-16): CC BY 4.0 con la atribucion obligatoria y el enlace a open-meteo.com en /sources."""
+    got = get_sources(build_mini_data(tmp_path / "data"))
+    om = got["open_meteo"]
+    assert om["publisher"] == "Open-Meteo.com" and om["url"] == "https://open-meteo.com/"
+    assert om["license"].startswith("CC BY 4.0") and "Weather data by Open-Meteo.com" in om["license"]
+    assert om["name"] == "Previsión horaria (Open-Meteo)"
+    assert not any("aemet" in sid for sid in got)
 
 
 def test_nomecalles_license_is_comunidad_reuse_notice():

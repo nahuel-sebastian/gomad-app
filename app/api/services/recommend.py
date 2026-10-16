@@ -99,7 +99,7 @@ class _Run:
         self.labels = (cfg["sources"] or {}).get("labels", {})
         self.located = graphs.locate([(req.origin.lon, req.origin.lat)], cfg["routing"]["snap_max_m"])
         self.net = None
-        self.forecasts, self.issued, self.loaded, self.notes = {}, {}, set(), {}
+        self.forecasts, self.issued, self.loaded, self.day_max = {}, {}, set(), {}
         self.air, self.stations, self.station_of, self.contexts = None, [], {}, {}
         self.dates = repo.source_dates()
         self.names = repo.municipality_names()
@@ -130,8 +130,8 @@ class _Run:
             by, issued = self.repo.forecast(new, self.window[0].replace(hour=0), self.window[-1].replace(hour=23))
             self.forecasts.update(by)
             self.issued.update(issued)
-            notes = getattr(self.repo, "forecast_notes", {})
-            self.notes.update({ine: notes[ine] for ine in new if ine in notes})
+            day_max = getattr(self.repo, "forecast_day_max", {})     # Tmax diaria de la prevision (DEC-06, DEC-16)
+            self.day_max.update({ine: day_max[ine] for ine in new if ine in day_max})
             self.loaded |= set(new)
         if self.air is None:
             self.air = self.repo.air_categories(self.window[0], self.window[-1], self.cfg["ica_thresholds"],
@@ -160,12 +160,15 @@ class _Run:
                     continue          # hay prevision del municipio, pero no para esta hora: «Sin prevision»
                 temp, feels, prob = f if f else (None, None, None)
                 out[h] = HourContext(h, temp, feels, prob, category_at(readings, h, valid_h),
-                                     self._day_max(fc, h.date()), threshold)
+                                     self._day_max(c.ine_code, fc, h.date()), threshold)
             self.contexts[key] = out
         return self.contexts[key]
 
-    @staticmethod
-    def _day_max(fc, day):
+    def _day_max(self, ine, fc, day):
+        """Tmax prevista del dia: la diaria de la prevision si la hay; si no, el maximo de las horas."""
+        daily = self.day_max.get(ine, {}).get(day)
+        if daily is not None:
+            return daily
         temps = [v[0] for ts, v in (fc or {}).items() if ts.date() == day and v[0] is not None]
         return max(temps) if temps else None
 
@@ -237,10 +240,7 @@ class _Run:
         if c.green is not None and c.source != "vpla_redes":     # el verde sale de VPLA: no repetir la fuente
             out.append(data_source("vpla_redes", self.labels, self.dates.get("vpla_redes")))
         if c.ine_code in self.issued:
-            aemet = data_source("aemet", self.labels, self.issued[c.ine_code])
-            if c.ine_code in self.notes:             # prevision del municipio vecino (RF-19)
-                aemet.label = f"{aemet.label} · {self.notes[c.ine_code]}"
-            out.append(aemet)
+            out.append(data_source("open_meteo", self.labels, self.issued[c.ine_code]))
         station = self.station_of.get(c.id)
         if station and not x.covered:
             sid = "aire_dia" if station.network == "CM" else "ay_aire"
@@ -279,7 +279,7 @@ class _Run:
             indoor_alternative=x.indoor_alternative,
             activity_label=self.catalog[c.activity]["label"] if surprise else None,
             own_criterion_rule=self._own_rule(first),
-            sources=[(d.label, d.date) for d in sources if d.source in ("aemet", "aire_dia", "ay_aire")],
+            sources=[(d.label, d.date) for d in sources if d.source in ("open_meteo", "aire_dia", "ay_aire")],
             approximate_distance=x.approximate))
         return s.Recommendation(
             destination=s.DestinationSummary(id=c.id, name=c.name, type=c.type, covered=True if x.covered else c.covered,

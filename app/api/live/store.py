@@ -78,7 +78,7 @@ class LiveStore:
         self._locks[name] = threading.Lock()
 
     def add_task(self, step):
-        """Paso periodico extra del hilo de fondo (la cola de AEMET)."""
+        """Paso periodico extra del hilo de fondo (la prevision de Open-Meteo)."""
         self._tasks.append(step)
 
     def refresh(self, name):
@@ -147,7 +147,7 @@ class LiveStore:
             self._thread.start()
 
     def stop_timeout_s(self):
-        """Lo que puede tardar el paso en curso: dos peticiones (AEMET) con el mayor timeout_s, mas un tick."""
+        """Lo que puede tardar el paso en curso (aire y prevision seguidos) con el mayor timeout_s, mas un tick."""
         return 2 * max(src["timeout_s"] for src in self.sources.values()) + self.cfg["tick_s"]
 
     def stop(self):

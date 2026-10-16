@@ -26,7 +26,7 @@ labels:
   ay_aire_estaciones: "Estaciones de calidad del aire (Ayuntamiento de Madrid)"
   municipios: "Límites municipales (Comunidad de Madrid)"
   ay_aire: "Calidad del aire (Ayuntamiento de Madrid)"
-  aemet: "Previsión horaria (AEMET)"
+  open_meteo: "Previsión horaria (Open-Meteo)"
   osm: "Red peatonal y mobiliario (© colaboradores de OpenStreetMap)"
   ay_fuentes: "Fuentes de agua (Ayuntamiento de Madrid)"
   ay_bancos: "Bancos (Ayuntamiento de Madrid)"
@@ -103,8 +103,9 @@ catalog:
               url: "https://datos.madrid.es/dataset/300095-0-mobiliario-bancos"}
   ay_areas_caninas: {publisher: "Ayuntamiento de Madrid", license: "CC BY 4.0",
                      url: "https://datos.madrid.es/dataset/300094-0-areas-caninas"}
-  aemet: {publisher: "Agencia Estatal de Meteorología (AEMET)", license: "Aviso legal de AEMET («© AEMET»)",
-          url: "https://www.aemet.es/es/nota_legal"}
+  # DEC-16: atribucion obligatoria de Open-Meteo; SourceInfo no tiene campo propio, asi que va tambien en license
+  open_meteo: {publisher: "Open-Meteo.com", license: "CC BY 4.0 · Weather data by Open-Meteo.com",
+               url: "https://open-meteo.com/", attribution: "Weather data by Open-Meteo.com"}
   osm: {publisher: "Colaboradores de OpenStreetMap (extracto de Geofabrik)", license: "ODbL 1.0",
         url: "https://www.openstreetmap.org/copyright"}
   boe_ica: {publisher: "Ministerio para la Transición Ecológica (BOE)", license: "BOE: norma oficial, reutilización libre",
