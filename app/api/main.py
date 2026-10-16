@@ -115,9 +115,14 @@ def route(request: s.RouteRequest, repo: Repository = Depends(get_repo), graphs:
 
 
 @app.get("/municipality/{ine_code}", response_model=s.MunicipalityResponse)
-def municipality(ine_code: str, repo: Repository = Depends(get_repo)):
+def municipality(ine_code: str,
+                 activities: list[str] = Query(default=[], description="Actividades del catálogo para el encaje (RF-18)"),
+                 profile: s.Profile = "general", companions: list[s.Companion] = Query(default=[]),
+                 repo: Repository = Depends(get_repo)):
     try:
-        return municipality_service.municipality(ine_code, repo)
+        return municipality_service.municipality(ine_code, repo, activities, profile, companions)
+    except municipality_service.UnknownActivity as e:
+        raise HTTPException(status_code=422, detail=str(e))
     except municipality_service.UnknownMunicipality as e:
         raise HTTPException(status_code=404, detail=str(e))
     except DataUnavailable as e:

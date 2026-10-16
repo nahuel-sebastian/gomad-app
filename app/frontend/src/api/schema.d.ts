@@ -743,7 +743,12 @@ export interface operations {
     };
     municipality_municipality__ine_code__get: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description Actividades del catálogo para el encaje (RF-18) */
+                activities?: string[];
+                profile?: "general" | "senior" | "stroller" | "sensitive";
+                companions?: ("dog" | "kids")[];
+            };
             header?: never;
             path: {
                 ine_code: string;
