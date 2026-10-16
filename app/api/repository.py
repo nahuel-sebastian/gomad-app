@@ -87,7 +87,9 @@ class Station:
 
 
 class Repository:
-    def __init__(self, data_dir):
+    def __init__(self, data_dir, live=None):
+        # live: LiveStore (B2); con el, aire y prevision salen de memoria y no de realtime.duckdb
+        self.live = live
         self.main = data_dir / "gomad.duckdb"
         self.realtime = data_dir / "realtime.duckdb"
         self.addresses = data_dir / "clean" / "addresses.parquet"

@@ -1,0 +1,29 @@
+# Datos en vivo en memoria (DEC-15, B2): la API los pide en segundo plano y nunca muestra un dato
+# observado hace mas de max_age_h. Por fuente: url, ttl_s (cada cuanto se vuelve a pedir), max_age_h
+# (antiguedad maxima del dato que se muestra) y timeout_s. Sin persistencia salvo la cache de arranque de AEMET.
+# CRITERIO PROPIO salvo max_issued_age_h (12 h, DEC-13).
+own_criterion: true
+tick_s: 5                  # cada cuanto mira el hilo de fondo si toca refrescar algo
+air_buffer_h: 24           # lecturas de aire que se guardan para las medias moviles del ICA (PM 24 h)
+sources:
+  air_cm:                  # aire_dia (CKAN Comunidad): misma URL que el manifiesto de la ingesta
+    url: "https://datos.comunidad.madrid/dataset/3dacd589-ecca-485c-81b9-a61606b7199f/resource/ee75d31c-8042-4067-bbd7-739bb3eb8059/download/calidad_aire_datos_dia.csv"
+    ttl_s: 600
+    max_age_h: 3           # la red CM publica con ~3 h de retraso (medido el 16/10)
+    timeout_s: 10
+  air_ay:                  # ay_aire (Ayuntamiento de Madrid)
+    url: "https://ciudadesabiertas.madrid.es/dynamicAPI/API/query/calair_tiemporeal.csv?pageSize=5000"
+    ttl_s: 600
+    max_age_h: 3
+    timeout_s: 10
+  forecast:                # AEMET horaria por municipio; la clave va en la cabecera api_key (app/.env)
+    url: "https://opendata.aemet.es/opendata/api/prediccion/especifica/municipio/horaria/{ine}"
+    ttl_s: 3600            # un municipio que acaba de fallar o sigue sin elaborado nuevo no se repite antes
+    max_age_h: 12
+    timeout_s: 15
+    requests_per_min: 4    # DEC-13: el 429 llega a ~6/min (CLAUDE.md §7.1)
+    retry_429_s: 120
+    refetch_after_h: 6     # AEMET elabora ~3 veces al dia
+    pilots: ["28065", "28079", "28131"]
+    forecast_fallback_km: 10
+    max_issued_age_h: 12   # DEC-13: aviso de prevision antigua

@@ -1,5 +1,6 @@
 """API de GoMad. Sin estado: sin sesiones ni registro; la ubicacion nunca se escribe en los logs."""
 import logging
+import os
 import time
 from contextlib import asynccontextmanager
 from typing import get_args
@@ -12,6 +13,7 @@ import settings
 from engine.rules import validate_rules
 from engine.scoring import validate_weights
 from geocoding import Geocoder
+from live.store import LiveStore, validate_realtime
 from repository import DataUnavailable, Repository
 from routing.store import GraphStore
 from services import municipality as municipality_service
@@ -35,12 +37,23 @@ async def lifespan(app: FastAPI):
     validate_weights(settings.load("weights")["defaults"])
     municipality_service.validate_fit(settings.load("indicators"),
                                       [a["id"] for a in settings.load("activities")["activities"]])
-    app.state.repo = Repository(settings.DATA_DIR)
+    realtime = settings.load("realtime")
+    validate_realtime(realtime)
+    # datos en vivo en memoria (DEC-15); GOMAD_LIVE=off (pruebas) deja la lectura de realtime.duckdb
+    live = None if os.environ.get("GOMAD_LIVE") == "off" else LiveStore(
+        realtime, httpx.Client(), snapshot_dir=os.environ.get("GOMAD_LIVE_SNAPSHOT") or None)
+    app.state.live = live
+    app.state.repo = Repository(settings.DATA_DIR, live=live)
     t0 = time.perf_counter()
     app.state.graphs = GraphStore.load(settings.DATA_DIR / "graph")
     log.info("grafos cargados: %s en %.1f s", [z.name for z in app.state.graphs.zones], time.perf_counter() - t0)
     app.state.geocoder = Geocoder(settings.DATA_DIR, httpx.Client())
+    if live is not None:
+        live.start()
     yield
+    if live is not None:
+        live.stop()
+        live.client.close()
     app.state.geocoder.client.close()
 
 

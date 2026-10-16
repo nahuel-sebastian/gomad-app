@@ -1,9 +1,12 @@
+import os
 import pathlib
 
 import pytest
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]      # app/api
 DATA_DIR = ROOT.parent / "data"                          # app/data
+# ninguna prueba llama a los portales: sin LiveStore, la API lee realtime.duckdb como antes de B2
+os.environ.setdefault("GOMAD_LIVE", "off")
 
 
 @pytest.fixture
