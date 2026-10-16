@@ -25,7 +25,7 @@ describe("Fuentes y aviso", () => {
         expect(table).toHaveTextContent("Última recarga fallida: se muestra el dato anterior.");
         expect(table).toHaveTextContent("Sin descargar todavía");
         const sourceLinks = within(table).getAllByRole("link");
-        expect(sourceLinks).toHaveLength(7);
+        expect(sourceLinks).toHaveLength(9);
         for (const link of sourceLinks) {
             expect(link).toHaveAttribute("target", "_blank");
             expect(link).toHaveAttribute("rel", "noreferrer noopener");
@@ -35,6 +35,16 @@ describe("Fuentes y aviso", () => {
         expect(table.querySelector('[data-label="Última actualización"]')).toHaveTextContent("hace 12 min");
         expect(table.querySelector('[data-label="Última actualización"]')).not.toHaveTextContent("Actualizado");
         await expectNoAxeViolations(container);
+    });
+
+    it("las referencias fijas y el criterio propio no salen como «sin descargar»", async () => {
+        renderAt("/fuentes");
+        const table = await screen.findByRole("table", { name: "Fuentes de datos" });
+        const row = (name: RegExp) => within(table).getByRole("link", { name }).closest("tr")!;
+        expect(row(/Índice Nacional de Calidad del Aire/)).toHaveTextContent("Referencia oficial: no se descarga");
+        expect(row(/Pesos por defecto/)).toHaveTextContent("Criterio propio: no se descarga");
+        expect(row(/Pesos por defecto/)).not.toHaveTextContent("Sin descargar todavía");
+        expect(row(/MDT05/)).toHaveTextContent("Sin descargar todavía");
     });
 
     it("tiene el aviso medico, la privacidad y la licencia de nuestros datos", () => {
