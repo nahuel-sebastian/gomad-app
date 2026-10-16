@@ -11,7 +11,7 @@ import numpy as np
 import schemas as s
 import settings
 from engine import explanation as ex
-from engine.rules import CATEGORIES, HourContext
+from engine.rules import CATEGORIES, HourContext, is_heat_day, load_heat_zones
 from engine.scoring import FACTORS, air_factor, compute_score, normalize_weights, proximity_factor, weather_factor
 from engine.slots import best_hour, evaluate_hours, needs_indoor, window_hours
 from repository import category_at, haversine_m
@@ -103,6 +103,9 @@ class _Run:
         self.air, self.stations, self.station_of, self.contexts = None, [], {}, {}
         self.dates = repo.source_dates()
         self.names = repo.municipality_names()
+        # DEC-06: umbral de calor de la zona meteosalud de cada municipio (heat_zones.csv)
+        self.heat = cfg["rules"].get("heat") or {}
+        self.zones = load_heat_zones(settings.CONFIG_DIR / self.heat["zone_table"]) if self.heat else {}
 
     def _distances(self, cands):
         dist = np.array([c.straight_m for c in cands], dtype=float) * self.cfg["recommend"]["straight_line_detour"]
@@ -123,7 +126,8 @@ class _Run:
             return
         new = sorted({c.ine_code for c in cands} - self.loaded)
         if new:
-            by, issued = self.repo.forecast(new, self.window[0], self.window[-1])
+            # el dia completo: las horas fuera de la ventana solo sirven para la Tmax del dia (DEC-06)
+            by, issued = self.repo.forecast(new, self.window[0].replace(hour=0), self.window[-1].replace(hour=23))
             self.forecasts.update(by)
             self.issued.update(issued)
             notes = getattr(self.repo, "forecast_notes", {})
@@ -147,15 +151,23 @@ class _Run:
             fc = self.forecasts.get(c.ine_code)
             readings = self.air.get(station.id, []) if station else []
             valid_h = self.cfg["recommend"]["air_reading_valid_h"]
+            zone = self.heat.get("zones", {}).get(self.zones.get(c.ine_code))
+            threshold = zone["max_temp_c"] if zone else None
             out = {}
             for h in self.window:
                 f = fc.get(h) if fc else None
                 if fc and f is None:
                     continue          # hay prevision del municipio, pero no para esta hora: «Sin prevision»
                 temp, feels, prob = f if f else (None, None, None)
-                out[h] = HourContext(h, temp, feels, prob, category_at(readings, h, valid_h))
+                out[h] = HourContext(h, temp, feels, prob, category_at(readings, h, valid_h),
+                                     self._day_max(fc, h.date()), threshold)
             self.contexts[key] = out
         return self.contexts[key]
+
+    @staticmethod
+    def _day_max(fc, day):
+        temps = [v[0] for ts, v in (fc or {}).items() if ts.date() == day and v[0] is not None]
+        return max(temps) if temps else None
 
     def score(self, cands):
         if not cands:
@@ -172,8 +184,9 @@ class _Run:
                      "green": c.green}
             contexts = self._hour_contexts(c)
             weights = self._comparable_weights(contexts)
-            hours = evaluate_hours(contexts, self.window, covered, self.req.profile, self.cfg["rules"], fixed, weights)
-            best = best_hour(hours)
+            hours = evaluate_hours(contexts, self.window, covered, self.req.profile, self.cfg["rules"], fixed, weights,
+                                   self.req.companions)
+            best = best_hour(hours, self.heat.get("tiebreak"))
             factors = self._site_factors(fixed, covered, hours, best)
             score = compute_score(factors, self.weights).value
             known = [h.ctx.aqi_category is not None for h in hours if h.ctx is not None]
@@ -211,7 +224,7 @@ class _Run:
         for r in first.reasons:
             if r.startswith("Lluvia") and (rules.get("rain") or {}).get("own_criterion"):
                 return True
-            if r.startswith("Calor") and (rules.get("heat") or {}).get("own_criterion"):
+            if r.startswith("Día de calor") and (rules.get("heat") or {}).get("own_criterion"):
                 return True
             if r.startswith("Calidad del aire") and self.req.profile in (rules.get("air") or {}).get(
                     "own_criterion_profiles", []):
@@ -291,8 +304,14 @@ class _Run:
                 out.append("Aire: sin medición reciente cerca; la nota no lo tiene en cuenta.")
         if any(x.partial_air for x in picked):
             out.append("Aire: solo hay medición para parte de la ventana; se usa la última para la nota, no para elegir la hora.")
-        if (self.cfg["rules"].get("heat") or {}).get("max_feels_like_c") is None:
-            out.append("Calor: todavía no hay un umbral oficial cargado; no se evalúa.")
+        if not self.heat:
+            out.append("Calor: no hay umbral de calor cargado; no se evalúa.")
+        else:
+            heat_day = any(not x.covered and any(h.ctx is not None and is_heat_day(h.ctx) for h in x.hours)
+                           for x in picked)
+            blocked = any(r.startswith("Día de calor") for x in picked for h in x.hours for r in h.reasons)
+            if heat_day and not blocked:
+                out.append("Día de calor en tu zona")  # sin perfil de riesgo: solo aviso (con riesgo, va en cada hora)
         if any(x.approximate for x in picked):
             detour = ex.fmt_number(self.cfg["recommend"]["straight_line_detour"])
             out.append(f"Distancias aproximadas donde no hay red peatonal cargada (línea recta × {detour}, criterio propio).")

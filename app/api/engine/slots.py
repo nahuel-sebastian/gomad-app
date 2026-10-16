@@ -3,7 +3,7 @@ from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 
-from engine.rules import HourContext, evaluate_outdoor
+from engine.rules import HourContext, evaluate_outdoor, is_heat_day
 from engine.scoring import air_factor, compute_score, weather_factor
 
 # tope de la ventana: la prevision horaria de AEMET cubre ~48 h (3 dias); mas alla no hay datos
@@ -34,7 +34,7 @@ def window_hours(start, end, now=None):
     return hours
 
 
-def evaluate_hours(contexts, window, covered, profile, rules, fixed_factors, weights):
+def evaluate_hours(contexts, window, covered, profile, rules, fixed_factors, weights, companions=()):
     results = []
     for hour in window:
         c = contexts.get(hour)
@@ -44,7 +44,7 @@ def evaluate_hours(contexts, window, covered, profile, rules, fixed_factors, wei
         if covered:
             ok, reasons = None, []
         else:
-            r = evaluate_outdoor(c, profile, rules)
+            r = evaluate_outdoor(c, profile, rules, companions)
             ok, reasons = r.outdoor_ok, r.reasons
         if ok is False:
             results.append(HourResult(hour, None, False, reasons, c))
@@ -61,10 +61,16 @@ def evaluate_hours(contexts, window, covered, profile, rules, fixed_factors, wei
     return results
 
 
-def best_hour(results):
+def best_hour(results, tiebreak=None):
     candidates = [r for r in results if r.score is not None]
-    # a igual nota, la hora mas temprana
-    return max(candidates, key=lambda r: (r.score, -r.hour.timestamp())) if candidates else None
+
+    def heat_tiebreak(r):
+        # DEC-06: en dia de calor, a igual nota, la de menor sensacion termica
+        if tiebreak == "feels_like" and r.ctx is not None and is_heat_day(r.ctx) and r.ctx.feels_like_c is not None:
+            return -r.ctx.feels_like_c
+        return 0.0
+    # a igual nota (y desempate), la hora mas temprana
+    return max(candidates, key=lambda r: (r.score, heat_tiebreak(r), -r.hour.timestamp())) if candidates else None
 
 
 def needs_indoor(results):

@@ -312,6 +312,17 @@
       "https://datos.comunidad.madrid/dataset/censo_clasificacion_zonas_bano"
      ]
     ]
+   },
+   {
+    "n": "OpenStreetMap sport=* filtrado (centros con nombre, pistas y piscinas públicas)",
+    "i": "openstreetmap",
+    "o": "Externa",
+    "l": [
+     [
+      "Ficha",
+      "https://download.geofabrik.de/europe/spain/madrid.html"
+     ]
+    ]
    }
   ],
   "cov": "Comunidad",
