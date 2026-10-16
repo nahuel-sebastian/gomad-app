@@ -105,12 +105,23 @@ def _count(codes):
 
 
 def _shp(source):
-    return gpd.read_file(next((RAW / source).glob("*.shp")), ignore_geometry=True)   # .prj no fiable
+    path = next((RAW / source).glob("*.shp"), None)
+    if path is None:
+        raise FileNotFoundError(f"No hay .shp de {source} en {RAW / source}: descarga la fuente antes de build_db main")
+    return gpd.read_file(path, ignore_geometry=True)   # .prj no fiable
 
 
 def _by_space(gdf):
-    """ine_code por cruce espacial con municipality.geom (puntos fuera de la Comunidad -> sin municipio)."""
+    """ine_code por cruce espacial con los poligonos de common.municipalities() (fuera de la Comunidad -> sin municipio)."""
     return assign_municipality(gdf.assign(ine_code=None))["ine_code"]
+
+
+def per_1000(counts, pop):
+    """Tasa por 1.000 habitantes; un municipio con filas y sin poblacion es un error, no un 0."""
+    missing = sorted(counts.index.difference(pop.index))
+    if missing:
+        raise ValueError(f"Sin poblacion para calcular la tasa en {missing}")
+    return counts / pop.reindex(counts.index) * 1000
 
 
 def indicator_values(con, config):
@@ -120,9 +131,6 @@ def indicator_values(con, config):
     pop = pop[pop["year"] == config["population_year"]].set_index("ine_code")["population"]
     if pop.empty:
         raise ValueError(f"population.parquet no tiene el año {config['population_year']} (population_year)")
-
-    def per_1000(counts):
-        return counts / pop.reindex(counts.index) * 1000
 
     sport = _count(_shp("nmc_deporte")["CMUN"].map(ine_code))
     catalog = con.execute("SELECT d.ine_code, count(DISTINCT a.activity) AS n FROM destination_activity a "
@@ -147,16 +155,16 @@ def indicator_values(con, config):
     by = lambda cat: _count(svc.loc[svc["category"] == cat, "ine_code"])
     return {
         "sport_facilities": sport,
-        "sport_facilities_per_1000": per_1000(sport),
+        "sport_facilities_per_1000": per_1000(sport, pop),
         "catalog_activities": catalog,
         "green_m2_per_inhabitant": green / pop.reindex(green.index),
         "drove_roads_km": drove,
         "recreation_areas": _count(areas),
-        "bus_stops_per_1000": per_1000(_count(bus)),
+        "bus_stops_per_1000": per_1000(_count(bus), pop),
         "rail_stations": _count(rail),
         "health_centres": _count(svc.loc[(svc["category"] == "health") & svc["subtype"].isin(HEALTH_TYPES), "ine_code"]),
-        "pharmacies_per_1000": per_1000(by("pharmacy")),
-        "aed_per_1000": per_1000(by("aed")),
+        "pharmacies_per_1000": per_1000(by("pharmacy"), pop),
+        "aed_per_1000": per_1000(by("aed"), pop),
         "schools": by("education"),
         "good_3g_pct": good.mean() * 100,
         "social_centres": by("social"),

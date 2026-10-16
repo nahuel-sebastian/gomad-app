@@ -34,6 +34,24 @@ def test_indicator_without_calculation_fails_readably():
         build_db.indicator_table(MINI, ["28065"], {"a_per_1000": pd.Series(dtype=float)})
 
 
+def test_rate_divides_by_population():
+    rate = build_db.per_1000(pd.Series({"28065": 2}), pd.Series({"28065": 1000, "28107": 500}))
+    assert rate.to_dict() == {"28065": 2.0}
+
+
+def test_rate_without_population_fails_readably():
+    # sin poblacion la tasa seria NaN y la regla zero la convertiria en 0 sin avisar
+    with pytest.raises(ValueError, match="28107"):
+        build_db.per_1000(pd.Series({"28065": 2, "28107": 1}), pd.Series({"28065": 1000}))
+
+
+def test_missing_shapefile_fails_readably(tmp_path, monkeypatch):
+    (tmp_path / "nmc_deporte").mkdir()
+    monkeypatch.setattr(build_db, "RAW", tmp_path)
+    with pytest.raises(FileNotFoundError, match="nmc_deporte"):
+        build_db._shp("nmc_deporte")
+
+
 @pytest.fixture(scope="module")
 def db(tmp_path_factory):
     path = build_db.build_main(tmp_path_factory.mktemp("db") / "gomad.duckdb")   # activities.yaml real (8)
@@ -89,7 +107,7 @@ def test_health_centres_total(db):
     ("green_m2_per_inhabitant", 167),   # ficha: 162; hoy in_vpla = 167 (Ruling)
     ("drove_roads_km", 171),            # ficha: 169 (Ruling: 28077 y 289xx por cruce espacial)
     ("recreation_areas", 55), ("bus_stops_per_1000", 179),
-    ("rail_stations", 39),              # ficha: metro 15, cercanías 33 (hoy 34); unión 39
+    ("rail_stations", 39),              # ficha: metro 15, cercanias 33 (hoy 34); union 39
     ("health_centres", 179), ("pharmacies_per_1000", 160), ("aed_per_1000", 172), ("schools", 156),
     ("good_3g_pct", 155), ("social_centres", 138)])
 def test_coverage(db, key, covered):
@@ -108,3 +126,9 @@ def test_rates_and_units_are_plausible(db):
     assert db.execute("SELECT max(value) FROM municipality_indicator WHERE key='catalog_activities'").fetchone()[0] <= 8
     assert schools_getafe == int(schools_getafe) and pop["28065"] > 100_000
     assert 250 < value(db, "28079", "drove_roads_km") < 300       # Madrid: tramos 28906–28912 (272 km)
+
+
+@pytest.mark.slow
+def test_lozoyuela_gets_its_old_code_drove_roads(db):
+    # 28077 es el codigo antiguo de Lozoyuela-Navas-Sieteiglesias (28901): 11 tramos, ~62 km
+    assert 55 < value(db, "28901", "drove_roads_km") < 70
