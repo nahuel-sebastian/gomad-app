@@ -46,15 +46,34 @@ def test_getafe_graph_exists():
     n = pd.read_parquet(DATA_DIR / "graph" / "getafe" / "nodes.parquet")
     assert len(e) > 1000 and (e["length_m"] > 0).all()
     assert e[["u", "v"]].max().max() < len(n)
-    # la caja de Getafe incluye trozos de Madrid capital y vecinos sin VPLA: alli NaN (sin dato), no 0
+    # la caja de Getafe incluye trozos de Madrid capital (sin VPLA): alli el verde sale de OSM (S-R1)
+    ine = _edge_municipality(e)
+    assert e.loc[ine == "28065", "green_pct"].notna().mean() > 0.9          # Getafe esta en VPLA
+    assert e.loc[ine == "28079", "green_pct"].notna().mean() > 0.9         # Madrid capital: verde de OSM (S-R1)
+
+
+def _edge_municipality(e):
     import shapely
     from common import municipalities
     middle = gpd.GeoSeries(shapely.from_wkb(e["geom"]), crs=4326).to_crs(25830).interpolate(0.5, normalized=True)
     muni = gpd.sjoin(gpd.GeoDataFrame(geometry=middle.to_crs(4326)), municipalities()[["ine_code", "geometry"]],
                      predicate="within")
-    ine = muni["ine_code"][~muni.index.duplicated()].reindex(e.index)
-    assert e.loc[ine == "28065", "green_pct"].notna().mean() > 0.9          # Getafe esta en VPLA
-    assert e.loc[ine == "28079", "green_pct"].isna().all()                  # Madrid capital no
+    return muni["ine_code"][~muni.index.duplicated()].reindex(e.index)
+
+
+@pytest.mark.slow
+def test_region_graph_covers_all_municipalities():
+    d = DATA_DIR / "graph" / "region"
+    if not (d / "edges.parquet").exists():
+        pytest.skip("sin grafo regional (python graph.py all)")
+    e = pd.read_parquet(d / "edges.parquet")
+    n = pd.read_parquet(d / "nodes.parquet")
+    assert e[["u", "v"]].max().max() < len(n) and (e["length_m"] > 0).all()
+    ine = _edge_municipality(e)
+    assert ine.nunique() == 179                                            # los 179 municipios con red
+    assert e.loc[ine == "28079", "green_pct"].notna().mean() > 0.9         # capital: verde de OSM
+    assert e.loc[ine == "28065", "green_pct"].notna().mean() > 0.9         # Getafe: VPLA
+    assert e.loc[ine.isna(), "green_pct"].isna().all()                     # fuera de la Comunidad: sin dato
 
 
 def test_overlapping_green_zones_count_once():
