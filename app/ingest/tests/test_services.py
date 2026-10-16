@@ -4,7 +4,8 @@ import pytest
 
 from common import CLEAN, RAW, latest_csv, municipalities, read_csv, to_wgs84
 from normalize import load_all
-from normalize.services import health, located, schools, social
+import normalize.services as services
+from normalize.services import build, health, located, schools, social
 
 HEALTH_TYPES = {"Centro de salud", "Consultorio de atención primaria"}
 
@@ -38,6 +39,17 @@ def test_schools_only_alta_and_social_without_reserved():
                              "municipio_codigo": ["079", "RESERVADO"],
                              "direccion_coor_x": ["443644", "RESERVADO"], "direccion_coor_y": ["4476188", "RESERVADO"]}))
     assert list(a["id"]) == ["atencion_social:C1"] and list(a["ine_code"]) == ["28079"]
+
+
+def test_spatial_join_keeps_declared_municipality_when_it_finds_none(monkeypatch):
+    # un punto en un hueco o en el borde exacto entre poligonos no pierde el municipio que declara la fuente
+    monkeypatch.setattr(services, "filter_region", lambda g: (g, 0))
+    monkeypatch.setattr(services, "assign_municipality", lambda g: g.assign(ine_code=None))
+    pts = gpd.GeoDataFrame({"id": ["farmacias:1", "desfibriladores:1"], "source": ["farmacias", "desfibriladores"],
+                            "category": ["pharmacy", "aed"], "subtype": [None, None], "ine_code": ["28065", None]},
+                           geometry=gpd.points_from_xy([-3.73, -3.74], [40.30, 40.31]), crs=4326)
+    out = build([pts])
+    assert list(out["id"]) == ["farmacias:1"] and list(out["ine_code"]) == ["28065"]
 
 
 @pytest.fixture(scope="module")
@@ -82,6 +94,6 @@ def test_social_without_reserved(service):
 @pytest.mark.slow
 def test_aed_and_pharmacies_by_spatial_join(service):
     aed = service[service.category == "aed"]
-    assert aed.ine_code.nunique() == 172                          # municipio_codigo daria 161
+    assert aed.ine_code.nunique() == 172                          # municipio_codigo daria 162
     assert aed.geometry.notna().all()
     assert service[service.category == "pharmacy"].ine_code.nunique() == 160

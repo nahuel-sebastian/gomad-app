@@ -1,8 +1,9 @@
 """Servicios de la Comunidad -> clean/service.parquet (V-D1, DEC-09).
 
 Una fila por servicio con municipio conocido. ine_code: el que declara la fuente (nombre o codigo), salvo
-farmacias y DEA, que van por cruce espacial con municipality.geom. Geometria en EPSG:4326, nula si la fuente
-no trae coordenadas o caen fuera de la Comunidad: la fila sigue contando en los indicadores, el mapa no la pinta.
+farmacias y DEA, que van por cruce espacial con municipality.geom (si el punto no cae en ninguno, el declarado).
+Geometria en EPSG:4326, nula si la fuente no trae coordenadas o caen fuera de la Comunidad: la fila sigue
+contando en los indicadores, el mapa no la pinta.
 """
 import geopandas as gpd
 import pandas as pd
@@ -73,7 +74,8 @@ def build(parts):
     out.loc[has & ~out.index.isin(inside.index), "geometry"] = None
     spatial = out["source"].isin(SPATIAL) & out.geometry.notna()
     joined = assign_municipality(out.loc[spatial, ["geometry"]].assign(ine_code=None))
-    out.loc[spatial, "ine_code"] = joined["ine_code"]
+    # si el cruce no encuentra municipio (hueco o borde entre poligonos), vale el que declara la fuente
+    out.loc[spatial, "ine_code"] = joined["ine_code"].fillna(out.loc[spatial, "ine_code"])
     dropped = int(out["ine_code"].isna().sum())
     out = out[out["ine_code"].notna()].reset_index(drop=True)
     print(f"   service: {len(out)} servicios ({outside} fuera de la Comunidad sin punto, {dropped} sin municipio):",
