@@ -14,7 +14,8 @@ import geopandas as gpd
 import pandas as pd
 import yaml
 
-from common import CLEAN, CONFIG_DIR, DATA_DIR, RAW
+import indicators
+from common import CLEAN, CONFIG_DIR, DATA_DIR, RAW, assign_municipality, ine_code, points, to_float
 
 GREEN_RADIUS_M = 300   # criterio propio (DEC-07)
 PERIODS = {1: ("SO2", 1), 8: ("NO2", 1), 14: ("O3", 8), 10: ("PM10", 24), 9: ("PM2_5", 24)}
@@ -95,6 +96,101 @@ def _source_dates():
                          for k, v in manifest.items()], columns=["source", "downloaded", "modified"])
 
 
+HEALTH_TYPES = ("Centro de salud", "Consultorio de atención primaria")   # literales del dato (DEC-09)
+INDICATOR_COLUMNS = ["ine_code", "category", "key", "value", "unit", "year", "source"]
+
+
+def _count(codes):
+    return pd.Series(codes).dropna().value_counts()
+
+
+def _shp(source):
+    return gpd.read_file(next((RAW / source).glob("*.shp")), ignore_geometry=True)   # .prj no fiable
+
+
+def _by_space(gdf):
+    """ine_code por cruce espacial con municipality.geom (puntos fuera de la Comunidad -> sin municipio)."""
+    return assign_municipality(gdf.assign(ine_code=None))["ine_code"]
+
+
+def indicator_values(con, config):
+    """Valor de cada indicador de DEC-09, solo en los municipios con filas en su fuente."""
+    codes = {c for (c,) in con.execute("SELECT ine_code FROM municipality").fetchall()}
+    pop = pd.read_parquet(CLEAN / "population.parquet")
+    pop = pop[pop["year"] == config["population_year"]].set_index("ine_code")["population"]
+    if pop.empty:
+        raise ValueError(f"population.parquet no tiene el año {config['population_year']} (population_year)")
+
+    def per_1000(counts):
+        return counts / pop.reindex(counts.index) * 1000
+
+    sport = _count(_shp("nmc_deporte")["CMUN"].map(ine_code))
+    catalog = con.execute("SELECT d.ine_code, count(DISTINCT a.activity) AS n FROM destination_activity a "
+                          "JOIN destination d ON d.id = a.destination_id GROUP BY 1").df().set_index("ine_code")["n"]
+    green = gpd.read_parquet(CLEAN / "green.parquet").groupby("ine_code")["area_m2"].sum()
+    vp = gpd.read_file(RAW / "vias_pecuarias" / "vias_pecuarias.geojson").set_crs(25830, allow_override=True)
+    vp_code = vp["CD_MUNI"].map(ine_code).where(lambda c: c.isin(codes))
+    # 28077 (codigo antiguo de 28901) y 289xx (distritos de Madrid anexionados): por su punto representativo
+    lost = vp_code.isna()
+    vp_code[lost] = _by_space(gpd.GeoDataFrame(geometry=vp[lost].geometry.representative_point().to_crs(4326)))
+    drove = (vp["NM_LONG"].map(to_float) / 1000).groupby(vp_code).sum()
+    areas = _by_space(points(gpd.read_file(RAW / "areas_recreativas" / "areas_recreativas.geojson",
+                                           ignore_geometry=True), "NM_COOX", "NM_COOY", 25830))
+    bus = _by_space(points(_shp("nmc_busparadas"), "UTM_X", "UTM_Y", 25830))
+    rail = pd.concat([_shp(s)["CMUN"] for s in ("nmc_estmetro", "nmc_estcerca")]).map(ine_code)
+    svc = pd.DataFrame(gpd.read_parquet(CLEAN / "service.parquet").drop(columns="geometry"))
+    nuc = gpd.read_file(RAW / "eiel_nucleos" / "eiel_nucleos.geojson", ignore_geometry=True)
+    good = (nuc["CALIDADUMT"].fillna("").str.strip().str.upper() == "BUENO").groupby(nuc["MUN"].map(ine_code))
+    by = lambda cat: _count(svc.loc[svc["category"] == cat, "ine_code"])
+    return {
+        "sport_facilities": sport,
+        "sport_facilities_per_1000": per_1000(sport),
+        "catalog_activities": catalog,
+        "green_m2_per_inhabitant": green / pop.reindex(green.index),
+        "drove_roads_km": drove,
+        "recreation_areas": _count(areas),
+        "bus_stops_per_1000": per_1000(_count(bus)),
+        "rail_stations": _count(rail),
+        "health_centres": _count(svc.loc[(svc["category"] == "health") & svc["subtype"].isin(HEALTH_TYPES), "ine_code"]),
+        "pharmacies_per_1000": per_1000(by("pharmacy")),
+        "aed_per_1000": per_1000(by("aed")),
+        "schools": by("education"),
+        "good_3g_pct": good.mean() * 100,
+        "social_centres": by("social"),
+    }
+
+
+def indicator_table(config, ine_codes, values):
+    """Una fila por municipio e indicador; no_rows: zero -> sin filas = 0, null -> sin filas = NULL."""
+    rows = []
+    for ind in config["indicators"]:
+        if ind["key"] not in values:
+            raise ValueError(f"indicators.yaml cita «{ind['key']}», pero no se sabe calcular en build_db")
+        series, fill = values[ind["key"]], (0.0 if ind["no_rows"] == "zero" else None)
+        for code in ine_codes:
+            v = series.get(code)
+            rows.append((code, ind["category"], ind["key"], fill if v is None or pd.isna(v) else float(v),
+                         ind["unit"], ind["year"], ind["source"][0]))
+    t = pd.DataFrame(rows, columns=INDICATOR_COLUMNS)
+    t["value"], t["year"] = t["value"].astype("Float64"), t["year"].astype("Int64")   # NULL, no NaN
+    return t
+
+
+def store_indicators(con, table):
+    con.register("mi", table)
+    con.execute("CREATE TABLE municipality_indicator (ine_code VARCHAR, category VARCHAR, key VARCHAR, "
+                "value DOUBLE, unit VARCHAR, year INTEGER, source VARCHAR)")
+    con.execute("INSERT INTO municipality_indicator SELECT * FROM mi")
+    con.unregister("mi")
+
+
+def create_municipality_indicator(con, config=None):
+    """Tabla municipality_indicator (DEC-09, Task 35) a partir de indicators.yaml."""
+    config = config or indicators.load()
+    codes = [c for (c,) in con.execute("SELECT ine_code FROM municipality ORDER BY ine_code").fetchall()]
+    store_indicators(con, indicator_table(config, codes, indicator_values(con, config)))
+
+
 def build_main(target=DATA_DIR / "gomad.duckdb", rules=None):
     rules = rules or yaml.safe_load((CONFIG_DIR / "activities.yaml").read_text(encoding="utf-8"))
     municipalities = gpd.read_parquet(CLEAN / "municipality.parquet")
@@ -128,6 +224,7 @@ def build_main(target=DATA_DIR / "gomad.duckdb", rules=None):
         con.execute("CREATE TABLE route_poi AS SELECT * FROM p")
         con.register("f", _source_dates())
         con.execute("CREATE TABLE source_date AS SELECT * FROM f")
+        create_municipality_indicator(con)
     return atomic(target, fill)
 
 
