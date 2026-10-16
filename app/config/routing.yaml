@@ -23,4 +23,10 @@ poi_radius_m: 25
 snap_max_m: 300        # distancia maxima de un punto a la red peatonal (criterio propio)
 traffic_display_threshold: 0.5
 default_route_weights: {traffic: 0.5, green: 0.5, fountains: 0.2}
+# Poligonos de OSM que cuentan como zona verde en los municipios sin VPLA (S-R1, criterio propio).
+# Solo se usan donde no hay planeamiento; donde hay VPLA manda VPLA.
+osm_green:
+  leisure: [park, garden, nature_reserve]
+  landuse: [forest, grass, recreation_ground, village_green, meadow]
+  natural: [wood]
 own_criterion: true

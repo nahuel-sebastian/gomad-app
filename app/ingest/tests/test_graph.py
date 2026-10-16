@@ -4,7 +4,7 @@ import pytest
 from shapely.geometry import LineString, Point, Polygon
 
 from common import DATA_DIR
-from graph import edge_factors, index_nodes
+from graph import edge_factors, index_nodes, osm_green_coverage, read_osm
 
 CONFIG = {"traffic_by_highway": {"primary": 1.0, "footway": 0.0}, "default_traffic": 0.3, "poi_radius_m": 25}
 
@@ -46,15 +46,34 @@ def test_getafe_graph_exists():
     n = pd.read_parquet(DATA_DIR / "graph" / "getafe" / "nodes.parquet")
     assert len(e) > 1000 and (e["length_m"] > 0).all()
     assert e[["u", "v"]].max().max() < len(n)
-    # la caja de Getafe incluye trozos de Madrid capital y vecinos sin VPLA: alli NaN (sin dato), no 0
+    # la caja de Getafe incluye trozos de Madrid capital (sin VPLA): alli el verde sale de OSM (S-R1)
+    ine = _edge_municipality(e)
+    assert e.loc[ine == "28065", "green_pct"].notna().mean() > 0.9          # Getafe esta en VPLA
+    assert e.loc[ine == "28079", "green_pct"].notna().mean() > 0.9         # Madrid capital: verde de OSM (S-R1)
+
+
+def _edge_municipality(e):
     import shapely
     from common import municipalities
     middle = gpd.GeoSeries(shapely.from_wkb(e["geom"]), crs=4326).to_crs(25830).interpolate(0.5, normalized=True)
     muni = gpd.sjoin(gpd.GeoDataFrame(geometry=middle.to_crs(4326)), municipalities()[["ine_code", "geometry"]],
                      predicate="within")
-    ine = muni["ine_code"][~muni.index.duplicated()].reindex(e.index)
-    assert e.loc[ine == "28065", "green_pct"].notna().mean() > 0.9          # Getafe esta en VPLA
-    assert e.loc[ine == "28079", "green_pct"].isna().all()                  # Madrid capital no
+    return muni["ine_code"][~muni.index.duplicated()].reindex(e.index)
+
+
+@pytest.mark.slow
+def test_region_graph_covers_all_municipalities():
+    d = DATA_DIR / "graph" / "region"
+    if not (d / "edges.parquet").exists():
+        pytest.skip("sin grafo regional (python graph.py all)")
+    e = pd.read_parquet(d / "edges.parquet")
+    n = pd.read_parquet(d / "nodes.parquet")
+    assert e[["u", "v"]].max().max() < len(n) and (e["length_m"] > 0).all()
+    ine = _edge_municipality(e)
+    assert ine.nunique() == 179                                            # los 179 municipios con red
+    assert e.loc[ine == "28079", "green_pct"].notna().mean() > 0.9         # capital: verde de OSM
+    assert e.loc[ine == "28065", "green_pct"].notna().mean() > 0.9         # Getafe: VPLA
+    assert e.loc[ine.isna(), "green_pct"].isna().all()                     # fuera de la Comunidad: sin dato
 
 
 def test_overlapping_green_zones_count_once():
@@ -118,3 +137,61 @@ def test_nearest_poi_id_per_edge():
     assert list(f["near_fountain"]) == [True, True]
     assert list(f["fountain_id"]) == ["ay_fuentes:1", "ay_fuentes:1"]
     assert f["bench_id"].isna().all()
+
+
+PARK = Polygon([(-3.7300, 40.3040), (-3.7294, 40.3040), (-3.7294, 40.3060), (-3.7300, 40.3060)])
+LEFT = Polygon([(-3.7310, 40.3000), (-3.7288, 40.3000), (-3.7288, 40.3100), (-3.7310, 40.3100)])   # tramo 0
+RIGHT = Polygon([(-3.7288, 40.3000), (-3.7260, 40.3000), (-3.7260, 40.3100), (-3.7288, 40.3100)])  # tramo 1
+
+
+def _gdf(*polys):
+    return gpd.GeoDataFrame(geometry=list(polys), crs=4326)
+
+
+def test_osm_green_fills_municipalities_without_vpla():
+    # sin VPLA en ningun sitio: el verde de OSM da el porcentaje en el municipio cubierto por OSM
+    f = edge_factors(_two_edges(), _gdf(), NO_POI, CONFIG, has_green=False,
+                     osm_green=_gdf(PARK), osm_covered=_gdf(LEFT, RIGHT))
+    assert f.loc[0, "green_pct"] == pytest.approx(0.5, abs=0.05)
+    assert f.loc[1, "green_pct"] == pytest.approx(0.0, abs=0.01)
+
+
+def test_osm_green_only_where_municipality_has_osm_green():
+    # tramo 1 fuera de todo municipio con verde OSM (sin dato o fuera de la Comunidad): NaN, nunca 0
+    f = edge_factors(_two_edges(), _gdf(), NO_POI, CONFIG, has_green=False,
+                     osm_green=_gdf(PARK), osm_covered=_gdf(LEFT))
+    assert f.loc[0, "green_pct"] == pytest.approx(0.5, abs=0.05)
+    assert pd.isna(f.loc[1, "green_pct"])
+
+
+def test_vpla_wins_over_osm_green():
+    # tramo 0 en municipio con VPLA (sin zona verde en VPLA): 0 aunque OSM tenga parque; tramo 1 sin VPLA: OSM
+    big_park = Polygon([(-3.7310, 40.3040), (-3.7260, 40.3040), (-3.7260, 40.3060), (-3.7310, 40.3060)])
+    far_zone = _gdf(Polygon([(-3.7309, 40.3090), (-3.7308, 40.3090), (-3.7308, 40.3091)]))
+    f = edge_factors(_two_edges(), far_zone, NO_POI, CONFIG, has_green=True, covered=_gdf(LEFT),
+                     osm_green=_gdf(big_park), osm_covered=_gdf(RIGHT))
+    assert f.loc[0, "green_pct"] == pytest.approx(0.0, abs=0.01)
+    assert f.loc[1, "green_pct"] == pytest.approx(1.0, abs=0.01)
+
+
+def test_osm_green_coverage_excludes_vpla_and_bare_municipalities():
+    munis = gpd.GeoDataFrame({"ine_code": ["28001", "28002", "28003"]}, geometry=[LEFT, RIGHT, LEFT], crs=4326)
+    cov = osm_green_coverage(munis.iloc[:2], {"28001"}, _gdf(PARK))
+    assert list(cov["ine_code"]) == []                    # 28001 tiene VPLA; 28002 no toca el parque
+    cov = osm_green_coverage(munis.iloc[[2]], set(), _gdf(PARK))
+    assert list(cov["ine_code"]) == ["28003"]
+
+
+def test_read_osm_green_areas(tmp_path):
+    # extracto minimo en XML: un parque (via cerrada) y un edificio; solo el parque es verde
+    osm = tmp_path / "mini.osm"
+    nodes = "".join(f'<node id="{i}" version="1" lat="{lat}" lon="{lon}"/>' for i, (lon, lat) in enumerate(
+        [(-3.73, 40.30), (-3.729, 40.30), (-3.729, 40.301), (-3.73, 40.301)], start=1))
+    ways = ('<way id="10" version="1"><nd ref="1"/><nd ref="2"/><nd ref="3"/><nd ref="4"/><nd ref="1"/>'
+            '<tag k="leisure" v="park"/></way>'
+            '<way id="11" version="1"><nd ref="1"/><nd ref="2"/><nd ref="3"/><nd ref="1"/>'
+            '<tag k="building" v="yes"/></way>')
+    osm.write_text(f'<?xml version="1.0"?><osm version="0.6">{nodes}{ways}</osm>', encoding="utf-8")
+    _, _, _, green = read_osm(osm, None, {"leisure": ["park"]})
+    assert len(green) == 1 and green.crs.to_epsg() == 4326
+    assert green.geometry.iloc[0].area > 0
