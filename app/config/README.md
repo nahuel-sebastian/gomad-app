@@ -14,3 +14,4 @@ YAML compartidos por los servicios. Se monta **en solo lectura** en `api` e `ing
 | `indicators.yaml` | 14 indicadores de la vista de municipio (F5) con su regla «sin filas», y `fit`: qué indicador mira cada perfil y acompañante (RF-18, criterio propio) | DEC-09 (16/10); lo valida `ingest/indicators.py` |
 | `recommend.yaml` | Parámetros de `/recommend` sin fuente oficial: rodeo de la línea recta, radio de duplicados, tope de candidatos, alternativa cubierta, validez de la última medición de aire (criterio propio) | V-M1 (16/10) |
 | `sources.yaml` | Etiquetas de cada fuente para la persona (`DataSource.label`) | V-M1 (16/10); S-D1 añade licencias |
+| `realtime.yaml` | Datos en vivo en memoria: URL, TTL, validez máxima (`max_age_h`) y tiempo de espera de cada fuente; cuota, pilotos y respaldo de AEMET (criterio propio salvo `max_issued_age_h`) | DEC-15 y DEC-13 (16/10); lo valida `api/live/store.py` |

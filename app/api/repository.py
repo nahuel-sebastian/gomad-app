@@ -10,6 +10,7 @@ import duckdb
 import numpy as np
 
 from engine.rules import aqi_category
+from live.air import air_categories as live_air_categories, drop_stale_stations
 
 EARTH_RADIUS_M = 6_371_008.8
 M_PER_DEG_LAT = 111_320.0
@@ -87,7 +88,10 @@ class Station:
 
 
 class Repository:
-    def __init__(self, data_dir):
+    def __init__(self, data_dir, live=None):
+        # live: LiveStore (B2); con el, aire y prevision salen de memoria y no de realtime.duckdb
+        self.live = live
+        self.forecast_notes = {}     # ine -> «Prevision de <municipio>» cuando se usa la del vecino
         self.main = data_dir / "gomad.duckdb"
         self.realtime = data_dir / "realtime.duckdb"
         self.addresses = data_dir / "clean" / "addresses.parquet"
@@ -129,6 +133,8 @@ class Repository:
     def forecast(self, ine_codes, start, end):
         if not ine_codes:
             return {}, {}
+        if self.live is not None and getattr(self.live, "forecast", None) is not None:
+            return self._live_forecast(ine_codes, start, end)
         marks = ", ".join("?" for _ in ine_codes)
         rows = self._query(self.realtime, f"""SELECT ine_code, ts, temp, feels_like, precip_prob, issued FROM forecast
                                               WHERE ine_code IN ({marks}) AND ts BETWEEN ? AND ? ORDER BY ts""",
@@ -139,12 +145,40 @@ class Repository:
             issued[ine] = parse_date(iss)
         return by, issued
 
+    def _live_forecast(self, ine_codes, start, end):
+        """Prevision en memoria (DEC-15). Sin prevision: se pide con prioridad. La del vecino queda en forecast_notes."""
+        by, issued, missing = {}, {}, []
+        for ine in ine_codes:
+            self.forecast_notes.pop(ine, None)        # se recalcula en cada consulta
+            got = self.live.forecast.get(ine)
+            if got is None:
+                missing.append(ine)
+                continue
+            series, iss, note = got
+            hours = {ts: v[:3] for ts, v in series.items() if start <= ts <= end}
+            if hours:
+                by[ine], issued[ine] = hours, iss
+                if note:
+                    self.forecast_notes[ine] = note
+                    missing.append(ine)               # la del vecino vale mientras llega la propia: pedirla
+        if missing:
+            self.live.forecast.request(missing)
+        return by, issued
+
     def stations(self):
         return [Station(*r) for r in self._query(self.main, "SELECT id, network, name, lon, lat FROM air_station",
                                                  required=True)]
 
     def air_categories(self, start, end, ica, valid_h):
         """{estacion: [(hora, categoria)]} ordenado, con las medias que cumplen la cobertura minima del ICA."""
+        if self.live is not None:
+            # en vivo (DEC-15): la ultima medicion de cada estacion, solo si cumple max_age_h (por estacion)
+            fresh = []
+            for name in ("air_cm", "air_ay"):
+                e = self.live.get(name)
+                if e is not None:
+                    fresh.append(drop_stale_stations(e.value, self.live.now(), self.live.sources[name]["max_age_h"]))
+            return live_air_categories(fresh, start, end, ica, valid_h)
         rows = self._query(self.realtime, """SELECT station_id, ts, pollutant, mean, n_hours FROM aqi_hourly
                                              WHERE ts BETWEEN ? AND ? ORDER BY station_id, ts""",
                            [start - timedelta(hours=valid_h), end])
