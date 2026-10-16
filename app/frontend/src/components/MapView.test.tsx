@@ -1,8 +1,9 @@
 import { render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { boundsOf } from "./mapUtils";
+import { toLineString, type LonLat } from "../lib/geometry";
+import { boundsOf, mapPoints } from "./mapUtils";
 import MapView, { MapErrorBoundary, type MapMarker } from "./MapView";
-import { lastMapProps, withWebGL } from "../test/mapMock";
+import { fitBoundsMock, lastMapProps, withWebGL } from "../test/mapMock";
 
 // jsdom no tiene WebGL: se simula react-map-gl con componentes de DOM simples
 vi.mock("react-map-gl/maplibre", async () => (await import("../test/mapMock")).mapLibreModule());
@@ -12,6 +13,18 @@ const MARKERS: MapMarker[] = [
     { id: "a", number: 1, name: "Parque Castilla-La Mancha", coordinate: { lon: -3.728, lat: 40.309 } },
     { id: "b", number: 2, name: "Polideportivo San Isidro", coordinate: { lon: -3.722, lat: 40.302 } },
 ];
+
+const MAIN_COORDS: LonLat[] = [
+    [-3.7315, 40.3057],
+    [-3.73, 40.307],
+    [-3.728, 40.309],
+];
+const MAIN = toLineString(MAIN_COORDS);
+const OTHER = toLineString([
+    [-3.7315, 40.3057],
+    [-3.729, 40.306],
+    [-3.728, 40.309],
+]);
 
 afterEach(() => {
     vi.restoreAllMocks();
@@ -75,6 +88,46 @@ describe("MapView", () => {
             </MapErrorBoundary>,
         );
         expect(screen.getByText("esquema")).toBeInTheDocument();
+    });
+});
+
+describe("MapCanvas: ruta", () => {
+    it("dibuja la ruta elegida y la otra con capas distintas", async () => {
+        withWebGL();
+        const { container } = render(
+            <MapView markers={[]} origin={ORIGIN} route={MAIN} secondaryRoute={OTHER} />,
+        );
+        await screen.findByTestId("maplibre");
+        const main = container.querySelector("[data-source='route-main']");
+        expect(JSON.parse(main!.getAttribute("data-coords")!)).toEqual(MAIN_COORDS);
+        expect(container.querySelector("[data-layer='route-main-line']")).not.toBeNull();
+        expect(container.querySelector("[data-source='route-secondary']")).not.toBeNull();
+        expect(container.querySelector("[data-layer='route-secondary-line']")).not.toBeNull();
+    });
+
+    it("sin ruta no hay capas de ruta", async () => {
+        withWebGL();
+        const { container } = render(<MapView markers={MARKERS} />);
+        await screen.findByTestId("maplibre");
+        expect(container.querySelector("[data-source^='route-']")).toBeNull();
+    });
+
+    it("encuadra la ruta y el origen", () => {
+        const [[w, s], [e, n]] = boundsOf(mapPoints({ markers: [], origin: ORIGIN, route: MAIN }))!;
+        expect(w).toBeLessThanOrEqual(ORIGIN.lon);
+        expect(e).toBeGreaterThanOrEqual(Math.max(...MAIN_COORDS.map((c) => c[0])));
+        expect(s).toBeLessThan(n);
+    });
+
+    it("reencuadra cuando cambian los puntos", async () => {
+        withWebGL();
+        const { rerender } = render(<MapView markers={MARKERS.slice(0, 1)} />);
+        await screen.findByTestId("maplibre");
+        fitBoundsMock.mockClear();
+        rerender(<MapView markers={MARKERS} />);
+        expect(fitBoundsMock).toHaveBeenCalledTimes(1);
+        rerender(<MapView markers={[...MARKERS]} />);
+        expect(fitBoundsMock).toHaveBeenCalledTimes(1);
     });
 });
 
