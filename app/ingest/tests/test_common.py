@@ -78,3 +78,15 @@ def test_latest_csv_without_match_raises(tmp_path):
     (tmp_path / "a.csv").write_text("X;Y\n1;2\n", encoding="utf-8")
     with pytest.raises(FileNotFoundError):
         common.latest_csv(tmp_path, ["ID"])
+
+
+def test_latest_csv_skips_empty_files(tmp_path):
+    # un portal puede publicar el CSV vacio (solo el BOM): se usa el anterior que tenga las columnas
+    import os
+    from common import latest_csv
+    good = tmp_path / "ayer.csv"
+    good.write_text("PROVINCIA;H24\n28;1\n", encoding="utf-8")
+    empty = tmp_path / "hoy.csv"
+    empty.write_bytes(b"\xef\xbb\xbf")
+    os.utime(good, (1, 1))
+    assert latest_csv(tmp_path, ["PROVINCIA", "H24"]) == good

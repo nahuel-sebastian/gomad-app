@@ -76,7 +76,10 @@ def latest_csv(folder, columns):
     con --include-heavy baja ademas otros recursos del dataset con columnas distintas.
     """
     for path in sorted(pathlib.Path(folder).glob("*.csv"), key=lambda f: f.stat().st_mtime, reverse=True):
-        header = read_csv(path, nrows=0).columns
+        try:
+            header = read_csv(path, nrows=0).columns
+        except pd.errors.EmptyDataError:   # el portal a veces publica el fichero vacio: vale el anterior
+            continue
         if all(c in header for c in columns):
             return path
     raise FileNotFoundError(f"Ningún CSV de {folder} tiene las columnas {list(columns)}")

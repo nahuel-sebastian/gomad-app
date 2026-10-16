@@ -1,0 +1,21 @@
+# Inicializa los datos de un equipo nuevo (descarga, normaliza, bases y grafo) en app/data.
+# Solo para equipos de desarrollo; no forma parte del despliegue. Desde app/:
+#   docker compose -f deploy/docker-compose.init.yml run --rm ingest
+# Despues, la app normal: docker compose -f deploy/docker-compose.yml up -d --build
+services:
+  ingest:
+    build: ../ingest
+    # escribe app/data con el usuario del equipo, no como root (en Linux, `id -u` / `id -g` si no es 1000)
+    user: "${GOMAD_UID:-1000}:${GOMAD_GID:-1000}"
+    # claves (AEMET) de app/.env si existe; sin el, todo menos la prevision
+    env_file:
+      - path: ../.env
+        required: false
+    environment:
+      GOMAD_DATA_DIR: /data
+      GOMAD_CONFIG_DIR: /config
+      INIT_AEMET_MUNICIPALITIES: ${INIT_AEMET_MUNICIPALITIES:-28065,28079}
+    volumes:
+      # GOMAD_DATA_PATH permite generar en otra carpeta (por defecto, app/data)
+      - ${GOMAD_DATA_PATH:-../data}:/data
+      - ../config:/config:ro
