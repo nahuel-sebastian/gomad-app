@@ -28,7 +28,8 @@ def test_municipality():
     assert len(m) == 179
     assert m.loc[m.ine_code == "28065", "in_eiel"].item() is False   # Getafe no esta en EIEL
     assert m.loc[m.ine_code == "28079", "in_vpla"].item() is False   # capital fuera de VPLA
-    assert m["in_vpla"].sum() == 166 and m["in_eiel"].sum() == 155
+    # VPLA republicado (descarga del 16/10): entra Sevilla la Nueva (28141); antes 166
+    assert m["in_vpla"].sum() == 167 and m["in_eiel"].sum() == 155
 
 
 def test_population():
@@ -56,9 +57,10 @@ def test_green():
     R["green"]()
     v = read("green")
     vpla = v[v.source == "vpla_redes"]
-    assert len(vpla) == 16_867                                             # «Zonas Verdes y Espacios Libres»
-    # 166 municipios en VPLA, pero 4 sin zonas verdes (El Atazar, Cervera de Buitrago, Gargantilla, Tielmes)
-    assert vpla.ine_code.nunique() == 162
+    # «Zonas Verdes y Espacios Libres». VPLA republicado (16/10): 17.010 (antes 16.867), +143 de Sevilla la Nueva
+    assert len(vpla) == 17_010
+    # 167 municipios en VPLA, pero 4 sin zonas verdes (El Atazar, Cervera de Buitrago, Gargantilla, Tielmes)
+    assert vpla.ine_code.nunique() == 163 and (vpla.ine_code == "28141").sum() == 143
     getafe = vpla[vpla.ine_code == "28065"]
     assert len(getafe) == 648 and round(getafe.area_m2.sum() / 1e6, 1) == 33.4   # informe-datos §3
 
