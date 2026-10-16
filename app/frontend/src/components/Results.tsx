@@ -11,6 +11,7 @@ import { NO_SEARCH_NOTICE } from "../lib/texts";
 import { useAppState } from "../state/context";
 import Chip, { AqiChip } from "./Chip";
 import ErrorMessage from "./ErrorMessage";
+import Icon from "./Icon";
 import MapView from "./MapView";
 import PageHeading from "./PageHeading";
 import PreferencesDialog from "./PreferencesDialog";
@@ -180,18 +181,7 @@ export default function Results() {
         <section className="results-screen gomad-component gomad-results" aria-labelledby="resultados-titulo">
             <div className="results-desktop-toolbar">
                 <button className="back-button gomad-action gomad-action-go-home" type="button" onClick={() => navigate("/")}>
-                    <svg
-                        width="18"
-                        height="18"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        aria-hidden="true">
-                        <path d="M15 6l-6 6 6 6" />
-                    </svg>
+                    <Icon name="arrow_left" />
                     Volver
                 </button>
 
@@ -199,18 +189,7 @@ export default function Results() {
                     <PreferencesDialog
                         trigger={
                             <button className="filter-button gomad-action gomad-action-adjust-preferences" type="button" aria-label="Ajustar preferencias">
-                                <svg
-                                    width="18"
-                                    height="18"
-                                    viewBox="0 0 24 24"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    strokeWidth="2"
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                    aria-hidden="true">
-                                    <path d="M4 5h16M7 12h10M10 19h4" />
-                                </svg>
+                                <Icon name="settings" />
                                 Ajustar
                             </button>
                         }

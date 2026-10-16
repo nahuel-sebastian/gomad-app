@@ -1,5 +1,6 @@
 import * as Slider from "@radix-ui/react-slider";
 import { useRef, useState } from "react";
+import Icon from "./Icon";
 
 interface PrefSliderProps {
     label: string;
@@ -7,7 +8,7 @@ interface PrefSliderProps {
     max: number;
     step: number;
     value: number;
-    // texto del valor en palabras (aria-valuetext y texto visible)
+    ariaFormat?: (value: number) => string;
     format: (value: number) => string;
     controls?: boolean;
     // se llama al soltar (o con cada tecla): una sola peticion por cambio
@@ -15,7 +16,7 @@ interface PrefSliderProps {
 }
 
 // Deslizador accesible (Radix Slider) que recalcula al soltar (RF-16)
-export default function PrefSlider({ label, min, max, step, value, format, controls = false, onCommit }: PrefSliderProps) {
+export default function PrefSlider({ label, min, max, step, value, format, ariaFormat = format, controls = false, onCommit }: PrefSliderProps) {
     // valor mientras se arrastra; null = el de las preferencias
     const [draft, setDraft] = useState<number | null>(null);
     const local = draft ?? value;
@@ -45,7 +46,7 @@ export default function PrefSlider({ label, min, max, step, value, format, contr
                         aria-label={`Disminuir ${label.toLowerCase()}`}
                         disabled={local <= min}
                         onClick={() => changeBy(-step)}>
-                        <span aria-hidden="true">−</span>
+                        <Icon name="remove" />
                     </button>
                 )}
                 <Slider.Root
@@ -69,7 +70,7 @@ export default function PrefSlider({ label, min, max, step, value, format, contr
                     <Slider.Track className="slider__track">
                         <Slider.Range className="slider__range" />
                     </Slider.Track>
-                    <Slider.Thumb className="slider__thumb gomad-field gomad-field-filter-slider" aria-label={label} aria-valuetext={format(local)} />
+                    <Slider.Thumb className="slider__thumb gomad-field gomad-field-filter-slider" aria-label={label} aria-valuetext={ariaFormat(local)} />
                 </Slider.Root>
                 {controls && (
                     <button
@@ -78,7 +79,7 @@ export default function PrefSlider({ label, min, max, step, value, format, contr
                         aria-label={`Aumentar ${label.toLowerCase()}`}
                         disabled={local >= max}
                         onClick={() => changeBy(step)}>
-                        <span aria-hidden="true">+</span>
+                        <Icon name="add" />
                     </button>
                 )}
             </div>

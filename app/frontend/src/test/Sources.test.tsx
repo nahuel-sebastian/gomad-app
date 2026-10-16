@@ -17,13 +17,23 @@ describe("Fuentes y aviso", () => {
         ).toBeInTheDocument();
         const table = await screen.findByRole("table", { name: "Fuentes de datos" });
         const headers = within(table).getAllByRole("columnheader").map((h) => h.textContent);
-        expect(headers).toEqual(["Fuente", "Publicador", "Licencia", "Actualizado"]);
+        expect(headers).toEqual(["Fuente", "Publicador", "Licencia", "Última actualización"]);
         expect(table).toHaveTextContent("CC BY 4.0");
         expect(table).toHaveTextContent("ODbL");
         expect(table).toHaveTextContent("Aviso legal de AEMET");
         expect(table).toHaveTextContent("hace 12 min");
         expect(table).toHaveTextContent("Última recarga fallida: se muestra el dato anterior.");
         expect(table).toHaveTextContent("Sin descargar todavía");
+        const sourceLinks = within(table).getAllByRole("link");
+        expect(sourceLinks).toHaveLength(7);
+        for (const link of sourceLinks) {
+            expect(link).toHaveAttribute("target", "_blank");
+            expect(link).toHaveAttribute("rel", "noreferrer noopener");
+            expect(link).toHaveClass("gomad-sources__link");
+            expect(link).toHaveAccessibleName(/se abre en una pestaña nueva/);
+        }
+        expect(table.querySelector('[data-label="Última actualización"]')).toHaveTextContent("hace 12 min");
+        expect(table.querySelector('[data-label="Última actualización"]')).not.toHaveTextContent("Actualizado");
         await expectNoAxeViolations(container);
     });
 

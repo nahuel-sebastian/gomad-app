@@ -15,7 +15,9 @@ describe("Asistente de rutas", () => {
         expect(screen.getByRole("heading", { level: 2, name: "Lo que he entendido" })).toBeInTheDocument();
         expect(screen.getByRole("heading", { level: 2, name: "La ruta propuesta" })).toBeInTheDocument();
         expect(screen.getByLabelText("¿Qué ruta quieres?")).toBeInTheDocument();
-        expect(within(screen.getByRole("group", { name: "Pasar por" })).getAllByRole("checkbox")).toHaveLength(6);
+        const passBy = screen.getByRole("group", { name: "Pasar por" });
+        expect(within(passBy).getAllByRole("checkbox")).toHaveLength(6);
+        expect(passBy.querySelector(".icon-shopping_cart")).toHaveAttribute("aria-hidden", "true");
         expect(within(screen.getByRole("group", { name: "Evitar" })).getAllByRole("checkbox")).toHaveLength(2);
         await expectNoAxeViolations(container);
     });

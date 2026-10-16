@@ -5,6 +5,7 @@ import { useAsync } from "../data/useAsync";
 import { COMPANION_LABELS, FACTOR_LABELS, SETTING_LABELS } from "../lib/labels";
 import { useAppState } from "../state/context";
 import ErrorMessage from "./ErrorMessage";
+import Icon from "./Icon";
 import PrefSlider from "./PrefSlider";
 
 const SETTINGS: Setting[] = ["any", "outdoor", "indoor"];
@@ -15,6 +16,12 @@ const PROFILE_OPTION_LABELS: Record<Exclude<Profile, "general">, string> = {
     sensitive: "Sensible a la contaminación",
 };
 const COMPANIONS: Companion[] = ["dog", "kids"];
+const COMPANION_ICONS: Record<Companion, string> = { dog: "pets", kids: "family" };
+const PROFILE_ICONS: Record<Exclude<Profile, "general">, string> = {
+    senior: "elderly",
+    stroller: "family",
+    sensitive: "air",
+};
 // orden de los pesos: los del prototipo y despues la adecuacion (P-11)
 const FACTORS: Factor[] = ["proximity", "green", "air", "weather", "suitability"];
 
@@ -58,7 +65,8 @@ export default function PreferencesForm() {
                 max={180}
                 step={5}
                 value={preferences.durationMin}
-                format={(v) => `${v} minutos`}
+                format={(v) => `${v} min`}
+                ariaFormat={(v) => `${v} minutos`}
                 onCommit={(v) => updatePreferences({ durationMin: v })}
             />
             <PrefSlider
@@ -78,7 +86,8 @@ export default function PreferencesForm() {
                 max={12}
                 step={1}
                 value={preferences.windowHours}
-                format={(v) => (v === 1 ? "Próxima 1 hora" : `Próximas ${v} horas`)}
+                format={(v) => `${v}h`}
+                ariaFormat={(v) => (v === 1 ? "Próxima 1 hora" : `Próximas ${v} horas`)}
                 onCommit={(v) => updatePreferences({ windowHours: v })}
             />
 
@@ -111,7 +120,10 @@ export default function PreferencesForm() {
                                 checked={preferences.companions.includes(c)}
                                 onChange={() => toggleCompanion(c)}
                             />
-                            <span>{COMPANION_LABELS[c]}</span>
+                            <span className="companion-option__label">
+                                <Icon name={COMPANION_ICONS[c]} />
+                                {COMPANION_LABELS[c]}
+                            </span>
                         </label>
                     ))}
                     {PROFILES.map((p) => (
@@ -121,6 +133,7 @@ export default function PreferencesForm() {
                             className={`companion-option gomad-action gomad-option gomad-option-profile-${p}`}
                             aria-pressed={preferences.profile === p}
                             onClick={() => updatePreferences({ profile: preferences.profile === p ? "general" : p })}>
+                            <Icon name={PROFILE_ICONS[p]} />
                             {PROFILE_OPTION_LABELS[p]}
                         </button>
                     ))}

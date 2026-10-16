@@ -1,8 +1,96 @@
-/* Iconos de GoMad (aplazados, decision del 14/10).
-   Cuando llegue la fuente propia de Material Symbols (public/fonts/), anadir aqui
-   su @font-face y el estilo de .icon (ligaduras); el componente Icon ya pinta
-   <span class="icon" aria-hidden="true" data-icon="...">. Mientras tanto, el
-   hueco no ocupa sitio. */
-.icon:empty {
-    display: none;
+@font-face {
+  font-family: 'icomoon';
+  src: url('/icons/icomoon.woff') format('woff');
+  font-weight: normal;
+  font-style: normal;
+  font-display: block;
+}
+
+.icon {
+  display: inline-block;
+  font-family: 'icomoon' !important;
+  speak: never;
+  font-style: normal;
+  font-weight: normal;
+  font-variant: normal;
+  text-transform: none;
+  font-size: var(--icon-size, 1em);
+  line-height: 1;
+
+  /* Better Font Rendering =========== */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.icon-add_24dp_1F1F1F_FILL1_wght400_GRAD0_opsz24:before {
+  content: "\e900";
+}
+.icon-air:before {
+  content: "\e901";
+}
+.icon-elderly:before {
+  content: "\e902";
+}
+.icon-calendar_clock:before {
+  content: "\e903";
+}
+.icon-close:before {
+  content: "\e904";
+}
+.icon-bike:before {
+  content: "\e905";
+}
+.icon-eco:before {
+  content: "\e906";
+}
+.icon-family:before {
+  content: "\e907";
+}
+.icon-arrow_down:before {
+  content: "\e908";
+}
+.icon-arrow_left:before {
+  content: "\e909";
+}
+.icon-arrow_right:before {
+  content: "\e90a";
+}
+.icon-arrow_up:before {
+  content: "\e90b";
+}
+.icon-mountain:before {
+  content: "\e90c";
+}
+.icon-location_off:before {
+  content: "\e90d";
+}
+.icon-location_on:before {
+  content: "\e90e";
+}
+.icon-menu:before {
+  content: "\e90f";
+}
+.icon-navigation:before {
+  content: "\e910";
+}
+.icon-random:before {
+  content: "\e911";
+}
+.icon-pets:before {
+  content: "\e912";
+}
+.icon-remove_24dp_1F1F1F_FILL1_wght400_GRAD0_opsz24:before {
+  content: "\e913";
+}
+.icon-route:before {
+  content: "\e914";
+}
+.icon-search:before {
+  content: "\e915";
+}
+.icon-settings:before {
+  content: "\e916";
+}
+.icon-shopping_cart:before {
+  content: "\e917";
 }

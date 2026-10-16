@@ -43,6 +43,9 @@ describe("Ruta saludable", () => {
         expect(metrics).toHaveTextContent("64 %");
         expect(metrics).toHaveTextContent("Desnivel");
         expect(metrics).toHaveTextContent("sin datos de desnivel");
+        for (const icon of [".icon-route", ".icon-calendar_clock", ".icon-eco", ".icon-mountain"]) {
+            expect(metrics.querySelector(icon)).toHaveAttribute("aria-hidden", "true");
+        }
         const pois = screen.getByRole("list", { name: "En la ruta" });
         expect(pois).toHaveTextContent("2 fuentes");
         expect(pois).toHaveTextContent("5 bancos");

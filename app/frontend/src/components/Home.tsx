@@ -10,7 +10,7 @@ import { useAppState } from "../state/context";
 import Chip, { AqiChip } from "./Chip";
 import ErrorMessage from "./ErrorMessage";
 import Hero from "./Hero";
-import Icon from "./Icon";
+import Icon, { hasIcon } from "./Icon";
 import LocationPicker from "./LocationPicker";
 
 type MomentHour = HourEvaluation | undefined;
@@ -153,9 +153,11 @@ export default function Home() {
                             {activities.data.activities.map((a: Activity) => (
                                 <li key={a.id}>
                                     <button type="button" className="activity gomad-action gomad-action-select-activity" onClick={() => go(a.id, a.label)}>
-                                        <span className="activity__tile" aria-hidden="true">
-                                            <Icon name={a.icon} />
-                                        </span>
+                                        {hasIcon(a.icon) && (
+                                            <span className="activity__tile" aria-hidden="true">
+                                                <Icon name={a.icon} />
+                                            </span>
+                                        )}
                                         <span>{a.label}</span>
                                     </button>
                                 </li>
@@ -177,25 +179,30 @@ export default function Home() {
                         </span>
                     </button>
 
-                    <section className="panel prefs" aria-labelledby="prefs-titulo">
-                        <div className="prefs__text">
-                            <h2 className="muted prefs__title" id="prefs-titulo">
-                                Tus preferencias
-                            </h2>
-                            <strong>{preferencesSummary(preferences)}</strong>
-                        </div>
-                        <Link to="/perfil" className="button gomad-action gomad-action-adjust-preferences" aria-label="Ajustar preferencias">
-                            <span>Ajustar</span>
-                        </Link>
-                    </section>
-                </div>
+                    <Link
+                        to="/perfil"
+                        className="panel panel--action prefs gomad-action gomad-action-adjust-preferences">
+                        <span className="surprise__tile" aria-hidden="true">
+                            <Icon name="settings" />
+                        </span>
+                        <span className="surprise__text">
+                            <span className="panel__title" id="prefs-titulo">Tus preferencias</span>
+                            <span className="muted">{preferencesSummary(preferences)}</span>
+                        </span>
+                    </Link>
 
-                <Link to="/asistente" className="panel panel--action assistant-link gomad-action gomad-action-open-assistant">
-                    <span className="panel__title">Asistente de rutas</span>
-                    <span className="muted">
-                        Escribe lo que quieres («5 km andando, con fuentes y bancos») y te propongo una ruta.
-                    </span>
-                </Link>
+                    <Link to="/asistente" className="panel panel--action surprise assistant-link gomad-action gomad-action-open-assistant">
+                        <span className="surprise__tile" aria-hidden="true">
+                            <Icon name="navigation" />
+                        </span>
+                        <span className="surprise__text">
+                            <span className="panel__title">Asistente de rutas</span>
+                            <span className="muted">
+                                Escribe lo que quieres y te propongo una ruta.
+                            </span>
+                        </span>
+                    </Link>
+                </div>
             </div>
         </>
     );

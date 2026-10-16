@@ -8,6 +8,7 @@ import { poiCount } from "../lib/labels";
 import { NO_SEARCH_NOTICE } from "../lib/texts";
 import { useAppState } from "../state/context";
 import ErrorMessage from "./ErrorMessage";
+import Icon from "./Icon";
 import MapView from "./MapView";
 import PageHeading from "./PageHeading";
 import SourceList from "./SourceList";
@@ -57,18 +58,7 @@ export default function RouteView() {
     return (
         <section className="container page route-page gomad-component gomad-route-view" aria-labelledby="ruta-titulo">
             <Link to={`/resultados/${encodeURIComponent(id)}`} className="back-button gomad-action gomad-action-back-to-recommendation">
-                <svg
-                    width="18"
-                    height="18"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    aria-hidden="true">
-                    <path d="M15 6l-6 6 6 6" />
-                </svg>
+                <Icon name="arrow_left" />
                 Volver al detalle
             </Link>
 
@@ -162,15 +152,15 @@ export default function RouteView() {
                         <div className="route-info panel">
                             <ul role="list" className="route-metrics" aria-label="Resumen de la ruta">
                                 <li>
-                                    <span>Distancia</span>
+                                    <span className="route-metrics__label"><Icon name="route" />Distancia</span>
                                     <strong>{formatDistance(variant.distance_m)}</strong>
                                 </li>
                                 <li>
-                                    <span>Tiempo estimado</span>
+                                    <span className="route-metrics__label"><Icon name="calendar_clock" />Tiempo estimado</span>
                                     <strong>{formatMinutes(variant.duration_min)}</strong>
                                 </li>
                                 <li>
-                                    <span>Zonas verdes</span>
+                                    <span className="route-metrics__label"><Icon name="eco" />Zonas verdes</span>
                                     <strong>{variant.green_pct === null ? "sin datos" : `${Math.round(variant.green_pct)} %`}</strong>
                                 </li>
                                 <li>
@@ -178,7 +168,7 @@ export default function RouteView() {
                                     <strong>{variant.traffic_m > 0 ? formatDistance(variant.traffic_m) : "Ningún tramo"}</strong>
                                 </li>
                                 <li>
-                                    <span>Desnivel</span>
+                                    <span className="route-metrics__label"><Icon name="mountain" />Desnivel</span>
                                     <strong className="route-metrics__nodata">sin datos de desnivel</strong>
                                 </li>
                             </ul>

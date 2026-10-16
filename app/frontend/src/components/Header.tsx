@@ -1,9 +1,10 @@
 import { Link, useLocation } from "react-router";
+import Icon from "./Icon";
 
 const LINKS = [
     { to: "/", label: "Mi entorno", icon: "near_me" },
     { to: "/municipios", label: "Municipios", icon: "location_city" },
-    { to: "/perfil", label: "Perfil", icon: "person" },
+    { to: "/perfil", label: "Preferencias", icon: "menu" },
 ];
 
 // Seccion de la barra a la que pertenece cada ruta: "page" en la ruta exacta, "true" en sus subpantallas
@@ -52,6 +53,7 @@ export default function Header() {
                                     aria-current={
                                         pathname === link.to ? "page" : current === link.to ? "true" : undefined
                                     }>
+                                    <Icon name={link.icon} />
                                     {link.label}
                                 </Link>
                             </li>

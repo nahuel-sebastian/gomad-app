@@ -24,7 +24,7 @@ describe("Inicio", () => {
             </StrictMode>,
         );
         expect(screen.getByRole("heading", { level: 1, name: "¿Qué te apetece hacer hoy?" })).not.toHaveFocus();
-        await user.click(screen.getByRole("link", { name: "Ajustar preferencias" }));
+        await user.click(screen.getByRole("link", { name: /Tus preferencias/ }));
         await waitFor(() => expect(screen.getByRole("heading", { level: 1, name: "Tus preferencias" })).toHaveFocus());
     });
 
@@ -42,6 +42,13 @@ describe("Inicio", () => {
         expect(
             within(list).getByRole("button", { name: "Gimnasio y cubierto" }),
         ).toBeInTheDocument();
+        expect(container.querySelector(".icon-random")).toBeInTheDocument();
+        expect(container.querySelector(".icon-settings")).toBeInTheDocument();
+        expect(container.querySelectorAll(".activity__tile")).toHaveLength(0);
+        const nav = screen.getByRole("navigation", { name: "Principal" });
+        expect(nav.querySelector(".icon-navigation")).toBeInTheDocument();
+        expect(nav.querySelector(".icon-location_on")).toBeInTheDocument();
+        expect(nav.querySelector(".icon-menu")).toBeInTheDocument();
         await expectNoAxeViolations(container);
     });
 
@@ -101,14 +108,17 @@ describe("Inicio", () => {
 
     it("usar mi ubicacion avisa de que es de ejemplo", async () => {
         const { user } = renderAt("/");
-        await user.click(
-            screen.getByRole("button", { name: "Usar mi ubicación" }),
-        );
+        const locationButton = screen.getByRole("button", { name: "Usar mi ubicación" });
+        expect(locationButton).toHaveTextContent("Usar ubicación");
+        expect(locationButton).toHaveClass("gomad-action-use-location");
+        await user.click(locationButton);
         expect(
             await screen.findByText(
                 "Es una ubicación de ejemplo: el GPS no está disponible en este entorno de desarrollo.",
             ),
         ).toBeInTheDocument();
+        expect(screen.getByText("Ubicación elegida:").nextElementSibling).toHaveTextContent("Tu ubicación de ejemplo");
+        expect(document.querySelector(".location__status")).toHaveClass("sr-only");
     });
 
     it("si el GPS se deniega lo explica y deja escribir la dirección", async () => {
@@ -128,7 +138,12 @@ describe("Inicio", () => {
             screen.getByLabelText("Escribe una dirección o un municipio"),
             "Getafe",
         );
-        await user.click(screen.getByRole("button", { name: "Buscar" }));
+        const searchButton = screen.getByRole("button", { name: "Buscar" });
+        expect(searchButton.querySelector(".icon-search")).toHaveAttribute("aria-hidden", "true");
+        expect(searchButton.closest(".location__search")).toContainElement(
+            screen.getByLabelText("Escribe una dirección o un municipio"),
+        );
+        await user.click(searchButton);
         const option = await screen.findByRole("button", { name: "Getafe" });
         expect(screen.getByText("1 lugar encontrado.")).toBeInTheDocument();
         await user.click(option);
@@ -161,21 +176,30 @@ describe("Inicio", () => {
         expect(state).toHaveTextContent(/Aire razonablemente buena/);
     });
 
-    it("resume las preferencias y tiene Ajustar", () => {
+    it("hace que toda la tarjeta de preferencias enlace al perfil y la compone como Sorpréndeme", () => {
         renderAt("/");
         expect(
             screen.getByText("45 min · hasta 3 km · interior o exterior"),
         ).toBeInTheDocument();
-        expect(
-            screen.getByRole("link", { name: /Ajustar/ }),
-        ).toBeInTheDocument();
+        const preferencesCard = screen.getByRole("link", { name: /Tus preferencias/ });
+        expect(preferencesCard).toHaveClass("panel--action", "prefs");
+        expect(preferencesCard).toHaveAttribute("href", "/perfil");
+        expect(preferencesCard.querySelector("button")).not.toBeInTheDocument();
+        expect(preferencesCard.querySelector(".surprise__tile .icon-settings")).toHaveAttribute("aria-hidden", "true");
+        expect(preferencesCard.querySelector(".panel__title")).toHaveTextContent("Tus preferencias");
+        expect(preferencesCard.querySelector(".surprise__text > .muted")).toHaveTextContent(
+            "45 min · hasta 3 km · interior o exterior",
+        );
+        expect(preferencesCard.querySelector(".prefs__action")).not.toBeInTheDocument();
     });
 
     it("enlaza con el asistente de rutas", () => {
         renderAt("/");
-        expect(
-            screen.getByRole("link", { name: /Asistente de rutas/ }),
-        ).toHaveAttribute("href", "/asistente");
+        const assistantCard = screen.getByRole("link", { name: /Asistente de rutas/ });
+        expect(assistantCard).toHaveAttribute("href", "/asistente");
+        expect(assistantCard).toHaveClass("surprise", "assistant-link");
+        expect(assistantCard.querySelector(".surprise__tile .icon-navigation")).toHaveAttribute("aria-hidden", "true");
+        expect(assistantCard.parentElement).toHaveClass("home__secondary");
     });
 });
 

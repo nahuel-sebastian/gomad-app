@@ -5,6 +5,7 @@ import { formatDistance, formatMinutes } from "../lib/format";
 import { AVOID_LABELS, PASS_BY_LABELS } from "../lib/labels";
 import { useAppState } from "../state/context";
 import ErrorMessage from "./ErrorMessage";
+import Icon from "./Icon";
 import LocationPicker from "./LocationPicker";
 import MapView from "./MapView";
 import PageHeading from "./PageHeading";
@@ -277,7 +278,10 @@ export default function Assistant() {
                                         checked={passBy.includes(p)}
                                         onChange={() => setPassBy(toggle(passBy, p))}
                                     />
-                                    <span>{PASS_BY_LABELS[p]}</span>
+                                    <span className="option__label">
+                                        {p === "supermarket" && <Icon name="shopping_cart" />}
+                                        {PASS_BY_LABELS[p]}
+                                    </span>
                                 </label>
                             ))}
                         </div>

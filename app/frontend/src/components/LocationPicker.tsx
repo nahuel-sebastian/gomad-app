@@ -2,6 +2,7 @@ import { useId, useRef, useState, type FormEvent } from "react";
 import type { LocationCandidate } from "../api/types";
 import { currentLocation, isSampleLocation, searchLocation } from "../data/location";
 import { useAppState } from "../state/context";
+import Icon from "./Icon";
 
 type SearchState =
     | { status: "idle" }
@@ -115,27 +116,36 @@ export default function LocationPicker({ onPicked, highlight }: LocationPickerPr
                 <label htmlFor={inputId} className="sr-only">
                     Escribe una dirección o un municipio
                 </label>
-                <input
-                    id={inputId}
-                    className="field__input gomad-field gomad-field-location-search"
-                    type="text"
-                    autoComplete="off"
-                    maxLength={200}
-                    placeholder="Escribe una dirección o un municipio"
-                    value={text}
-                    onChange={(e) => setText(e.target.value)}
-                />
-                <div className="location__actions">
-                    <button type="submit" className="button gomad-action gomad-action-search-location">
+                <div className="location__search">
+                    <input
+                        id={inputId}
+                        className="field__input gomad-field gomad-field-location-search"
+                        type="text"
+                        autoComplete="off"
+                        maxLength={200}
+                        placeholder="Escribe una dirección o un municipio"
+                        value={text}
+                        onChange={(e) => setText(e.target.value)}
+                    />
+                    <button type="submit" className="button location__search-button gomad-action gomad-action-search-location">
+                        <Icon name="search" />
                         <span>Buscar</span>
                     </button>
-                    <button type="button" className="button button--primary gomad-action gomad-action-use-location" onClick={locate} disabled={locating}>
-                        <span>{locating ? "Buscando tu ubicación…" : "Usar mi ubicación"}</span>
+                </div>
+                <div className="location__actions">
+                    <button
+                        type="button"
+                        className="button button--primary gomad-action gomad-action-use-location"
+                        aria-label={locating ? "Buscando tu ubicación…" : "Usar mi ubicación"}
+                        onClick={locate}
+                        disabled={locating}>
+                        <Icon name="location_on" />
+                        <span>{locating ? "Buscando…" : "Usar ubicación"}</span>
                     </button>
                 </div>
             </form>
 
-            <p className="location__status" role="status" aria-live="polite">
+            <p className={`location__status${picked ? " sr-only" : ""}`} role="status" aria-live="polite">
                 {announcement}
             </p>
 

@@ -9,7 +9,7 @@ function refreshText(source: SourceInfo) {
     if (!source.last_refresh) {
         return "Sin descargar todavía";
     }
-    return `Actualizado ${formatTimeAgo(source.last_refresh)}`;
+    return formatTimeAgo(source.last_refresh);
 }
 
 function failedAfterRefresh(source: SourceInfo) {
@@ -58,20 +58,26 @@ export default function Sources() {
                                 <th scope="col" role="columnheader">Fuente</th>
                                 <th scope="col" role="columnheader">Publicador</th>
                                 <th scope="col" role="columnheader">Licencia</th>
-                                <th scope="col" role="columnheader">Actualizado</th>
+                                <th scope="col" role="columnheader">Última actualización</th>
                             </tr>
                         </thead>
                         <tbody role="rowgroup">
                             {sources.data.sources.map((s) => (
                                 <tr key={s.id} role="row">
                                     <td role="cell" data-label="Fuente">
-                                        <a href={s.url} className="sources-table__link gomad-action gomad-action-open-source" rel="noreferrer noopener">
+                                        <a
+                                            href={s.url}
+                                            className="sources-table__link gomad-sources__link gomad-action gomad-action-open-source"
+                                            target="_blank"
+                                            rel="noreferrer noopener"
+                                        >
                                             {s.name}
+                                            <span className="sr-only"> (se abre en una pestaña nueva)</span>
                                         </a>
                                     </td>
                                     <td role="cell" data-label="Publicador">{s.publisher}</td>
                                     <td role="cell" data-label="Licencia">{s.license}</td>
-                                    <td role="cell" data-label="Actualizado">
+                                    <td role="cell" data-label="Última actualización">
                                         {refreshText(s)}
                                         {failedAfterRefresh(s) && (
                                             <span className="sources-table__failure">

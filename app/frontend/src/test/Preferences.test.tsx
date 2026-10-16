@@ -17,10 +17,20 @@ describe("Perfil", () => {
         const companions = screen.getByRole("group", { name: "Perfil (opcional)" });
         expect(within(companions).getAllByRole("checkbox")).toHaveLength(2);
         expect(within(companions).getAllByRole("button")).toHaveLength(3);
+        expect(companions.querySelector(".icon-pets")).toBeInTheDocument();
+        expect(companions.querySelector(".icon-family")).toBeInTheDocument();
+        expect(companions.querySelector(".icon-elderly")).toBeInTheDocument();
+        expect(companions.querySelector(".icon-air")).toBeInTheDocument();
+        expect(companions.querySelectorAll(".icon[aria-hidden='true']")).toHaveLength(5);
         expect(screen.getByRole("slider", { name: "Tiempo disponible" })).toHaveAttribute(
             "aria-valuetext",
             "45 minutos",
         );
+        const durationSlider = screen.getByRole("slider", { name: "Tiempo disponible" });
+        const durationControl = durationSlider.closest(".pref-slider")!;
+        expect(within(durationControl).getByText("45 min")).toBeInTheDocument();
+        expect(within(durationControl).getByText("10 min")).toBeInTheDocument();
+        expect(within(durationControl).getByText("180 min")).toBeInTheDocument();
         expect(screen.getByRole("slider", { name: "Distancia máxima a pie" })).toHaveAttribute(
             "aria-valuetext",
             "3 km",
@@ -29,6 +39,11 @@ describe("Perfil", () => {
             "aria-valuetext",
             "Próximas 3 horas",
         );
+        const windowSlider = screen.getByRole("slider", { name: "Ventana horaria" });
+        const windowControl = windowSlider.closest(".pref-slider")!;
+        expect(within(windowControl).getByText("3h")).toBeInTheDocument();
+        expect(within(windowControl).getByText("1h")).toBeInTheDocument();
+        expect(within(windowControl).getByText("12h")).toBeInTheDocument();
         const weights = await screen.findAllByRole("slider", { name: /^Importancia de/ });
         expect(weights).toHaveLength(5);
         expect(screen.getByRole("slider", { name: "Importancia de adecuación a la actividad" })).toBeInTheDocument();
@@ -56,12 +71,16 @@ describe("Perfil", () => {
 
     it("ajusta los tres filtros por sus pasos con botones accesibles", async () => {
         const { user } = renderAt("/perfil");
+        expect(screen.getByRole("button", { name: "Aumentar tiempo disponible" }).querySelector(".icon-add_24dp_1F1F1F_FILL1_wght400_GRAD0_opsz24")).toBeInTheDocument();
+        expect(screen.getByRole("button", { name: "Disminuir tiempo disponible" }).querySelector(".icon-remove_24dp_1F1F1F_FILL1_wght400_GRAD0_opsz24")).toBeInTheDocument();
         await user.click(screen.getByRole("button", { name: "Aumentar tiempo disponible" }));
         expect(screen.getByRole("slider", { name: "Tiempo disponible" })).toHaveAttribute("aria-valuetext", "50 minutos");
+        expect(screen.getByRole("slider", { name: "Tiempo disponible" }).closest(".pref-slider")).toHaveTextContent("50 min");
         await user.click(screen.getByRole("button", { name: "Disminuir distancia máxima a pie" }));
         expect(screen.getByRole("slider", { name: "Distancia máxima a pie" })).toHaveAttribute("aria-valuetext", "2,5 km");
         await user.click(screen.getByRole("button", { name: "Aumentar ventana horaria" }));
         expect(screen.getByRole("slider", { name: "Ventana horaria" })).toHaveAttribute("aria-valuetext", "Próximas 4 horas");
+        expect(screen.getByRole("slider", { name: "Ventana horaria" }).closest(".pref-slider")).toHaveTextContent("4h");
     });
 
     it("permite elegir varios acompañantes y activar o quitar un perfil", async () => {
