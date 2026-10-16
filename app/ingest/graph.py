@@ -43,12 +43,17 @@ def index_nodes(nodes, edges):
     return n.rename(columns={"id": "osm_id"})[["node", "osm_id", "lon", "lat"]], e
 
 
-def edge_factors(edges, green, poi, config, has_green, covered=None):
-    """Factores por tramo. covered: poligonos de los municipios con datos de verde (VPLA); fuera, NaN."""
+def edge_factors(edges, green, poi, config, has_green, covered=None, osm_green=None, osm_covered=None):
+    """Factores por tramo. covered: poligonos de los municipios con datos de verde (VPLA); fuera, NaN.
+
+    osm_green / osm_covered: poligonos verdes de OSM y municipios sin VPLA que tienen alguno; los tramos
+    que quedan en NaN y caen en osm_covered toman el verde de OSM (S-R1). Fuera de eso, NaN (nunca 0).
+    """
     e = edges.to_crs(25830).reset_index(drop=True)
     e["length_m"] = e.length
     e["traffic"] = (e["highway"].astype(str).map(config["traffic_by_highway"])
                     .fillna(config["default_traffic"]).astype(float))
+    e["green_pct"] = np.nan
     if has_green and len(green):
         e["green_pct"] = (_green_length(e, green.to_crs(25830)) / e["length_m"]).clip(0, 1)
         if covered is not None:
@@ -56,8 +61,15 @@ def edge_factors(edges, green, poi, config, has_green, covered=None):
             middle = gpd.GeoDataFrame(geometry=e.geometry.interpolate(0.5, normalized=True), crs=25830)
             inside = gpd.sjoin(middle, covered[["geometry"]].to_crs(25830), how="inner", predicate="within")
             e.loc[~e.index.isin(inside.index), "green_pct"] = np.nan
-    else:
-        e["green_pct"] = np.nan
+    if osm_green is not None and len(osm_green) and osm_covered is not None and len(osm_covered):
+        # municipios sin VPLA: verde de OSM, solo donde el municipio tiene algun poligono verde de OSM
+        missing = e[e["green_pct"].isna()]
+        middle = gpd.GeoDataFrame(geometry=missing.geometry.interpolate(0.5, normalized=True), crs=25830)
+        inside = gpd.sjoin(middle, osm_covered[["geometry"]].to_crs(25830), how="inner", predicate="within")
+        idx = inside.index.unique()
+        if len(idx):
+            sub = e.loc[idx]
+            e.loc[idx, "green_pct"] = (_green_length(sub, osm_green.to_crs(25830)) / sub["length_m"]).clip(0, 1)
     p = poi.to_crs(25830)
     if "working" in p:
         # CLAUDE.md §6.1: la ruta solo cuenta working IS NOT FALSE (las fuentes cerradas se muestran, no cuentan)
@@ -102,6 +114,15 @@ def _green_length(e, zones):
     return result
 
 
+def osm_green_coverage(munis, vpla_codes, osm_green):
+    """Municipios sin VPLA que tocan algun poligono verde de OSM (alli el verde de OSM es el dato)."""
+    m = munis[~munis["ine_code"].isin(vpla_codes)]
+    if m.empty or osm_green is None or osm_green.empty:
+        return m.iloc[0:0]
+    hit = gpd.sjoin(m[["ine_code", "geometry"]], osm_green[["geometry"]].to_crs(m.crs), predicate="intersects")
+    return m[m["ine_code"].isin(set(hit["ine_code"]))]
+
+
 def _haversine_m(lon1, lat1, lon2, lat2):
     p1, p2 = math.radians(lat1), math.radians(lat2)
     dp, dl = p2 - p1, math.radians(lon2 - lon1)
@@ -109,11 +130,12 @@ def _haversine_m(lon1, lat1, lon2, lat2):
     return 2 * 6371008.8 * math.asin(math.sqrt(a))
 
 
-def read_osm(pbf, bbox):
+def read_osm(pbf, bbox, green_tags=None):
     """Una sola lectura del extracto: red peatonal dentro de la caja y mobiliario de toda la Comunidad.
 
-    Devuelve (nodes, edges, osm): nodes con id/lon/lat, edges con u/v/highway/geometry y osm con
-    los elementos de mobiliario (osm_type, osm_id, key, value, coords).
+    Devuelve (nodes, edges, osm, green): nodes con id/lon/lat, edges con u/v/highway/geometry, osm con
+    los elementos de mobiliario (osm_type, osm_id, key, value, coords) y green con los poligonos de las
+    areas cuyas etiquetas estan en green_tags ({clave: [valores]}; vacio si es None).
     """
     import osmium
 
@@ -162,14 +184,35 @@ def read_osm(pbf, bbox):
                 self.nodes[v] = (lv.lon, lv.lat)
                 self.rows.append((u, v, highway, LineString([(lu.lon, lu.lat), (lv.lon, lv.lat)])))
 
-    r = Reader()
+    green_pairs = {(k, v) for k, values in (green_tags or {}).items() for v in values}
+    wkb_factory = osmium.geom.WKBFactory()
+
+    class GreenReader(Reader):
+        # solo se define area si hace falta: pyosmium ensambla multipoligonos con una segunda pasada
+        def __init__(self):
+            super().__init__()
+            self.green = []
+
+        def area(self, a):
+            if any((t.k, t.v) in green_pairs for t in a.tags):
+                try:
+                    self.green.append((a.orig_id(), wkb_factory.create_multipolygon(a)))
+                except RuntimeError:
+                    pass                        # geometria rota en OSM: se salta
+
+    r = GreenReader() if green_pairs else Reader()
     r.apply_file(str(pbf), locations=True)
     nodes = pd.DataFrame({"id": list(r.nodes), "lon": [c[0] for c in r.nodes.values()],
                           "lat": [c[1] for c in r.nodes.values()]})
     edges = gpd.GeoDataFrame(pd.DataFrame(r.rows, columns=["u", "v", "highway", "geometry"]),
                              geometry="geometry", crs=4326)
     osm = pd.DataFrame(r.pois, columns=["osm_type", "osm_id", "key", "value", "coords"])
-    return nodes, edges, osm
+    rows = getattr(r, "green", [])
+    green = gpd.GeoDataFrame({"osm_id": [i for i, _ in rows]},
+                             geometry=shapely.from_wkb([bytes.fromhex(w) for _, w in rows]), crs=4326)
+    if bbox and len(green):
+        green = green.cx[minx:maxx, miny:maxy]
+    return nodes, edges, osm, green.reset_index(drop=True)
 
 
 def _poi_point(coords):
@@ -195,7 +238,7 @@ def osm_pois(osm):
 
 def build_graph(pbf, bbox, out_dir, config):
     t0 = time.perf_counter()
-    nodes, edges, osm = read_osm(pbf, bbox)
+    nodes, edges, osm, osm_green = read_osm(pbf, bbox, config.get("osm_green"))
     edges = edges[edges["u"] != edges["v"]]
     # mobiliario OSM -> poi.parquet (una sola lectura del extracto; toda la Comunidad)
     region = municipalities().union_all()
@@ -207,11 +250,15 @@ def build_graph(pbf, bbox, out_dir, config):
     poi["working"] = poi["working"].astype("boolean")
     write(poi, "poi")
     green = gpd.read_parquet(CLEAN / "green.parquet")
-    covered = municipalities()[municipalities()["ine_code"].isin(set(green["ine_code"].dropna()))]
+    munis = municipalities()
+    vpla_codes = set(green["ine_code"].dropna())
+    covered = munis[munis["ine_code"].isin(vpla_codes)]
+    osm_covered = osm_green_coverage(munis, vpla_codes, osm_green)
     if bbox:
         green = green.cx[bbox[0]:bbox[2], bbox[1]:bbox[3]]
         poi = poi.cx[bbox[0]:bbox[2], bbox[1]:bbox[3]]
-    f = edge_factors(edges, green, poi, config, has_green=len(green) > 0, covered=covered)
+    f = edge_factors(edges, green, poi, config, has_green=len(green) > 0, covered=covered,
+                     osm_green=osm_green, osm_covered=osm_covered)
     n, e = index_nodes(nodes, f)
     out_dir.mkdir(parents=True, exist_ok=True)
     n.to_parquet(out_dir / "nodes.parquet", index=False)
@@ -219,7 +266,8 @@ def build_graph(pbf, bbox, out_dir, config):
     cols = ["u", "v", "length_m", "highway", "traffic", "green_pct", "near_fountain", "near_bench", "near_aed",
             "fountain_id", "bench_id", "aed_id", "geom"]
     pd.DataFrame(e[cols]).to_parquet(out_dir / "edges.parquet", index=False)
-    return {"nodes": len(n), "edges": len(e), "osm_poi": len(new_poi),
+    return {"nodes": len(n), "edges": len(e), "osm_poi": len(new_poi), "osm_green": len(osm_green),
+            "osm_green_municipalities": len(osm_covered),
             "seconds": round(time.perf_counter() - t0, 1)}
 
 
