@@ -9,9 +9,17 @@ SPA móvil de GoMad (React 19 + Vite 8 + TypeScript 6 + React Router 7). Documen
 ## Arrancar
 
 ```bash
-npm install
-npm run dev        # http://localhost:5173
+npm ci
+npm run dev        # http://localhost:5173, con la API local de uvicorn en :8000
 ```
+
+**Solo front, contra la API desplegada** (sin Python, Docker ni datos en tu PC):
+
+```bash
+GOMAD_API=https://<YOUR_DOMAIN> npm run dev
+```
+
+Vite envía `/api/*` a la VM. La API solo lee datos, así que no se puede romper nada; se ve el backend desplegado (no el de una rama sin fusionar) y, si la VM está apagada, las pantallas muestran el error de carga. Los cambios van por rama y PR, nunca en la VM.
 
 Paso 1 (15/10): la app funciona **solo con datos de ejemplo** de `src/data/mock/`, sin llamadas de red. En «Fuentes y aviso» hay un selector «Datos de ejemplo» con los escenarios de las personas de la demo (Carmen, Lucía, Dani, Ana, familia que se muda).
 
