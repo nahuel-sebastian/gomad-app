@@ -1,0 +1,67 @@
+# Indicadores de la vista de municipio (F5, RF-17) y encaje con preferencias (RF-18).
+# DEC-09 (16/10): docs/decisiones-pendientes.md D-09 y ficha B1 de docs/trabajo-paralelo.md.
+# Lo valida ingest/indicators.py; lo calcula build_db.py (Task 35) -> tabla municipality_indicator.
+#
+# no_rows: que vale un municipio sin filas en la fuente.
+#   zero -> registro regional completo: sin filas = 0.
+#   null -> fuente parcial: fuera de su cobertura = NULL («sin datos»).
+# source: ids de app/ingest/scripts/download_sources.py (o la tabla de la que sale).
+# year: el del dato si la fuente lo da; si no, null y la fecha sale de source_date (RF-19).
+
+population_year: 2025   # padron (clean/population.parquet) para las tasas por 1.000 hab.
+
+indicators:
+  # n.º de filas por CMUN
+  - {key: sport_facilities, category: sport, label: "Instalaciones deportivas",
+     source: [nmc_deporte], unit: "instalaciones", no_rows: "null", year: null}
+  # n.º de filas por CMUN / poblacion x 1000
+  - {key: sport_facilities_per_1000, category: sport, label: "Instalaciones deportivas por 1.000 hab.",
+     source: [nmc_deporte, padron], unit: "por 1.000 hab.", no_rows: "null", year: null}
+  # n.º de las actividades de activities.yaml con al menos un destino en el municipio
+  - {key: catalog_activities, category: sport, label: "Actividades del catálogo disponibles",
+     source: [destination_activity], unit: "de 8", no_rows: "zero", year: null}
+  # suma de area_m2 de clean/green.parquet / poblacion; NULL fuera de VPLA
+  - {key: green_m2_per_inhabitant, category: nature, label: "Zonas verdes por habitante",
+     source: [vpla_redes, padron], unit: "m²/hab.", no_rows: "null", year: 2025}
+  # suma de NM_LONG / 1000 por CD_MUNI (comprobar metros); ignorar los CD_MUNI 289xx
+  - {key: drove_roads_km, category: nature, label: "Vías pecuarias",
+     source: [vias_pecuarias], unit: "km", no_rows: "zero", year: null}
+  # n.º de areas por municipio
+  - {key: recreation_areas, category: nature, label: "Áreas recreativas",
+     source: [areas_recreativas], unit: "áreas", no_rows: "zero", year: null}
+  # n.º por cruce espacial con municipality.geom (CMUN trae 209 codigos) / poblacion x 1000
+  - {key: bus_stops_per_1000, category: mobility, label: "Paradas de autobús por 1.000 hab.",
+     source: [nmc_busparadas, padron], unit: "por 1.000 hab.", no_rows: "zero", year: null}
+  # n.º de estaciones de metro + cercanias por CMUN
+  - {key: rail_stations, category: mobility, label: "Estaciones de metro y cercanías",
+     source: [nmc_estmetro, nmc_estcerca], unit: "estaciones", no_rows: "zero", year: null}
+  # centro_nro_registro distintos con centro_tipo «Centro de salud» o «Consultorio de atencion primaria»
+  - {key: health_centres, category: health, label: "Centros de salud y consultorios",
+     source: [sanitarios], unit: "centros", no_rows: "zero", year: null}
+  # n.º por cruce espacial / poblacion x 1000
+  - {key: pharmacies_per_1000, category: health, label: "Farmacias por 1.000 hab.",
+     source: [farmacias, padron], unit: "por 1.000 hab.", no_rows: "zero", year: null}
+  # n.º por cruce espacial (no municipio_codigo) / poblacion x 1000
+  - {key: aed_per_1000, category: health, label: "Desfibriladores por 1.000 hab.",
+     source: [desfibriladores, padron], unit: "por 1.000 hab.", no_rows: "zero", year: null}
+  # n.º con SITUACIÓN = ALTA por CDMUNI
+  - {key: schools, category: education, label: "Centros educativos",
+     source: [educativos], unit: "centros", no_rows: "zero", year: null}
+  # % de nucleos con CALIDADUMT = «BUENO»; NULL fuera de EIEL
+  - {key: good_3g_pct, category: connectivity, label: "Núcleos con buena cobertura 3G",
+     source: [eiel_nucleos], unit: "%", no_rows: "null", year: 2023}
+  # n.º sin los «RESERVADO» (direccion_coor_x) por municipio_codigo
+  - {key: social_centres, category: social, label: "Centros de atención social",
+     source: [atencion_social], unit: "centros", no_rows: "zero", year: null}
+
+fit:                    # encaje con preferencias (RF-18): frases sin nota, orden ni percentil
+  own_criterion: true
+  source: "DEC-09 (16/10): qué indicador mira cada perfil y cada «Salgo con…» es criterio propio del equipo"
+  met_if_above: 0       # un indicador se cumple si su valor es mayor que esto; NULL = «sin datos»
+  activities: destination_activity   # cada actividad elegida: n.º de destinos del municipio en esa tabla
+  profiles:             # perfiles del contrato (Profile); general y sensitive no miran ninguno
+    senior: [health_centres, aed_per_1000]
+    stroller: [green_m2_per_inhabitant]
+  companions:           # «Salgo con…» del contrato (Companion)
+    kids: [schools]
+    dog: {route_poi: dog_area, when_absent: no_data}   # OSM/Ayto. parcial: «Sí» o «Sin datos», nunca «No»
