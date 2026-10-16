@@ -301,8 +301,12 @@ class _Run:
             out.append("Aire: solo hay medición para parte de la ventana; se usa la última para la nota, no para elegir la hora.")
         if not self.heat:
             out.append("Calor: no hay umbral de calor cargado; no se evalúa.")
-        elif any(not x.covered and any(h.ctx is not None and is_heat_day(h.ctx) for h in x.hours) for x in picked)                 and not any(r.startswith("Día de calor") for x in picked for h in x.hours for r in h.reasons):
-            out.append("Día de calor en tu zona")      # sin perfil de riesgo: solo aviso (con riesgo, va en cada hora)
+        else:
+            heat_day = any(not x.covered and any(h.ctx is not None and is_heat_day(h.ctx) for h in x.hours)
+                           for x in picked)
+            blocked = any(r.startswith("Día de calor") for x in picked for h in x.hours for r in h.reasons)
+            if heat_day and not blocked:
+                out.append("Día de calor en tu zona")  # sin perfil de riesgo: solo aviso (con riesgo, va en cada hora)
         if any(x.approximate for x in picked):
             detour = ex.fmt_number(self.cfg["recommend"]["straight_line_detour"])
             out.append(f"Distancias aproximadas donde no hay red peatonal cargada (línea recta × {detour}, criterio propio).")
