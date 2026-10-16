@@ -245,6 +245,7 @@ Cada paso: objetivo · ficheros · qué hacer · terminado cuando · cómo proba
 **Terminado cuando:** `curl -I https://<dominio>/api/health` → 200 con certificado válido; la SPA carga en el móvil; recargar `/resultados` no da 404.
 **Depende de:** paso 0 (D1), VM (Task 6), dominio (DEC-10).
 **Estado (15/10, paso 2):** HTTP listo: en la VM, desde `~/GoMad`, `app/deploy/deploy.sh` actualiza, compila y comprueba `/` y `/api/health` (pendiente de confirmar en la VM). Para HTTPS solo falta el dominio: `DOMAIN=<dominio>` en `app/deploy/.env` y volver a ejecutar el guion con `GOMAD_URL=https://<dominio>`.
+**Estado (16/10): ✅ hecho.** https://<YOUR_DOMAIN> con certificado de Let's Encrypt; HTTP redirige a HTTPS y recargar `/resultados/x` da 200 (`docs/arquitectura.md` §6.1). Falta confirmar en un móvil que pide la ubicación.
 
 ### Paso 6 — Ruta y Municipio (sáb 17) · S-F1, S-F2
 - **Ruta (S-F1):** `src/screens/Route.tsx` según `app/frontend/docs/pantallas.md` §4. **Terminado:** descripción en texto completa sin mirar el mapa; aviso si `approximate`; Vitest + axe.
