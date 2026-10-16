@@ -1,5 +1,7 @@
 import geopandas as gpd
 import pandas as pd
+import shapely
+from shapely.geometry import LineString, Point, Polygon
 
 from common import RAW, assign_municipality, filter_region, ine_code, latest_csv, points, read_csv, to_float, write
 from normalize import normalizer
@@ -19,6 +21,14 @@ COVERED_TYPES = ("CUBIERT", "GIMNASIO")
 # nombre por defecto cuando la fuente no trae ninguno (DS_USO_DETA vacio en VPLA)
 DEFAULT_NAMES = {"facility": "Instalación deportiva", "park": "Zona verde", "recreation_area": "Área recreativa"}
 FLAGS = ("covered", "accessible", "water")
+
+# OSM filtrado como fuente de destinos (decidido el 16/10, ficha B3): solo lo que tiene poca duda de ser publico
+OSM_PBF = RAW / "osm" / "madrid-latest.osm.pbf"
+OSM_CENTRES = ("sports_centre", "stadium")            # con sport=* y name
+OSM_PITCH_SPORTS = ("tennis", "basketball", "padel")  # leisure=pitch, con name o access=yes|public
+OSM_OPEN_ACCESS = ("yes", "public")
+OSM_DEFAULT_NAMES = {"tennis": "Pista de tenis (OpenStreetMap)", "basketball": "Pista de baloncesto (OpenStreetMap)",
+                     "padel": "Pista de pádel (OpenStreetMap)", "swimming": "Piscina (OpenStreetMap)"}
 
 
 def eiel_covered(facility_type, sup_cubi):
@@ -75,13 +85,103 @@ def city_council(source):
     return g
 
 
+def _sports(value):
+    return [s.strip().lower() for s in str(value or "").split(";") if s.strip()]
+
+
+def osm_sport_tags(tags):
+    """Deportes del elemento si entra en el catalogo (ficha B3), None si no."""
+    leisure, name, access = tags.get("leisure"), str(tags.get("name") or "").strip(), tags.get("access")
+    sports = _sports(tags.get("sport"))
+    if leisure in OSM_CENTRES:
+        return sports if sports and name else None
+    if leisure == "pitch":
+        kept = [s for s in sports if s in OSM_PITCH_SPORTS]
+        return kept if kept and (name or access in OSM_OPEN_ACCESS) else None
+    if leisure == "swimming_pool":
+        # nunca las privadas ni las sin nombre (comunidades de vecinos): solo con nombre o access=public
+        if access == "private" or not (name or access == "public"):
+            return None
+        return ["swimming"]
+    return None
+
+
+def osm_default_name(tags, sports):
+    name = str(tags.get("name") or "").strip()
+    return name or next((OSM_DEFAULT_NAMES[s] for s in sports if s in OSM_DEFAULT_NAMES), "Instalación deportiva")
+
+
+def _osm_row(kind, osm_id, tags, sports, geometry):
+    covered = True if "yes" in (tags.get("covered"), tags.get("indoor")) else False if tags.get("leisure") == "pitch" else None
+    return {"id": f"osm:{kind}/{osm_id}", "source": "osm_sport", "source_id": f"{kind}/{osm_id}", "type": "facility",
+            "name": osm_default_name(tags, sports), "sports": sports, "facility_type": tags.get("leisure"),
+            "covered": covered, "access": tags.get("access"), "geometry": geometry}
+
+
+def _way_point(coords):
+    if len(coords) >= 4 and coords[0] == coords[-1]:
+        poly = Polygon(coords)
+        if poly.is_valid:
+            return poly.representative_point()
+    return LineString(coords).interpolate(0.5, normalized=True) if len(coords) > 1 else Point(coords[0])
+
+
+def osm_sports(pbf):
+    """Destinos deportivos de OSM filtrado (nodos, vias y multipoligonos) como puntos EPSG:4326."""
+    import osmium
+
+    wkb_factory = osmium.geom.WKBFactory()
+
+    class Reader(osmium.SimpleHandler):
+        def __init__(self):
+            super().__init__()
+            self.rows = []
+
+        def node(self, n):
+            tags = dict(n.tags)
+            sports = osm_sport_tags(tags) if "leisure" in tags else None
+            if sports and n.location.valid():
+                self.rows.append(_osm_row("node", n.id, tags, sports, Point(n.location.lon, n.location.lat)))
+
+        def way(self, w):
+            tags = dict(w.tags)
+            sports = osm_sport_tags(tags) if "leisure" in tags else None
+            if sports:
+                coords = [(n.location.lon, n.location.lat) for n in w.nodes if n.location.valid()]
+                if coords:
+                    self.rows.append(_osm_row("way", w.id, tags, sports, _way_point(coords)))
+
+        def area(self, a):
+            if a.from_way():
+                return                      # las vias cerradas ya entran por way()
+            tags = dict(a.tags)
+            sports = osm_sport_tags(tags) if "leisure" in tags else None
+            if sports:
+                try:
+                    geom = shapely.from_wkb(bytes.fromhex(wkb_factory.create_multipolygon(a)))
+                except RuntimeError:
+                    return                  # multipoligono roto en OSM: se salta
+                self.rows.append(_osm_row("relation", a.orig_id(), tags, sports, geom.representative_point()))
+
+    r = Reader()
+    r.apply_file(str(pbf), locations=True)
+    columns = ["id", "source", "source_id", "type", "name", "sports", "facility_type", "covered", "access", "geometry"]
+    g = gpd.GeoDataFrame(pd.DataFrame(r.rows, columns=columns), geometry="geometry", crs=4326)
+    g["ine_code"] = None
+    return g
+
+
 @normalizer("destination_raw")
 def run():
     from normalize.green import green_destinations   # los parques tambien son destinos
     parts = [eiel_sports(), nmc_sports()] + [city_council(s) for s in ("ay_polideportivos", "ay_idb", "ay_piscinas")]
     parts += green_destinations()
+    if OSM_PBF.exists():
+        parts.append(osm_sports(OSM_PBF))   # id propio osm:<tipo>/<id>, como route_poi
+    else:
+        print(f"   aviso: falta {OSM_PBF}; destination_raw sin destinos de OSM")
     alldest = pd.concat([p.reindex(columns=COLUMNS) for p in parts], ignore_index=True)
-    alldest["id"] = alldest["source"] + ":" + alldest["source_id"].astype(str)
+    alldest["id"] = alldest["id"].fillna(alldest["source"] + ":" + alldest["source_id"].astype(str))
     blank = alldest["name"].isna() | (alldest["name"].astype(str).str.strip() == "")
     alldest.loc[blank, "name"] = alldest.loc[blank, "type"].map(DEFAULT_NAMES)
     for col in FLAGS:

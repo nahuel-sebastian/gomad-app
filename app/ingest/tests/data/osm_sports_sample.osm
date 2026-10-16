@@ -1,0 +1,120 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<osm version="0.6" generator="gomad-tests">
+  <node id="101" version="1" lat="40.300000" lon="-3.740000"/>
+  <node id="102" version="1" lat="40.300000" lon="-3.739500"/>
+  <node id="103" version="1" lat="40.300500" lon="-3.739500"/>
+  <node id="104" version="1" lat="40.300500" lon="-3.740000"/>
+  <node id="105" version="1" lat="40.300000" lon="-3.738000"/>
+  <node id="106" version="1" lat="40.300000" lon="-3.737500"/>
+  <node id="107" version="1" lat="40.300500" lon="-3.737500"/>
+  <node id="108" version="1" lat="40.300500" lon="-3.738000"/>
+  <node id="109" version="1" lat="40.300000" lon="-3.736000"/>
+  <node id="110" version="1" lat="40.300000" lon="-3.735500"/>
+  <node id="111" version="1" lat="40.300500" lon="-3.735500"/>
+  <node id="112" version="1" lat="40.300500" lon="-3.736000"/>
+  <node id="113" version="1" lat="40.300000" lon="-3.734000"/>
+  <node id="114" version="1" lat="40.300000" lon="-3.733500"/>
+  <node id="115" version="1" lat="40.300500" lon="-3.733500"/>
+  <node id="116" version="1" lat="40.300500" lon="-3.734000"/>
+  <node id="117" version="1" lat="40.300000" lon="-3.732000"/>
+  <node id="118" version="1" lat="40.300000" lon="-3.731500"/>
+  <node id="119" version="1" lat="40.300500" lon="-3.731500"/>
+  <node id="120" version="1" lat="40.300500" lon="-3.732000"/>
+  <node id="121" version="1" lat="40.300000" lon="-3.730000"/>
+  <node id="122" version="1" lat="40.300000" lon="-3.729500"/>
+  <node id="123" version="1" lat="40.300500" lon="-3.729500"/>
+  <node id="124" version="1" lat="40.300500" lon="-3.730000"/>
+  <node id="125" version="1" lat="40.300000" lon="-3.728000"/>
+  <node id="126" version="1" lat="40.300000" lon="-3.727500"/>
+  <node id="127" version="1" lat="40.300500" lon="-3.727500"/>
+  <node id="128" version="1" lat="40.300500" lon="-3.728000"/>
+  <node id="129" version="1" lat="40.300000" lon="-3.726000"/>
+  <node id="130" version="1" lat="40.300000" lon="-3.725500"/>
+  <node id="131" version="1" lat="40.300500" lon="-3.725500"/>
+  <node id="132" version="1" lat="40.300500" lon="-3.726000"/>
+  <node id="8" version="1" lat="40.305000" lon="-3.720000">
+    <tag k="leisure" v="swimming_pool"/>
+    <tag k="name" v="Piscina Municipal El Carrascal"/>
+    <tag k="access" v="yes"/>
+  </node>
+  <way id="1" version="1">
+    <nd ref="101"/>
+    <nd ref="102"/>
+    <nd ref="103"/>
+    <nd ref="104"/>
+    <nd ref="101"/>
+    <tag k="leisure" v="sports_centre"/>
+    <tag k="sport" v="swimming;tennis"/>
+    <tag k="name" v="Forus Getafe"/>
+  </way>
+  <way id="2" version="1">
+    <nd ref="105"/>
+    <nd ref="106"/>
+    <nd ref="107"/>
+    <nd ref="108"/>
+    <nd ref="105"/>
+    <tag k="leisure" v="sports_centre"/>
+    <tag k="sport" v="tennis"/>
+  </way>
+  <way id="3" version="1">
+    <nd ref="109"/>
+    <nd ref="110"/>
+    <nd ref="111"/>
+    <nd ref="112"/>
+    <nd ref="109"/>
+    <tag k="leisure" v="pitch"/>
+    <tag k="sport" v="tennis"/>
+  </way>
+  <way id="4" version="1">
+    <nd ref="113"/>
+    <nd ref="114"/>
+    <nd ref="115"/>
+    <nd ref="116"/>
+    <nd ref="113"/>
+    <tag k="leisure" v="pitch"/>
+    <tag k="sport" v="basketball"/>
+    <tag k="access" v="public"/>
+  </way>
+  <way id="5" version="1">
+    <nd ref="117"/>
+    <nd ref="118"/>
+    <nd ref="119"/>
+    <nd ref="120"/>
+    <nd ref="117"/>
+    <tag k="leisure" v="pitch"/>
+    <tag k="sport" v="soccer"/>
+    <tag k="name" v="Campo de fútbol"/>
+  </way>
+  <way id="6" version="1">
+    <nd ref="121"/>
+    <nd ref="122"/>
+    <nd ref="123"/>
+    <nd ref="124"/>
+    <nd ref="121"/>
+    <tag k="leisure" v="swimming_pool"/>
+  </way>
+  <way id="7" version="1">
+    <nd ref="125"/>
+    <nd ref="126"/>
+    <nd ref="127"/>
+    <nd ref="128"/>
+    <nd ref="125"/>
+    <tag k="leisure" v="swimming_pool"/>
+    <tag k="name" v="Piscina comunitaria"/>
+    <tag k="access" v="private"/>
+  </way>
+  <way id="10" version="1">
+    <nd ref="129"/>
+    <nd ref="130"/>
+    <nd ref="131"/>
+    <nd ref="132"/>
+    <nd ref="129"/>
+  </way>
+  <relation id="9" version="1">
+    <member type="way" ref="10" role="outer"/>
+    <tag k="type" v="multipolygon"/>
+    <tag k="leisure" v="stadium"/>
+    <tag k="sport" v="athletics"/>
+    <tag k="name" v="Ciudad Deportiva Europa"/>
+  </relation>
+</osm>
