@@ -10,6 +10,7 @@ from main import app, get_repo
 from mini_data import NOW, ORIGIN, build_mini_data
 from repository import Repository
 from routing.store import GraphStore
+from services.municipality import municipality
 from services.recommend import recommend
 from services.route import route
 from services.sources import used_ids
@@ -32,7 +33,6 @@ def test_sources_all_have_license():
     ids = used_ids(cfg, settings.load("indicators"))
     assert {"aemet", "osm", "nmc_deporte", "sanitarios", "padron", "boe_ica", "sanidad_calor",
             "config:weights"} <= ids
-    assert "destination_activity" not in ids                     # tabla de build_db, no una fuente
     for sid in ids:
         entry = cfg["catalog"].get(sid)
         assert entry, f"{sid} sin entrada en catalog"
@@ -88,9 +88,19 @@ def test_every_response_source_is_listed(tmp_path):
         seen += [d for r in res.results for d in r.sources]
     seen += route(s.RouteRequest(origin=ORIGIN, destination=PARK), repo, graphs).sources
     seen += route(s.RouteRequest(origin=ORIGIN, destination={"lat": 40.95, "lon": -3.47}), repo, graphs).sources
+    for ind in municipality("28065", repo).indicators:
+        seen += [ind.source, *ind.extra_sources]
     listed = get_sources(base)
-    assert {"config:recommend", "config:straight_line", "config:weights", "osm", "eiel_parques"} <= {d.source for d in seen}
+    assert {"config:recommend", "config:straight_line", "config:weights", "osm", "eiel_parques",
+            "destination_activity", "padron"} <= {d.source for d in seen}
     for d in seen:
         assert d.source in listed, d.source
         # la etiqueta de la respuesta empieza por el nombre de /sources («… · estación X», «… × 1,3»)
         assert d.label.startswith(listed[d.source]["name"]), (d.label, listed[d.source]["name"])
+
+
+def test_nomecalles_license_says_no_open_license_found():
+    """Ruling (Task 38): Nomecalles no publica licencia localizable; la columna Licencia lo dice y cita la atribucion."""
+    entry = settings.load("sources")["catalog"]["nmc_deporte"]
+    assert "sin licencia abierta publicada" in entry["license"].lower()
+    assert "© Nomecalles" in entry["license"]

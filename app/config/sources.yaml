@@ -2,7 +2,8 @@
 # labels: texto de cada fuente para la persona (DataSource.label y nombre en /sources).
 # catalog: editor, licencia y URL de cada fuente usada; /sources las lista en este orden (B1 Task 38).
 # Licencias comprobadas el 16/10/2026: CKAN Comunidad y Ayuntamiento (package_show) e IDEM (CSW, ficha EIEL)
-# dicen CC BY 4.0. Nomecalles no publica licencia localizable: se cita su atribucion (Ruling de la Task 38).
+# dicen CC BY 4.0. Nomecalles no publica licencia localizable: se dice asi y se cita su atribucion (Ruling de la Task 38).
+# destination_activity es la tabla de build_db con el catalogo unificado: dato derivado propio (CC BY, CLAUDE.md §2.11).
 labels:
   eiel_deporte: "Instalaciones deportivas (EIEL 2023, Comunidad de Madrid)"
   eiel_parques: "Parques (EIEL 2023, Comunidad de Madrid)"
@@ -33,6 +34,7 @@ labels:
   atencion_social: "Centros de atención social (Comunidad de Madrid)"
   padron: "Padrón continuo por sexo (Comunidad de Madrid)"
   callejero: "Callejero (Comunidad de Madrid)"
+  destination_activity: "Catálogo unificado de destinos (elaboración propia con EIEL, Nomecalles, planeamiento y Ayuntamiento de Madrid)"
   boe_ica: "Índice Nacional de Calidad del Aire (BOE-A-2020-10426)"
   sanidad_calor: "Umbrales de calor (Plan Nacional de Exceso de Temperaturas 2026, Ministerio de Sanidad)"
   "config:weights": "Pesos por defecto de la nota (criterio propio)"
@@ -54,7 +56,7 @@ catalog:
   vias_pecuarias: {publisher: "Comunidad de Madrid (IDEM)", license: "CC BY 4.0",
                    url: "https://idem.comunidad.madrid/catalogocartografia"}
   nmc_deporte: &nomecalles {publisher: "Instituto de Estadística de la Comunidad de Madrid (Nomecalles)",
-                            license: "Atribución «© Nomecalles, Instituto de Estadística de la Comunidad de Madrid»",
+                            license: "Sin licencia abierta publicada; se cita «© Nomecalles, Instituto de Estadística de la Comunidad de Madrid»",
                             url: "https://gestiona.comunidad.madrid/nomecalles_web/"}
   nmc_parques: *nomecalles
   nmc_busparadas: *nomecalles
@@ -99,6 +101,8 @@ catalog:
             url: "https://www.boe.es/diario_boe/txt.php?id=BOE-A-2020-10426"}
   sanidad_calor: {publisher: "Ministerio de Sanidad", license: "Publicación oficial del Ministerio de Sanidad",
                   url: "https://www.sanidad.gob.es/areas/sanidadAmbiental/riesgosAmbientales/calorExtremo/publicaciones/docs/planNacionalExcesoTemperaturas_2026.pdf"}
+  destination_activity: {publisher: "Equipo GoMad (elaboración propia)", license: "CC BY 4.0",
+                         url: "https://<YOUR_DOMAIN>"}
   "config:weights": &own {publisher: "Equipo GoMad (criterio propio)", license: "CC BY 4.0",
                           url: "https://<YOUR_DOMAIN>"}
   "config:routing": *own

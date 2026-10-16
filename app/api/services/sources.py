@@ -13,11 +13,11 @@ THRESHOLD_REFERENCES = ("boe_ica", "sanidad_calor")
 
 
 def used_ids(sources_cfg, indicators_cfg):
-    """Fuentes usadas: las etiquetadas, las de los indicadores (sin tablas de build_db) y las de umbrales."""
+    """Fuentes usadas: las etiquetadas, las de los indicadores y las de umbrales."""
     ids = set(sources_cfg.get("labels", {})) | set(THRESHOLD_REFERENCES)
     for item in indicators_cfg.get("indicators", []):
         ids |= set(item.get("source") or [])
-    return ids - {"destination_activity"}
+    return ids
 
 
 def manifest_dates(data_dir):
