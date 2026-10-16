@@ -20,6 +20,13 @@ describe("Asistente de rutas", () => {
         await expectNoAxeViolations(container);
     });
 
+    it("avisa de que sus respuestas todavía son de ejemplo", () => {
+        renderAt("/asistente", { origin: SAMPLE_ORIGIN });
+        expect(screen.getByRole("note")).toHaveTextContent(
+            "Respuestas de ejemplo: el asistente todavía no está conectado al servidor.",
+        );
+    });
+
     it("interpreta el texto, rellena los controles y solo envia el texto", async () => {
         const spy = vi.spyOn(assistantApi, "interpret");
         const { user } = renderAt("/asistente", { origin: SAMPLE_ORIGIN });

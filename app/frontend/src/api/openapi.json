@@ -42,6 +42,44 @@
     }
    }
   },
+  "/recommend": {
+   "post": {
+    "summary": "Recommend",
+    "operationId": "recommend_recommend_post",
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/RecommendRequest"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/RecommendResponse"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
   "/location": {
    "get": {
     "summary": "Location",
@@ -66,44 +104,6 @@
        "application/json": {
         "schema": {
          "$ref": "#/components/schemas/LocationResponse"
-        }
-       }
-      }
-     },
-     "422": {
-      "description": "Validation Error",
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/HTTPValidationError"
-        }
-       }
-      }
-     }
-    }
-   }
-  },
-  "/recommend": {
-   "post": {
-    "summary": "Recommend",
-    "operationId": "recommend_recommend_post",
-    "requestBody": {
-     "content": {
-      "application/json": {
-       "schema": {
-        "$ref": "#/components/schemas/RecommendRequest"
-       }
-      }
-     },
-     "required": true
-    },
-    "responses": {
-     "200": {
-      "description": "Successful Response",
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/RecommendResponse"
         }
        }
       }
@@ -941,6 +941,37 @@
     ],
     "title": "InterpretResponse"
    },
+   "LineString": {
+    "properties": {
+     "type": {
+      "type": "string",
+      "enum": [
+       "LineString"
+      ],
+      "const": "LineString",
+      "title": "Type"
+     },
+     "coordinates": {
+      "items": {
+       "items": {
+        "type": "number"
+       },
+       "type": "array"
+      },
+      "type": "array",
+      "minItems": 2,
+      "title": "Coordinates"
+     }
+    },
+    "additionalProperties": false,
+    "type": "object",
+    "required": [
+     "type",
+     "coordinates"
+    ],
+    "title": "LineString",
+    "description": "GeoJSON LineString en EPSG:4326: [[lon, lat], ...]."
+   },
    "LocationCandidate": {
     "properties": {
      "label": {
@@ -1381,8 +1412,7 @@
       "title": "Kind"
      },
      "geometry": {
-      "type": "object",
-      "title": "Geometry"
+      "$ref": "#/components/schemas/LineString"
      },
      "distance_m": {
       "type": "number",

@@ -1,6 +1,7 @@
 import { screen, waitFor, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import * as activitiesApi from "../data/activities";
+import * as locationApi from "../data/location";
 import { expectNoAxeViolations, renderAt, SAMPLE_ORIGIN } from "../test/render";
 
 afterEach(() => {
@@ -86,9 +87,20 @@ describe("Inicio", () => {
         );
         expect(
             await screen.findByText(
-                "Es una ubicación de ejemplo: todavía no usamos tu GPS.",
+                "Es una ubicación de ejemplo: el GPS no está disponible en este entorno de desarrollo.",
             ),
         ).toBeInTheDocument();
+    });
+
+    it("si el GPS se deniega lo explica y deja escribir la dirección", async () => {
+        vi.spyOn(locationApi, "currentLocation").mockRejectedValueOnce(
+            new Error("No has dado permiso para usar tu ubicación. Escribe una dirección o un municipio."),
+        );
+        const { user } = renderAt("/");
+        await user.click(screen.getByRole("button", { name: "Usar mi ubicación" }));
+        expect(await screen.findByText(/No has dado permiso para usar tu ubicación/)).toBeInTheDocument();
+        expect(screen.getByLabelText("Escribe una dirección o un municipio")).toBeEnabled();
+        expect(screen.getByRole("button", { name: "Usar mi ubicación" })).toBeEnabled();
     });
 
     it("busca una direccion o municipio y avisa si se usa el centro", async () => {

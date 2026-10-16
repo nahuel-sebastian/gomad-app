@@ -1,6 +1,6 @@
 import { useId, useRef, useState, type FormEvent } from "react";
 import type { LocationCandidate } from "../api/types";
-import { isSampleLocation, sampleLocation, searchLocation } from "../data/location";
+import { currentLocation, isSampleLocation, searchLocation } from "../data/location";
 import { useAppState } from "../state/context";
 
 type SearchState =
@@ -23,6 +23,8 @@ export default function LocationPicker({ onPicked, highlight }: LocationPickerPr
     const statusRef = useRef(0);
     const [picked, setPicked] = useState("");
     const currentRef = useRef<HTMLParagraphElement>(null);
+    const [locating, setLocating] = useState(false);
+    const [locateError, setLocateError] = useState("");
 
     const pick = (candidate: LocationCandidate) => {
         setOrigin(candidate);
@@ -34,6 +36,20 @@ export default function LocationPicker({ onPicked, highlight }: LocationPickerPr
         onPicked?.(candidate);
     };
 
+    // GPS tras el gesto; la posicion solo se usa para esta busqueda (no se guarda)
+    const locate = async () => {
+        setLocating(true);
+        setLocateError("");
+        setPicked("");
+        try {
+            pick(await currentLocation());
+        } catch (error) {
+            setLocateError(error instanceof Error ? error.message : "No hemos podido saber dónde estás.");
+        } finally {
+            setLocating(false);
+        }
+    };
+
     const onSubmit = async (event: FormEvent) => {
         event.preventDefault();
         if (text.trim().length < 3) {
@@ -42,6 +58,7 @@ export default function LocationPicker({ onPicked, highlight }: LocationPickerPr
         }
         const call = ++statusRef.current;
         setPicked("");
+        setLocateError("");
         setSearch({ status: "loading" });
         try {
             const data = await searchLocation(text.trim());
@@ -54,6 +71,8 @@ export default function LocationPicker({ onPicked, highlight }: LocationPickerPr
     };
 
     let announcement = picked;
+    if (locating) announcement = "Buscando tu ubicación…";
+    if (locateError) announcement = locateError;
     if (search.status === "loading") announcement = "Buscando…";
     if (search.status === "error") announcement = "No se pudo buscar ahora. Inténtalo de nuevo.";
     if (search.status === "done") {
@@ -86,14 +105,14 @@ export default function LocationPicker({ onPicked, highlight }: LocationPickerPr
                     )}
                     {isSampleLocation(origin) && (
                         <span className="location__note">
-                            Es una ubicación de ejemplo: todavía no usamos tu GPS.
+                            Es una ubicación de ejemplo: el GPS no está disponible en este entorno de desarrollo.
                         </span>
                     )}
                 </p>
             )}
 
-            <button type="button" className="button button--primary" onClick={() => pick(sampleLocation())}>
-                Usar mi ubicación
+            <button type="button" className="button button--primary" onClick={locate} disabled={locating}>
+                {locating ? "Buscando tu ubicación…" : "Usar mi ubicación"}
             </button>
 
             <form className="location__form" onSubmit={onSubmit} role="search" aria-label="Buscar ubicación">

@@ -1,9 +1,11 @@
 import type { RouteRequest, RouteResponse } from "../api/types";
+import { postJson } from "./http";
 import { simulate } from "./mock/delay";
 import { routeMock } from "./mock/route";
+import { sampleDataMode } from "./mode";
 
-// POST /api/route
-// paso 3: sustituir por la llamada real a /api/route
+// POST /api/route (origen y destino solo en el cuerpo)
 export function getRoute(req: RouteRequest): Promise<RouteResponse> {
-    return simulate(() => routeMock(req));
+    if (sampleDataMode()) return simulate(() => routeMock(req));
+    return postJson<RouteResponse>("/route", req);
 }

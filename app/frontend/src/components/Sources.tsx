@@ -1,13 +1,7 @@
-import { useState } from "react";
-import { useNavigate } from "react-router";
 import type { SourceInfo } from "../api/types";
-import { getActivities } from "../data/activities";
-import { listMunicipalities } from "../data/municipality";
-import { currentScenario, listScenarios, selectScenario, type ScenarioId } from "../data/scenarios";
 import { getSources } from "../data/sources";
 import { useAsync } from "../data/useAsync";
 import { formatTimeAgo } from "../lib/format";
-import { useAppState } from "../state/context";
 import ErrorMessage from "./ErrorMessage";
 import PageHeading from "./PageHeading";
 
@@ -22,79 +16,6 @@ function failedAfterRefresh(source: SourceInfo) {
     if (!source.last_failure) return false;
     if (!source.last_refresh) return true;
     return Date.parse(source.last_failure) > Date.parse(source.last_refresh);
-}
-
-// Selector de escenarios de la demo (solo paso 1; paso 3: quitarlo)
-function SampleData() {
-    const navigate = useNavigate();
-    const { setOrigin, setSearch, updatePreferences } = useAppState();
-    const [chosen, setChosen] = useState<ScenarioId>(currentScenario().id);
-    const [busy, setBusy] = useState(false);
-    const [failed, setFailed] = useState(false);
-
-    const apply = async () => {
-        const scenario = listScenarios().find((s) => s.id === chosen)!;
-        setBusy(true);
-        setFailed(false);
-        try {
-            selectScenario(scenario.id);
-            const [municipalities, activities] = await Promise.all([listMunicipalities(), getActivities()]);
-            const m = municipalities.find((x) => x.ine_code === scenario.preset.ine_code)!;
-            setOrigin({
-                label: `${m.name} (ubicación de ejemplo)`,
-                municipality: m.name,
-                ine_code: m.ine_code,
-                coordinate: { lat: m.lat, lon: m.lon },
-                precision: "municipality",
-            });
-            updatePreferences({ profile: scenario.preset.profile, companions: scenario.preset.companions, weights: null });
-            const activity = scenario.preset.activity;
-            setSearch({
-                activity,
-                label: activities.activities.find((a) => a.id === activity)?.label,
-            });
-            navigate(scenario.preset.path);
-        } catch {
-            setFailed(true);
-        } finally {
-            setBusy(false);
-        }
-    };
-
-    return (
-        <section className="panel" aria-labelledby="ejemplo-titulo">
-            <h2 className="panel__title" id="ejemplo-titulo">
-                Datos de ejemplo
-            </h2>
-            <p className="muted">
-                Esta versión todavía no está conectada a los portales: enseña datos de ejemplo. Elige una de las
-                personas de la demo para ver cómo cambia la respuesta.
-            </p>
-            <fieldset className="prefs-form__group">
-                <legend className="sr-only">Datos de ejemplo</legend>
-                <div className="option-list">
-                    {listScenarios().map((s) => (
-                        <label key={s.id} className="option option--stacked">
-                            <input
-                                type="radio"
-                                name="scenario"
-                                checked={chosen === s.id}
-                                onChange={() => setChosen(s.id)}
-                            />
-                            <span>
-                                <strong>{s.label}</strong>
-                                <span className="muted">{s.description}</span>
-                            </span>
-                        </label>
-                    ))}
-                </div>
-            </fieldset>
-            {failed && <ErrorMessage message="No se pudo cargar el ejemplo." onRetry={apply} />}
-            <button type="button" className="button button--primary" onClick={apply} disabled={busy}>
-                Ver este ejemplo
-            </button>
-        </section>
-    );
 }
 
 export default function Sources() {
@@ -120,6 +41,10 @@ export default function Sources() {
                         : sources.data
                           ? "Fuentes cargadas."
                           : ""}
+                </p>
+                <p className="muted">
+                    Lista de ejemplo: las recomendaciones, rutas y direcciones ya usan los datos reales; esta tabla
+                    con licencias y fechas de cada fuente llegará del servidor en la próxima versión.
                 </p>
                 {sources.status === "loading" && !sources.data && <p className="muted">Cargando fuentes…</p>}
                 {sources.status === "error" && (
@@ -171,8 +96,8 @@ export default function Sources() {
                 </p>
                 <p className="muted">
                     Las categorías y recomendaciones de calidad del aire son las del Índice Nacional de Calidad del
-                    Aire (BOE-A-2020-10426). El umbral de calor es, por ahora, de criterio propio, a la espera del
-                    plan de calor del Ministerio de Sanidad.
+                    Aire (BOE-A-2020-10426). Todavía no hay un umbral oficial de calor cargado: no se evalúa el calor
+                    hasta tener el del plan de calor del Ministerio de Sanidad.
                 </p>
             </section>
 
@@ -193,6 +118,12 @@ export default function Sources() {
                         Asistente de rutas. Para interpretar tu texto solo se envía el texto; tu ubicación solo se usa
                         para calcular la ruta y no se guarda.
                     </li>
+                    <li>
+                        Si no encontramos la dirección que escribes en nuestro callejero, la consultamos en el buscador
+                        público de Nomecalles (Comunidad de Madrid): solo se envía el texto que escribes (en minúsculas y
+                        sin tildes), nunca tu ubicación. El servidor guarda esa respuesta como mucho 1 hora en memoria
+                        para no repetir la consulta; no se escribe en disco ni en los registros.
+                    </li>
                     <li>Las fuentes tipográficas se sirven desde nuestro servidor, sin terceros.</li>
                     <li>
                         Mapa base: en esta versión el mapa es de ejemplo y no pide teselas a nadie. Cuando llegue, se
@@ -211,7 +142,6 @@ export default function Sources() {
                 </p>
             </section>
 
-            <SampleData />
         </section>
     );
 }

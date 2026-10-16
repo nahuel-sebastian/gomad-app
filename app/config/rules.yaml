@@ -6,6 +6,7 @@ air:             # DEC-05: categoria del ICA a partir de la cual NO se recomiend
   senior: moderate       # mayor como grupo de riesgo: CRITERIO PROPIO (el BOE no lo dice)
   source: "BOE-A-2020-10426, tabla de recomendaciones (umbrales.md §1.4); senior = criterio propio"
   own_criterion: true    # solo por senior; el resto cita el BOE
+  own_criterion_profiles: [senior]   # perfiles cuyo umbral no sale del BOE
 heat:            # DEC-06 (vie 16): null = regla desactivada, la app dice que no hay umbral de calor cargado
   max_feels_like_c: null
   source: null
