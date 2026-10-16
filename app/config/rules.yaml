@@ -7,10 +7,19 @@ air:             # DEC-05: categoria del ICA a partir de la cual NO se recomiend
   source: "BOE-A-2020-10426, tabla de recomendaciones (umbrales.md §1.4); senior = criterio propio"
   own_criterion: true    # solo por senior; el resto cita el BOE
   own_criterion_profiles: [senior]   # perfiles cuyo umbral no sale del BOE
-heat:            # DEC-06 (vie 16): null = regla desactivada, la app dice que no hay umbral de calor cargado
-  max_feels_like_c: null
-  source: null
-  own_criterion: false
+heat:            # DEC-06 (16/10): «dia de calor» por zona meteosalud, sin niveles de la Ecuacion 1
+  zones:         # Plan Nacional ... Exceso de Temperaturas 2026, Anexo I pag. 41: umbral de Tmax diaria (°C)
+    "722801": {name: "Sierra de Madrid", max_temp_c: 35.8}
+    "722802": {name: "Metropolitana y Henares", max_temp_c: 37.4}
+    "722803": {name: "Sur, Vegas y Oeste", max_temp_c: 39.2}
+  zone_table: heat_zones.csv        # copia de docs/assets/heat_zones.csv (ine_code -> zone_code) en app/config/
+  risk_profiles: [senior, stroller] # Anexo V pag. 52: mayores de 65 y menores de 4 anos; carrito = menor de 4 es lectura propia
+  risk_companions: [kids]           # «Salgo con... ninos» como menores de 4 anos: lectura propia
+  avoid_hours: [14, 19]             # Anexo V pag. 52 «especialmente entre las 14:00h y las 19:00h»; bloquear = criterio propio
+  tiebreak: feels_like              # en dia de calor, entre horas validas, la de menor sensTermica (criterio propio)
+  source: "Ministerio de Sanidad, Plan Nacional de Actuaciones Preventivas de los Efectos del Exceso de Temperaturas sobre la Salud 2026: Anexo I pag. 41 (umbrales y zonas), Anexo V pag. 52 (grupos de riesgo y horas)"
+  own_criterion: true               # los umbrales y zonas son oficiales; la regla de aplicacion no
+  own_criterion_items: [daily_max_from_hourly, day_by_day_no_3day_sum, stroller_kids_as_under_4, avoid_hours_block, feels_like_tiebreak, all_year]
 rain:            # DEC-07b: se bloquea exterior si probPrecipitacion de AEMET > este valor, es decir, desde el 50 %
   max_precip_prob: 49
   source: null

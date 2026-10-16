@@ -2,16 +2,26 @@ from datetime import datetime
 
 import pytest
 
-from engine.rules import (CATEGORIES, HourContext, aqi_category, evaluate_outdoor, pollutant_category,
-                          validate_rules)
-from settings import load
+from engine.rules import (CATEGORIES, HourContext, aqi_category, evaluate_outdoor, load_heat_zones,
+                          pollutant_category, validate_rules)
+from settings import CONFIG_DIR, load
 
 BANDS = load("ica_thresholds")["bands"]
 
 # Reglas de PRUEBA (no son las decididas; esas van en config/rules.yaml tras DEC-05/06/07b)
+HEAT = {
+    "zones": {"722801": {"name": "Sierra de Madrid", "max_temp_c": 35.8},
+              "722802": {"name": "Metropolitana y Henares", "max_temp_c": 37.4},
+              "722803": {"name": "Sur, Vegas y Oeste", "max_temp_c": 39.2}},
+    "zone_table": "heat_zones.csv",
+    "risk_profiles": ["senior", "stroller"],
+    "risk_companions": ["kids"],
+    "avoid_hours": [14, 19],
+    "tiebreak": "feels_like",
+}
 RULES = {
     "air": {"general": "poor", "sensitive": "moderate"},
-    "heat": {"max_feels_like_c": 30.0},
+    "heat": HEAT,
     "rain": {"max_precip_prob": 50},
 }
 
@@ -65,19 +75,8 @@ def test_lucia_high_ozone():
     assert any("aire" in reason.lower() for reason in r.reasons)
 
 
-def test_carmen_36_degrees():
-    r = evaluate_outdoor(ctx(temperature_c=36.0, feels_like_c=37.0), "general", RULES)
-    assert r.outdoor_ok is False
-    assert any("calor" in reason.lower() for reason in r.reasons)
-
-
 def test_rain():
     assert evaluate_outdoor(ctx(precip_prob=80), "general", RULES).outdoor_ok is False
-
-
-def test_disabled_rule_does_not_block():
-    rules = {**RULES, "heat": {"max_feels_like_c": None}}
-    assert evaluate_outdoor(ctx(feels_like_c=45.0), "general", rules).outdoor_ok is True
 
 
 def test_profile_without_rule_uses_general():
@@ -114,14 +113,17 @@ def test_air_metadata_keys_are_not_profiles():
 def test_valid_rules_pass_validation():
     validate_rules(RULES)
     validate_rules({"air": {"general": "poor", "senior": None, "source": "BOE"},
-                    "heat": {"max_feels_like_c": None, "source": None, "own_criterion": False},
+                    "heat": None,
                     "rain": {"max_precip_prob": None, "own_criterion": True}})
 
 
 @pytest.mark.parametrize("rules", [
     {"air": {"general": "bad"}},
     {"air": {"general": "poor", "senior": "Desfavorable"}},
-    {"heat": {"max_feels_like_c": "treinta"}},
+    {"heat": {**HEAT, "zones": {**HEAT["zones"], "722801": {"name": "Sierra", "max_temp_c": "treinta"}}}},
+    {"heat": {**HEAT, "avoid_hours": [19, 14]}},
+    {"heat": {**HEAT, "avoid_hours": [14, 25]}},
+    {"heat": {**HEAT, "zones": {"722801": HEAT["zones"]["722801"]}}},
     {"rain": {"max_precip_prob": 150}},
     {"rain": {"max_precip_prob": -1}},
 ])
@@ -135,3 +137,23 @@ def test_air_meta_key_own_criterion_profiles_is_not_a_profile():
     validate_rules(rules)                      # no debe tomarlo por un perfil con categoria invalida
     ctx = HourContext(datetime(2026, 7, 15, 10), 20, 20, 0, "poor")
     assert evaluate_outdoor(ctx, "own_criterion_profiles", rules).outdoor_ok is False   # cae a general
+
+
+def test_real_rules_and_zone_table_are_valid():
+    rules = load("rules")
+    zones = load_heat_zones(CONFIG_DIR / rules["heat"]["zone_table"])
+    validate_rules(rules, zones)
+    assert len(zones) == 179 and zones["28065"] == "722802"
+    assert rules["heat"]["zones"]["722802"]["max_temp_c"] == 37.4
+    assert "max_feels_like_c" not in rules["heat"]
+
+
+def test_zone_table_must_cover_179():
+    with pytest.raises(ValueError):
+        validate_rules({"heat": HEAT}, {"28065": "722802"})
+
+
+def test_zone_table_with_unknown_zone_fails():
+    zones = {f"28{i:03d}": "722802" for i in range(1, 180)} | {"28065": "999999"}
+    with pytest.raises(ValueError):
+        validate_rules({"heat": HEAT}, zones)
