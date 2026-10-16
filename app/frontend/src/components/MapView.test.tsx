@@ -117,11 +117,16 @@ describe("MapLibre que falla", () => {
 
     it("si MapLibre no puede crear el mapa vuelve al esquema", async () => {
         withWebGL();
-        vi.spyOn(console, "error").mockImplementation(() => {});
+        const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
         setMapScenario("creation-fails");
         const { container } = render(<MapView markers={MARKERS} origin={ORIGIN} />);
         await waitFor(() => expect(container.querySelector(".map-view__svg")).not.toBeNull());
         expect(screen.queryByTestId("maplibre")).toBeNull();
+        // el esquema sale por el error de MapLibre, no por un TypeError al tratar target null
+        const errors = consoleError.mock.calls.flat().filter((a): a is Error => a instanceof Error);
+        expect(errors.map((e) => e.message)).toContain("creation-fails");
+        expect(errors.some((e) => e instanceof TypeError)).toBe(false);
+        expect(setStyleMock).not.toHaveBeenCalled();
     });
 
     it("si no llega el estilo de teselas pone un fondo liso para que se dibuje la ruta", async () => {
