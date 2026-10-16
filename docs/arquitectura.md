@@ -286,6 +286,33 @@ docker compose -f deploy/docker-compose.yml logs --tail=80
 
 **Despliegues siguientes:** `app/deploy/deploy.sh` desde `~/GoMad` (ya hace el `git pull --ff-only`).
 
+**Llevar los datos a la VM** (16/10; en la VM `app/data` está vacío y la ingesta todavía no corre allí). La api solo lee estos ficheros (`repository.py`, `geocoding.py`, `routing/store.py`): `app/data/gomad.duckdb`, `app/data/realtime.duckdb`, `app/data/graph/<zona>/{nodes,edges}.parquet` (hoy `getafe` y `madrid`), `app/data/clean/addresses.parquet` y `app/data/clean/municipality.parquet`. Ocupan unos **103 MB** (`du -sh`, 16/10: 8,6 MB + 1,1 MB + 72 MB + 20 MB + 3,0 MB). Sin `municipality.parquet`, `/location` responde 503; sin `gomad.duckdb`, `/recommend` y `/route` responden 503; sin `graph/`, las rutas salen en línea recta aproximada.
+
+Desde la raíz del repositorio en el equipo local (sin `--delete` ni `rm`: solo añade o sustituye esos ficheros):
+
+```bash
+K=~/.ssh/gomad-oci.key; VM=ubuntu@<SERVER_IP>
+du -sh app/data/gomad.duckdb app/data/realtime.duckdb app/data/graph app/data/clean/addresses.parquet app/data/clean/municipality.parquet
+ssh -i $K $VM 'mkdir -p ~/GoMad/app/data/clean ~/GoMad/app/data/graph'
+rsync -a --progress -e "ssh -i $K" app/data/gomad.duckdb app/data/realtime.duckdb $VM:GoMad/app/data/
+rsync -a --progress -e "ssh -i $K" app/data/graph/ $VM:GoMad/app/data/graph/
+rsync -a --progress -e "ssh -i $K" app/data/clean/addresses.parquet app/data/clean/municipality.parquet $VM:GoMad/app/data/clean/
+```
+
+Después, en la VM (`ssh -i ~/.ssh/gomad-oci.key ubuntu@<SERVER_IP>`), desde `~/GoMad`, con la rama ya fusionada en `main`:
+
+```bash
+app/deploy/deploy.sh
+curl -s localhost/api/health                                    # {"status":"ok"}
+docker compose -f app/deploy/docker-compose.yml logs api | grep "grafos cargados"   # ['getafe', 'madrid']
+```
+
+- **Nunca** se copian `app/.env` ni `~/.oci` con `rsync`: las claves se crean a mano en la VM.
+- No copiar mientras la ingesta local está escribiendo (`build_db` sustituye los `.duckdb` de golpe; si se copia a medias, se repite).
+- Tras cada refresco local de los datos (sobre todo el horario: aire y previsión) hay que volver a copiar al menos `realtime.duckdb`; la api lo reabre en cada petición, no hace falta reiniciarla. Si cambian `gomad.duckdb`, `clean/` o `graph/`, copiar y reiniciar la api (`deploy.sh --no-pull`): los nombres de municipio y los grafos se cargan al arrancar. Más adelante la ingesta correrá en la VM (S-D2, D-D1).
+- **La geolocalización del navegador solo funciona con HTTPS:** mientras la VM vaya por HTTP, se prueba escribiendo una dirección.
+- Comprobado en local el 16/10 con `rsync -an` (en seco) hacia un directorio temporal: copia exactamente esos 9 ficheros.
+
 El guion comprueba que existen `app/.env` y `app/deploy/.env` (sin leerlos), hace `git pull --ff-only`, `docker compose -f deploy/docker-compose.yml up -d --build`, espera a que respondan `/` (el `index.html` del build) y `/api/health`, y resume el commit desplegado y los contenedores. Sin `sudo` ni borrado de volúmenes; si algo falla, sale con error; a partir de `docker compose up` dice además qué mirar (`ps` y `logs`). Imagen del front: 71,2 MB (Caddy 69,8 MB + estáticos).
 
 **Resultado en la VM:** pendiente de confirmar en la VM (commit desplegado, `curl http://<SERVER_IP>/` con la SPA y `/api/health`).
