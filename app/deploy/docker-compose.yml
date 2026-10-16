@@ -4,6 +4,8 @@ services:
     env_file: ../.env
     volumes:
       - ../data:/data:ro
+      # unica carpeta con escritura: cache de la prevision en vivo (B2), para que sobreviva a los reinicios
+      - ../data/live:/data/live
       - ../config:/config:ro
     restart: unless-stopped
   frontend:
