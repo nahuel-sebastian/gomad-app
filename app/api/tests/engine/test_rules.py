@@ -75,6 +75,52 @@ def test_lucia_high_ozone():
     assert any("aire" in reason.lower() for reason in r.reasons)
 
 
+def heat_ctx(hour, day_max, threshold=37.4, feels=30.0):
+    return HourContext(datetime(2026, 7, 15, hour), day_max, feels, 0.0, "good", day_max, threshold)
+
+
+def test_carmen_38_blocks_senior_in_afternoon():
+    r = evaluate_outdoor(heat_ctx(16, 38.0), "senior", RULES)
+    assert r.outdoor_ok is False
+    assert r.reasons == ["Día de calor (máx. prevista 38 °C, umbral de tu zona 37,4 °C): mejor evitar de 14:00 a 19:00"]
+
+
+def test_carmen_36_is_not_heat_day():
+    assert evaluate_outdoor(heat_ctx(16, 36.0), "senior", RULES).outdoor_ok is True
+
+
+def test_heat_day_does_not_block_general():
+    assert evaluate_outdoor(heat_ctx(16, 38.0), "general", RULES).outdoor_ok is True
+
+
+def test_kids_companion_is_risk():
+    assert evaluate_outdoor(heat_ctx(16, 38.0), "general", RULES, companions=["kids"]).outdoor_ok is False
+    assert evaluate_outdoor(heat_ctx(16, 38.0), "general", RULES, companions=["dog"]).outdoor_ok is True
+    assert evaluate_outdoor(heat_ctx(16, 38.0), "stroller", RULES).outdoor_ok is False
+
+
+@pytest.mark.parametrize("hour,ok", [(13, True), (14, False), (18, False), (19, True)])
+def test_avoid_hours_bounds(hour, ok):
+    assert evaluate_outdoor(heat_ctx(hour, 38.0), "senior", RULES).outdoor_ok is ok
+
+
+def test_threshold_is_strict():
+    assert evaluate_outdoor(heat_ctx(16, 37.4), "senior", RULES).outdoor_ok is True
+
+
+def test_no_threshold_no_heat_rule():
+    assert evaluate_outdoor(heat_ctx(16, 45.0, threshold=None), "senior", RULES).outdoor_ok is True
+
+
+def test_heat_rule_counts_as_evaluated():
+    c = HourContext(datetime(2026, 7, 15, 16), 38.0, None, None, None, 38.0, 37.4)
+    assert evaluate_outdoor(c, "general", RULES).outdoor_ok is True
+
+
+def test_without_heat_section_nothing_blocks():
+    assert evaluate_outdoor(heat_ctx(16, 45.0), "senior", {**RULES, "heat": None}).outdoor_ok is True
+
+
 def test_rain():
     assert evaluate_outdoor(ctx(precip_prob=80), "general", RULES).outdoor_ok is False
 

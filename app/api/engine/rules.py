@@ -43,6 +43,8 @@ class HourContext:
     feels_like_c: float | None
     precip_prob: float | None
     aqi_category: str | None
+    day_max_temp_c: float | None = None     # Tmax prevista del dia de esta hora (maximo de forecast.temp)
+    heat_threshold_c: float | None = None   # umbral de calor de la zona meteosalud del municipio (DEC-06)
 
 
 @dataclass
@@ -51,7 +53,23 @@ class RuleResult:
     reasons: list[str] = field(default_factory=list)
 
 
-def evaluate_outdoor(ctx, profile, rules):
+def is_heat_day(ctx):
+    """DEC-06: dia de calor si la Tmax prevista del dia supera (estricto) el umbral de su zona."""
+    return (ctx.day_max_temp_c is not None and ctx.heat_threshold_c is not None
+            and ctx.day_max_temp_c > ctx.heat_threshold_c)
+
+
+def at_heat_risk(profile, companions, rules):
+    heat = rules.get("heat") or {}
+    return profile in heat.get("risk_profiles", []) or any(c in heat.get("risk_companions", []) for c in companions)
+
+
+def _fmt_c(value):
+    # 38 -> «38»; 37.4 -> «37,4» (coma decimal, como explanation.fmt_number)
+    return f"{value:.1f}".rstrip("0").rstrip(".").replace(".", ",")
+
+
+def evaluate_outdoor(ctx, profile, rules, companions=()):
     reasons, evaluated = [], 0
     air = rules.get("air") or {}
     # perfil con clave propia: su valor manda (null = regla desactivada); sin clave, el de general
@@ -60,11 +78,13 @@ def evaluate_outdoor(ctx, profile, rules):
         evaluated += 1
         if CATEGORIES.index(ctx.aqi_category) >= CATEGORIES.index(limit):
             reasons.append(f"Calidad del aire {CATEGORY_LABEL[ctx.aqi_category].lower()}")
-    max_heat = (rules.get("heat") or {}).get("max_feels_like_c")
-    if max_heat is not None and ctx.feels_like_c is not None:
+    heat = rules.get("heat") or {}
+    if heat and ctx.day_max_temp_c is not None and ctx.heat_threshold_c is not None:
         evaluated += 1
-        if ctx.feels_like_c > max_heat:
-            reasons.append(f"Calor: sensación térmica de {ctx.feels_like_c:.0f} °C")
+        start, end = heat["avoid_hours"]
+        if is_heat_day(ctx) and at_heat_risk(profile, companions, rules) and start <= ctx.hour.hour < end:
+            reasons.append(f"Día de calor (máx. prevista {_fmt_c(ctx.day_max_temp_c)} °C, umbral de tu zona "
+                           f"{_fmt_c(ctx.heat_threshold_c)} °C): mejor evitar de {start:02d}:00 a {end:02d}:00")
     max_rain = (rules.get("rain") or {}).get("max_precip_prob")
     if max_rain is not None and ctx.precip_prob is not None:
         evaluated += 1

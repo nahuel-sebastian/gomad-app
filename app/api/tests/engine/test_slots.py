@@ -3,13 +3,16 @@ from datetime import datetime, timezone
 from engine.rules import HourContext
 from engine.slots import MAX_WINDOW_HOURS, best_hour, evaluate_hours, needs_indoor, window_hours
 
-RULES = {"air": {"general": "poor"}, "heat": {"max_feels_like_c": 30.0}, "rain": {"max_precip_prob": 50}}
+HEAT = {"zones": {"722802": {"name": "Metropolitana y Henares", "max_temp_c": 37.4}},
+        "risk_profiles": ["senior", "stroller"], "risk_companions": ["kids"], "avoid_hours": [14, 19],
+        "tiebreak": "feels_like"}
+RULES = {"air": {"general": "poor"}, "heat": HEAT, "rain": {"max_precip_prob": 50}}
 WEIGHTS = {"proximity": 0.2, "suitability": 0.2, "green": 0.2, "air": 0.2, "weather": 0.2}
 FIXED = {"proximity": 0.8, "suitability": 1.0, "green": 0.7}
 
 
-def ctx(h, feels=25.0, rain=0.0, aqi="good", day=15):
-    return HourContext(datetime(2026, 7, day, h), feels, feels, rain, aqi)
+def ctx(h, feels=25.0, rain=0.0, aqi="good", day=15, day_max=None, threshold=None):
+    return HourContext(datetime(2026, 7, day, h), feels, feels, rain, aqi, day_max, threshold)
 
 
 def test_window_hours():
@@ -23,22 +26,41 @@ def test_window_crosses_midnight():
 
 
 def test_carmen_best_late_evening():
-    contexts = {c.hour: c for c in [ctx(17, feels=36), ctx(18, feels=34), ctx(19, feels=31), ctx(20, feels=28)]}
-    res = evaluate_hours(contexts, list(contexts), False, "general", RULES, FIXED, WEIGHTS)
-    assert best_hour(res).hour == datetime(2026, 7, 15, 20)
+    contexts = {c.hour: c for c in [ctx(h, feels=f, day_max=38.0, threshold=37.4)
+                                    for h, f in [(17, 36), (18, 34), (19, 31), (20, 28)]]}
+    res = evaluate_hours(contexts, list(contexts), False, "senior", RULES, FIXED, WEIGHTS)
+    assert best_hour(res, tiebreak="feels_like").hour == datetime(2026, 7, 15, 20)
     assert not needs_indoor(res)
 
 
+def test_heat_day_tiebreak_lowest_feels_like():
+    contexts = {c.hour: c for c in [ctx(h, feels=f, day_max=38.0, threshold=37.4)
+                                    for h, f in [(19, 33.0), (20, 31.0), (21, 29.0)]]}
+    res = evaluate_hours(contexts, list(contexts), False, "senior", RULES, FIXED, WEIGHTS)
+    assert best_hour(res, tiebreak="feels_like").hour == datetime(2026, 7, 15, 21)
+    assert best_hour(res).hour == datetime(2026, 7, 15, 19)          # sin desempate: la mas temprana
+
+
+def test_tiebreak_only_on_heat_days():
+    contexts = {c.hour: c for c in [ctx(h, feels=f, day_max=30.0, threshold=37.4) for h, f in [(19, 33.0), (20, 29.0)]]}
+    res = evaluate_hours(contexts, list(contexts), False, "senior", RULES, FIXED, WEIGHTS)
+    assert best_hour(res, tiebreak="feels_like").hour == datetime(2026, 7, 15, 19)
+
+
 def test_all_unviable_suggests_indoor():
-    contexts = {c.hour: c for c in [ctx(17, feels=36), ctx(18, feels=35)]}
-    res = evaluate_hours(contexts, list(contexts), False, "general", RULES, FIXED, WEIGHTS)
+    contexts = {c.hour: c for c in [ctx(h, feels=36, day_max=38.0, threshold=37.4) for h in (15, 16)]}
+    res = evaluate_hours(contexts, list(contexts), False, "senior", RULES, FIXED, WEIGHTS)
     assert needs_indoor(res)
     assert best_hour(res) is None
+    res = evaluate_hours(contexts, list(contexts), False, "general", RULES, FIXED, WEIGHTS, companions=["kids"])
+    assert needs_indoor(res)
+    res = evaluate_hours(contexts, list(contexts), False, "general", RULES, FIXED, WEIGHTS)
+    assert not needs_indoor(res)
 
 
 def test_covered_destination_ignores_heat():
-    contexts = {c.hour: c for c in [ctx(17, feels=36)]}
-    res = evaluate_hours(contexts, list(contexts), True, "general", RULES, FIXED, WEIGHTS)
+    contexts = {c.hour: c for c in [ctx(17, feels=36, day_max=38.0, threshold=37.4)]}
+    res = evaluate_hours(contexts, list(contexts), True, "senior", RULES, FIXED, WEIGHTS)
     assert res[0].outdoor_ok is None and res[0].score is not None
 
 
