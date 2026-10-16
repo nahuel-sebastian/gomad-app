@@ -1,11 +1,11 @@
 import { fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
-import { withWebGL } from "../test/mapMock";
-import { expectNoAxeViolations, renderAt, SAMPLE_ORIGIN } from "../test/render";
+import { withWebGL } from "./mapMock";
+import { expectNoAxeViolations, renderAt, SAMPLE_ORIGIN } from "./render";
 
 // Seleccion sincronizada lista <-> mapa en Resultados (RF-11) con el mapa de MapLibre simulado
-vi.mock("react-map-gl/maplibre", async () => (await import("../test/mapMock")).mapLibreModule());
-vi.mock("maplibre-gl", async () => (await import("../test/mapMock")).maplibreModule());
+vi.mock("react-map-gl/maplibre", async () => (await import("./mapMock")).mapLibreModule());
+vi.mock("maplibre-gl", async () => (await import("./mapMock")).maplibreModule());
 
 const WITH_SEARCH = {
     origin: SAMPLE_ORIGIN,

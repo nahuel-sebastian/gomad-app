@@ -1,8 +1,8 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { toLineString, type LonLat } from "../lib/geometry";
-import { boundsOf, fitPadding, hasWebGL, mapPoints } from "./mapUtils";
-import MapView, { MapErrorBoundary, type MapMarker } from "./MapView";
+import { boundsOf, fitPadding, hasWebGL, mapPoints } from "../components/mapUtils";
+import MapView, { MapErrorBoundary, type MapMarker } from "../components/MapView";
 import {
     fitBoundsMock,
     lastMapProps,
@@ -10,11 +10,11 @@ import {
     setStyleMock,
     setWorkerUrlMock,
     withWebGL,
-} from "../test/mapMock";
+} from "./mapMock";
 
 // jsdom no tiene WebGL: se simula react-map-gl con componentes de DOM simples
-vi.mock("react-map-gl/maplibre", async () => (await import("../test/mapMock")).mapLibreModule());
-vi.mock("maplibre-gl", async () => (await import("../test/mapMock")).maplibreModule());
+vi.mock("react-map-gl/maplibre", async () => (await import("./mapMock")).mapLibreModule());
+vi.mock("maplibre-gl", async () => (await import("./mapMock")).maplibreModule());
 
 const ORIGIN = { lon: -3.7315, lat: 40.3057 };
 const MARKERS: MapMarker[] = [
