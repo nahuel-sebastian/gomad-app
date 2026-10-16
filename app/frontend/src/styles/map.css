@@ -1,0 +1,51 @@
+/* ---------- Mapa MapLibre (bloque M) ---------- */
+/* Lo carga MapCanvas en diferido; los tokens de color vienen de main.css */
+
+.map-canvas {
+    position: absolute;
+    inset: 0px;
+}
+
+.map-marker {
+    display: grid;
+    place-items: center;
+    width: 28px;
+    height: 28px;
+    border: 2px solid #ffffff;
+    border-radius: 50%;
+    background: var(--navy);
+    color: #ffffff;
+    font-family: var(--font);
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    box-shadow: 0px 1px 4px rgba(0, 0, 0, 0.35);
+}
+
+.map-marker--selected {
+    position: relative;
+    z-index: 1;
+    width: 34px;
+    height: 34px;
+    background: var(--green-dark);
+    font-size: 16px;
+}
+
+.map-marker--origin {
+    width: 16px;
+    height: 16px;
+    background: var(--focus);
+    cursor: default;
+}
+
+.map-view__attribution {
+    position: absolute;
+    right: 0px;
+    bottom: 0px;
+    margin: 0px;
+    padding: 2px 6px;
+    border-top-left-radius: 4px;
+    background: rgba(255, 255, 255, 0.85);
+    color: var(--navy);
+    font-size: 11px;
+}

@@ -1,5 +1,7 @@
+import { Component, lazy, Suspense, useState, type ReactNode } from "react";
 import type { Coordinate, RouteVariant } from "../api/types";
 import { lineCoordinates } from "../lib/geometry";
+import { hasWebGL } from "./mapUtils";
 
 export interface MapMarker {
     id: string;
@@ -9,7 +11,7 @@ export interface MapMarker {
     coordinate: Coordinate;
 }
 
-interface MapViewProps {
+export interface MapViewProps {
     markers: MapMarker[];
     selectedId?: string | null;
     origin?: Coordinate | null;
@@ -18,21 +20,15 @@ interface MapViewProps {
     // tramo alternativo, mas tenue (p. ej. la ruta directa)
     secondaryRoute?: RouteVariant["geometry"];
     className?: string;
+    // se llama al pulsar un marcador, con su id
+    onSelect?: (id: string) => void;
 }
 
 const SIZE = 100;
 
-// Marcador de posicion del mapa (paso 1). Misma interfaz que tendra el mapa
-// de MapLibre en el paso 3. La lista o el resumen en texto son el equivalente
-// completo, asi que se oculta a los lectores de pantalla.
-export default function MapView({
-    markers,
-    selectedId,
-    origin,
-    route,
-    secondaryRoute,
-    className,
-}: MapViewProps) {
+// Esquema SVG sin teselas: respaldo cuando no hay WebGL, mientras carga MapLibre
+// o si MapLibre falla
+function Schematic({ markers, selectedId, origin, route, secondaryRoute }: MapViewProps) {
     const main = lineCoordinates(route);
     const secondary = lineCoordinates(secondaryRoute);
     const points: [number, number][] = [
@@ -56,7 +52,7 @@ export default function MapView({
         coords.map((c) => project(c).map((n) => n.toFixed(2)).join(",")).join(" ");
 
     return (
-        <div className={`map-view gomad-component gomad-map-view${className ? ` ${className}` : ""}`} aria-hidden="true">
+        <>
             {points.length > 0 && (
                 <svg className="map-view__svg" viewBox={`0 0 ${SIZE} ${SIZE}`} preserveAspectRatio="xMidYMid meet">
                     {secondary.length > 1 && (
@@ -85,7 +81,46 @@ export default function MapView({
                     })}
                 </svg>
             )}
-            <span className="map-view__note">Mapa de ejemplo (sin teselas)</span>
+            <span className="map-view__note">Mapa simplificado (sin teselas)</span>
+        </>
+    );
+}
+
+const MapCanvas = lazy(() => import("./MapCanvas"));
+
+// Si MapLibre falla (p. ej. se pierde el contexto WebGL), se pinta el respaldo
+export class MapErrorBoundary extends Component<{ fallback: ReactNode; children: ReactNode }, { failed: boolean }> {
+    state = { failed: false };
+
+    static getDerivedStateFromError() {
+        return { failed: true };
+    }
+
+    render() {
+        return this.state.failed ? this.props.fallback : this.props.children;
+    }
+}
+
+// Mapa de la app: MapLibre con teselas si hay WebGL y, si no, el esquema. La lista o el
+// resumen en texto son el equivalente completo (RF-11), asi que se oculta a los lectores
+// de pantalla y no tiene nada enfocable.
+export default function MapView(props: MapViewProps) {
+    const [webgl] = useState(hasWebGL);
+    const schematic = <Schematic {...props} />;
+
+    return (
+        <div
+            className={`map-view gomad-component gomad-map-view${props.className ? ` ${props.className}` : ""}`}
+            aria-hidden="true">
+            {webgl ? (
+                <MapErrorBoundary fallback={schematic}>
+                    <Suspense fallback={schematic}>
+                        <MapCanvas {...props} />
+                    </Suspense>
+                </MapErrorBoundary>
+            ) : (
+                schematic
+            )}
         </div>
     );
 }
