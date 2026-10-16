@@ -157,13 +157,17 @@
     "l": []
    },
    {
-    "n": "AEMET: predicción horaria por municipio",
-    "i": "prediccion/especifica/municipio/horaria",
+    "n": "Open-Meteo: previsión horaria por municipio (DEC-16; sustituye a AEMET)",
+    "i": "v1/forecast (un punto por municipio, app/config/forecast_points.csv)",
     "o": "Externa",
     "l": [
      [
-      "Ficha",
-      "https://opendata.aemet.es/centrodedescargas/productosAEMET"
+      "Documentación",
+      "https://open-meteo.com/en/docs"
+     ],
+     [
+      "Licencia (CC BY 4.0)",
+      "https://open-meteo.com/en/licence"
      ]
     ]
    }
@@ -401,13 +405,17 @@
   "t": "Previsión horaria y aire de la estación más cercana",
   "src": [
    {
-    "n": "AEMET: predicción horaria por municipio",
-    "i": "prediccion/especifica/municipio/horaria",
+    "n": "Open-Meteo: previsión horaria por municipio (DEC-16; sustituye a AEMET)",
+    "i": "v1/forecast (un punto por municipio, app/config/forecast_points.csv)",
     "o": "Externa",
     "l": [
      [
-      "Ficha",
-      "https://opendata.aemet.es/centrodedescargas/productosAEMET"
+      "Documentación",
+      "https://open-meteo.com/en/docs"
+     ],
+     [
+      "Licencia (CC BY 4.0)",
+      "https://open-meteo.com/en/licence"
      ]
     ]
    },
@@ -547,13 +555,17 @@
   "t": "Mejor franja horaria",
   "src": [
    {
-    "n": "AEMET: predicción horaria por municipio",
-    "i": "prediccion/especifica/municipio/horaria",
+    "n": "Open-Meteo: previsión horaria por municipio (DEC-16; sustituye a AEMET)",
+    "i": "v1/forecast (un punto por municipio, app/config/forecast_points.csv)",
     "o": "Externa",
     "l": [
      [
-      "Ficha",
-      "https://opendata.aemet.es/centrodedescargas/productosAEMET"
+      "Documentación",
+      "https://open-meteo.com/en/docs"
+     ],
+     [
+      "Licencia (CC BY 4.0)",
+      "https://open-meteo.com/en/licence"
      ]
     ]
    },
@@ -615,7 +627,7 @@
     ]
    },
    {
-    "n": "AEMET + calidad del aire",
+    "n": "Open-Meteo + calidad del aire",
     "i": "—",
     "o": "Externa",
     "l": []

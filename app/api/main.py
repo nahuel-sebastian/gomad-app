@@ -43,11 +43,10 @@ async def lifespan(app: FastAPI):
     t0 = time.perf_counter()
     app.state.graphs = GraphStore.load(settings.DATA_DIR / "graph")
     log.info("grafos cargados: %s en %.1f s", [z.name for z in app.state.graphs.zones], time.perf_counter() - t0)
-    app.state.geocoder = geocoder = Geocoder(settings.DATA_DIR, httpx.Client())
+    app.state.geocoder = Geocoder(settings.DATA_DIR, httpx.Client())
     # datos en vivo en memoria (DEC-15); GOMAD_LIVE=off (pruebas) deja la lectura de realtime.duckdb
     live = None if os.environ.get("GOMAD_LIVE") == "off" else build_live(
         realtime, httpx.Client(), snapshot_dir=os.environ.get("GOMAD_LIVE_SNAPSHOT") or None,
-        centers=lambda: [(m[0], m[1], m[3], m[4]) for m in geocoder.municipalities()],
         cache_path=settings.DATA_DIR / "live" / "forecast.json",
         air_seed_dir=settings.DATA_DIR / "clean" / "air_reading")
     app.state.live = live

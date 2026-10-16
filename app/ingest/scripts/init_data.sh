@@ -14,8 +14,6 @@ for arg in "$@"; do
     esac
 done
 
-# pocos municipios de AEMET por defecto: con todos, la cuota lo alarga casi una hora
-aemet="${INIT_AEMET_MUNICIPALITIES:-28065,28079}"
 failures=0
 
 step() {
@@ -32,12 +30,10 @@ step() {
 }
 
 if [ "$skip_download" -eq 0 ]; then
-    if [ -z "${AEMET_API_KEY:-}" ]; then
-        echo "Aviso: sin AEMET_API_KEY en app/.env no habrá previsión del tiempo; el resto sí."
-    fi
-    # una fuente rota no para las demas (el script sale con error, pero descarga el resto)
+    # una fuente rota no para las demas (el script sale con error, pero descarga el resto);
+    # la prevision (Open-Meteo, DEC-16) son los 179 municipios en una peticion, sin clave
     step "Descarga de las fuentes (grupo full)" \
-        python scripts/download_sources.py --group full --aemet-municipalities "$aemet"
+        python scripts/download_sources.py --group full
     step "Descarga de las capas pesadas que usa la app" \
         python scripts/download_sources.py --only vpla_redes,ay_bancos,osm,callejero --include-heavy
 fi

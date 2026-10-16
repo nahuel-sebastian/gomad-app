@@ -5,7 +5,7 @@ from zoneinfo import ZoneInfo
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
-# las horas del contrato son hora local de Madrid sin zona (como la prevision de AEMET y el motor)
+# las horas del contrato son hora local de Madrid sin zona (como la prevision de Open-Meteo y el motor)
 LOCAL_TZ = ZoneInfo("Europe/Madrid")
 LOCAL_TIME = "Hora local de Madrid sin zona horaria; si llega con zona, se convierte."
 

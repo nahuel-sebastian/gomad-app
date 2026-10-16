@@ -91,7 +91,7 @@ class Repository:
     def __init__(self, data_dir, live=None):
         # live: LiveStore (B2); con el, aire y prevision salen de memoria y no de realtime.duckdb
         self.live = live
-        self.forecast_notes = {}     # ine -> «Prevision de <municipio>» cuando se usa la del vecino
+        self.forecast_day_max = {}   # ine -> {dia: Tmax prevista} (DEC-06); la rellena forecast()
         self.main = data_dir / "gomad.duckdb"
         self.realtime = data_dir / "realtime.duckdb"
         self.addresses = data_dir / "clean" / "addresses.parquet"
@@ -136,33 +136,35 @@ class Repository:
         if self.live is not None and getattr(self.live, "forecast", None) is not None:
             return self._live_forecast(ine_codes, start, end)
         marks = ", ".join("?" for _ in ine_codes)
-        rows = self._query(self.realtime, f"""SELECT ine_code, ts, temp, feels_like, precip_prob, issued FROM forecast
-                                              WHERE ine_code IN ({marks}) AND ts BETWEEN ? AND ? ORDER BY ts""",
+        # temp_max_day: Tmax diaria de Open-Meteo (DEC-16); una base anterior no la tiene -> maximo horario
+        cols = {r[0] for r in self._query(self.realtime, "SELECT column_name FROM information_schema.columns "
+                                                         "WHERE table_name = 'forecast'")}
+        tmax = "temp_max_day" if "temp_max_day" in cols else "NULL"
+        rows = self._query(self.realtime, f"""SELECT ine_code, ts, temp, feels_like, precip_prob, issued, {tmax}
+                                              FROM forecast WHERE ine_code IN ({marks}) AND ts BETWEEN ? AND ?
+                                              ORDER BY ts""",
                            [*ine_codes, start, end])
         by, issued = {}, {}
-        for ine, ts, temp, feels, prob, iss in rows:
-            by.setdefault(ine, {})[_naive(ts)] = (_number(temp), _number(feels), _number(prob))
+        for ine, ts, temp, feels, prob, iss, day_max in rows:
+            ts = _naive(ts)
+            by.setdefault(ine, {})[ts] = (_number(temp), _number(feels), _number(prob))
             issued[ine] = parse_date(iss)
+            if _number(day_max) is not None:
+                self.forecast_day_max.setdefault(ine, {})[ts.date()] = _number(day_max)
         return by, issued
 
     def _live_forecast(self, ine_codes, start, end):
-        """Prevision en memoria (DEC-15). Sin prevision: se pide con prioridad. La del vecino queda en forecast_notes."""
-        by, issued, missing = {}, {}, []
+        """Prevision en memoria (Open-Meteo, DEC-16): los 179 llegan en una peticion, no se pide nada al leer."""
+        by, issued = {}, {}
         for ine in ine_codes:
-            self.forecast_notes.pop(ine, None)        # se recalcula en cada consulta
             got = self.live.forecast.get(ine)
             if got is None:
-                missing.append(ine)
                 continue
-            series, iss, note = got
+            series, iss, day_max = got
             hours = {ts: v[:3] for ts, v in series.items() if start <= ts <= end}
             if hours:
                 by[ine], issued[ine] = hours, iss
-                if note:
-                    self.forecast_notes[ine] = note
-                    missing.append(ine)               # la del vecino vale mientras llega la propia: pedirla
-        if missing:
-            self.live.forecast.request(missing)
+                self.forecast_day_max[ine] = dict(day_max)
         return by, issued
 
     def stations(self):

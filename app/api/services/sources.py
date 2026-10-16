@@ -48,6 +48,10 @@ def sources(repo, data_dir):
         from_db = repo.source_dates()
     except DataUnavailable:
         from_db = {}
+    live_feed = getattr(repo.live, "forecast", None) if repo.live is not None else None
+    if live_feed is not None:                                   # prevision en vivo: su ultima descarga, no la ingesta
+        from_manifest["open_meteo"] = (live_feed.fetched_at, from_manifest.get("open_meteo", (None, None))[1])
+        from_db.pop("open_meteo", None)
     items = []
     for sid, entry in (cfg.get("catalog") or {}).items():
         refresh, failure = from_manifest.get(sid, (None, None))

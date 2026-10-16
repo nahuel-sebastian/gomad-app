@@ -99,7 +99,7 @@ describe("Detalle", () => {
         const results = await sampleResults();
         renderAt(pathFor(results[0]), { origin: SAMPLE_ORIGIN, results });
         const sources = screen.getByRole("list", { name: "Fuentes de los datos" });
-        expect(sources).toHaveTextContent(/Previsión: AEMET · \d{2}\/\d{2} \d{2}:\d{2}/);
+        expect(sources).toHaveTextContent(/Previsión horaria \(Open-Meteo\) · \d{2}\/\d{2} \d{2}:\d{2}/);
         expect(sources).toHaveTextContent("criterio propio");
     });
 });

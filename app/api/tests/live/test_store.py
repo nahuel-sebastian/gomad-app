@@ -151,7 +151,7 @@ def test_realtime_yaml_without_max_age_names_source():
 
 
 def test_default_clock_is_madrid_local_time(monkeypatch):
-    """En Docker el reloj del sistema es UTC; los datos (ts del aire, elaborado de AEMET) son hora de Madrid."""
+    """En Docker el reloj del sistema es UTC; los datos (ts del aire, horas de la prevision) son hora de Madrid."""
     from zoneinfo import ZoneInfo
     monkeypatch.setenv("TZ", "UTC")
     time.tzset()

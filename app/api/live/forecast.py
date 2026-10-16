@@ -1,15 +1,15 @@
-"""Wrapper de la prevision horaria de AEMET por municipio, con cola, cuota y cache de arranque (DEC-13, DEC-15).
+"""Wrapper de la prevision horaria de Open-Meteo para los 179 municipios, con espera global y cache de arranque.
 
-AEMET da 429 a unas 6 peticiones/min y cada municipio son 2 (URL con clave -> URL firmada de datos): no se pide en
-cada consulta. Un hilo de fondo llama a step() y recorre la cola: 1.o los municipios pedidos por las personas,
-2.o los pilotos, 3.o el resto por codigo. La clave va solo en la cabecera api_key; nunca en logs ni errores.
+DEC-16 (16/10): sustituye a la prevision anterior, que limitaba a ~6 peticiones/min. Una sola peticion por
+refresco trae los 179 municipios (una coordenada por municipio, la de app/config/forecast_points.csv); Open-Meteo devuelve una lista en el mismo orden. A Open-Meteo
+solo van esos puntos, nunca la ubicacion de la persona (CLAUDE.md 2.8). Tras un fallo (429, red) se espera de forma
+GLOBAL y creciente (retry_s, el doble en cada fallo seguido, hasta retry_max_s): nunca una peticion por tick.
 """
+import csv
 import json
 import logging
-import math
-import os
 import threading
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 from pathlib import Path
 
 import settings
@@ -17,230 +17,120 @@ from live.store import PortalError
 
 log = logging.getLogger("gomad.api")
 
-
-def aemet_key():
-    """AEMET_API_KEY del entorno (Compose: env_file) o, si no esta, de app/.env."""
-    key = os.environ.get("AEMET_API_KEY")
-    if key:
-        return key
-    path = settings.APP_DIR / ".env"
-    if path.exists():
-        for line in path.read_text(encoding="utf-8").splitlines():
-            name, sep, value = line.partition("=")
-            if sep and name.strip() == "AEMET_API_KEY":
-                return value.strip().strip('"').strip("'") or None
-    return None
+# marca de la cache: una cache de otro proveedor (la de antes de DEC-16) se descarta al arrancar
+PROVIDER = "open_meteo"
 
 
-def decode(raw, content_type=""):
-    # AEMET sirve ISO-8859-15 (Content-Type); las muestras de pruebas pueden venir en UTF-8
-    if "8859-15" in content_type.lower():
-        return raw.decode("iso-8859-15")
-    try:
-        return raw.decode("utf-8")
-    except UnicodeDecodeError:
-        return raw.decode("iso-8859-15")
+def load_points(path):
+    """[(ine, nombre, lat, lon)] de forecast_points.csv, en el orden del fichero."""
+    with Path(path).open(encoding="utf-8") as f:
+        return [(r["ine_code"], r["name"], float(r["lat"]), float(r["lon"])) for r in csv.DictReader(f)]
 
 
-def _float(v):
-    s = str(v).strip().replace(",", ".") if v is not None else ""
-    if s.lower() == "ip":            # inapreciable
-        return 0.0
-    try:
-        return float(s) if s else None
-    except ValueError:
-        return None
+def _sky_texts():
+    src = settings.load("realtime")["sources"]["forecast"]
+    name = Path(src.get("weather_codes", "weather_codes.yaml")).stem
+    return {int(k): v for k, v in ((settings.load(name) or {}).get("codes") or {}).items()}
 
 
-def _hourly(items, day):
-    out = {}
-    for e in items or []:
-        p = str(e.get("periodo", ""))
-        if len(p) == 2 and p.isdigit():
-            out[day + timedelta(hours=int(p))] = _float(e.get("value"))
-    return out
+def _num(v):
+    return None if v is None else float(v)
 
 
-def _by_band(items, day):
-    """probPrecipitacion por franjas de 6 h ('1420' = 14 a 20): cada hora toma la de su franja."""
-    out = {}
-    for e in items or []:
-        p = str(e.get("periodo", ""))
-        if len(p) == 4 and p.isdigit():
-            start, end = int(p[:2]), int(p[2:]) or 24
-            end = end if end > start else end + 24
-            for h in range(start, end):
-                out[day + timedelta(hours=h)] = _float(e.get("value"))
-    return out
-
-
-def parse_forecast(doc):
-    """({hora: (temp, feels_like, precip_prob, precip)}, elaborado). Solo horas con temperatura."""
-    days = [(datetime.fromisoformat(d["fecha"][:10]), d) for d in doc["prediccion"]["dia"]]
-    # las franjas se unen entre dias: la 2002 de hoy cubre las 00 y 01 de manana (como la ingesta)
-    prob = {}
-    for day, d in days:
-        prob.update(_by_band(d.get("probPrecipitacion"), day))
+def parse_open_meteo(item, sky=None):
+    """({hora: (temp, feels_like, precip_prob, precip, wind, sky)}, {dia: tmax}). Solo horas con temperatura."""
+    sky = _sky_texts() if sky is None else sky
+    h = item["hourly"]
     series = {}
-    for day, d in days:
-        temp, feels = _hourly(d.get("temperatura"), day), _hourly(d.get("sensTermica"), day)
-        precip = _hourly(d.get("precipitacion"), day)
-        for ts, t in temp.items():
-            if t is not None:
-                series[ts] = (t, feels.get(ts), prob.get(ts), precip.get(ts))
-    issued = doc.get("elaborado")
-    return series, datetime.fromisoformat(issued) if issued else None
+    for i, t in enumerate(h["time"]):
+        temp = _num(h["temperature_2m"][i])
+        if temp is None:
+            continue
+        code = h["weather_code"][i]
+        series[datetime.fromisoformat(t)] = (
+            temp, _num(h["apparent_temperature"][i]), _num(h["precipitation_probability"][i]),
+            _num(h["precipitation"][i]), _num(h["wind_speed_10m"][i]),
+            sky.get(int(code)) if code is not None else None)
+    d = item.get("daily") or {}
+    day_max = {date.fromisoformat(t): float(v) for t, v in zip(d.get("time", []), d.get("temperature_2m_max", []))
+               if v is not None}
+    return series, day_max
 
 
-class RateLimiter:
-    """Como mucho per_min peticiones en cualquier ventana de 60 s (reloj inyectable)."""
-
-    def __init__(self, per_min, now):
-        self.per_min, self.now, self.times = per_min, now, []
-
-    def allow(self, n=1):
-        t = self.now()
-        self.times = [s for s in self.times if t - s < timedelta(seconds=60)]
-        if len(self.times) + n > self.per_min:
-            return False
-        self.times += [t] * n
-        return True
-
-
-def _km(lon1, lat1, lon2, lat2):
-    p1, p2 = math.radians(lat1), math.radians(lat2)
-    a = math.sin((p2 - p1) / 2) ** 2 + math.cos(p1) * math.cos(p2) * math.sin(math.radians(lon2 - lon1) / 2) ** 2
-    return 2 * 6371.0 * math.asin(math.sqrt(a))
+def parse_response(raw, points):
+    """{ine: (serie, tmax por dia)}. La lista viene en el orden de los puntos; si no cuadra, ValueError."""
+    doc = json.loads(raw)
+    items = doc if isinstance(doc, list) else [doc]
+    if len(items) != len(points):
+        raise ValueError(f"Open-Meteo devolvio {len(items)} puntos de {len(points)}")
+    sky = _sky_texts()
+    return {p[0]: parse_open_meteo(item, sky) for p, item in zip(points, items)}
 
 
 class ForecastFeed:
-    def __init__(self, store, cfg, codes, centers=None, cache_path=None, key=None):
+    def __init__(self, store, cfg, points, cache_path=None):
         self.store, self.src = store, cfg["sources"]["forecast"]
-        self.pilots = [str(p) for p in self.src["pilots"]]
-        self.codes = sorted(str(c) for c in codes)
-        self.centers = centers or (lambda: [])          # () -> [(ine, nombre, lon, lat)]
+        self.points = list(points)
         self.cache_path = Path(cache_path) if cache_path else None
-        self.key = key
-        self.limiter = RateLimiter(self.src["requests_per_min"], store.now)
-        self.data = {}                                  # ine -> (serie, elaborado)
-        self.attempt = {}                               # ine -> ultimo intento
-        self.retry = {}                                 # ine -> hora del reintento tras un 429
-        self.requested = set()
-        self.lock = threading.Lock()                    # requested lo tocan las peticiones y el hilo de fondo
+        self.data = {}                  # ine -> (serie, descargada, tmax por dia)
+        self.fetched_at = None          # ultima descarga correcta
+        self.next_try = None            # tras un fallo: no antes de esta hora
+        self.failures = 0               # fallos seguidos (la espera se duplica en cada uno)
         self.last_error = None
+        self.lock = threading.Lock()
 
-    # --- cola ------------------------------------------------------------------------------------------------
-    def request(self, ines):
-        with self.lock:
-            self.requested |= {str(i) for i in ines}
-
-    def _log_name(self, ine):
-        # privacidad: el municipio que ha pedido una persona no va al log (es su ubicacion aproximada)
-        with self.lock:
-            return "un municipio pedido" if ine in self.requested else ine
-
-    def _due(self, ine, now):
-        if ine in self.retry:
-            return now >= self.retry[ine]
-        last = self.attempt.get(ine)
-        if last is not None and (now - last).total_seconds() < self.src["ttl_s"]:
-            return False
-        have = self.data.get(ine)
-        return have is None or have[1] is None or now - have[1] > timedelta(hours=self.src["refetch_after_h"])
-
-    def next_due(self):
-        now, seen = self.store.now(), set()
-        with self.lock:
-            requested = sorted(self.requested)
-        for ine in [*requested, *self.pilots, *self.codes]:
-            if ine not in seen and self._due(ine, now):
-                return ine
-            seen.add(ine)
-        return None
+    def url(self):
+        lats = ",".join(f"{p[2]:.4f}" for p in self.points)
+        lons = ",".join(f"{p[3]:.4f}" for p in self.points)
+        return f"{self.src['url']}&latitude={lats}&longitude={lons}"
 
     def step(self):
-        """Como mucho una descarga (2 peticiones) si la cuota lo permite. Devuelve que ha hecho (para pruebas y logs)."""
-        ine = self.next_due()
-        if ine is None:
-            return "idle"
-        if not self.limiter.allow(2):
+        """Como mucho una peticion. Devuelve que ha hecho (para pruebas y logs)."""
+        now = self.store.now().replace(microsecond=0)
+        if self.next_try is not None and now < self.next_try:
             return "wait"
-        now = self.store.now()
+        if self.failures == 0 and self.fetched_at is not None \
+                and (now - self.fetched_at).total_seconds() < self.src["ttl_s"]:
+            return "idle"
         try:
-            self.data[ine] = self._fetch(ine)
-        except PortalError as e:
-            self.last_error = f"HTTP {e.status}"
-            log.warning("prevision de %s sin descargar: HTTP %s", self._log_name(ine), e.status)
-            if e.status == 429 and ine not in self.retry:
-                self.retry[ine] = now + timedelta(seconds=self.src["retry_429_s"])   # un reintento
-                return f"429:{ine}"
-            self.retry.pop(ine, None)
-            self.attempt[ine] = now                     # a la siguiente vuelta
-            return f"{e.status}:{ine}"
-        except Exception as e:                          # red, JSON roto: solo el tipo, nunca el mensaje
-            self.last_error = type(e).__name__
-            log.warning("prevision de %s sin descargar: %s", self._log_name(ine), self.last_error)
-            self.retry.pop(ine, None)
-            self.attempt[ine] = now
-            return f"error:{ine}"
-        self.retry.pop(ine, None)
-        self.attempt[ine] = now
+            if self.store.snapshot:
+                raw, _ = self.store.http_get("forecast", None, key="open_meteo.json")
+            else:
+                raw, _ = self.store.http_get("forecast", self.url())
+            parsed = parse_response(raw, self.points)
+        except Exception as e:      # nunca la URL ni el mensaje (llevan las coordenadas): solo codigo o tipo
+            result = str(e.status) if isinstance(e, PortalError) else "error"
+            self.last_error = f"HTTP {e.status}" if isinstance(e, PortalError) else type(e).__name__
+            self.failures += 1
+            wait = min(self.src["retry_s"] * 2 ** (self.failures - 1), self.src["retry_max_s"])
+            self.next_try = now + timedelta(seconds=wait)
+            log.warning("prevision sin descargar: %s (reintento en %d s)", self.last_error, wait)
+            return result
         with self.lock:
-            self.requested.discard(ine)
+            self.data = {ine: (series, now, day_max) for ine, (series, day_max) in parsed.items()}
+        self.fetched_at, self.next_try, self.failures, self.last_error = now, None, 0, None
         self.save_cache()
-        return f"ok:{ine}"
-
-    def _fetch(self, ine):
-        if self.store.snapshot:
-            raw, content_type = self.store.http_get("forecast", None, key=f"{ine}.json")
-        else:
-            if not self.key:
-                raise RuntimeError("falta AEMET_API_KEY")
-            meta, _ = self.store.http_get("forecast", self.src["url"].format(ine=ine), headers={"api_key": self.key})
-            meta = json.loads(meta)
-            if meta.get("estado") != 200 or not meta.get("datos"):
-                raise PortalError("forecast", meta.get("estado"))
-            raw, content_type = self.store.http_get("forecast", meta["datos"])
-        doc = json.loads(decode(raw, content_type))
-        return parse_forecast(doc[0] if isinstance(doc, list) else doc)
+        return f"ok:{len(parsed)}"
 
     # --- lectura ---------------------------------------------------------------------------------------------
-    def _fresh(self, ine, now):
-        have = self.data.get(ine)
-        if have is None or have[1] is None:
-            return None
-        if self.store.snapshot:          # demo sin red: lo grabado se sirve (la app dice «datos grabados»)
-            return have
-        return have if now - have[1] <= timedelta(hours=self.src["max_age_h"]) else None
-
     def get(self, ine):
-        """(serie, elaborado, nota) o None. Sin prevision propia: la del municipio mas cercano con prevision."""
-        now = self.store.now()
-        own = self._fresh(ine, now)
-        if own is not None:
-            return own[0], own[1], None
-        centers = {c[0]: c for c in self.centers()}
-        if ine not in centers:
+        """(serie, descargada, tmax por dia) o None si no hay o pasa de max_age_h (salvo en modo grabado)."""
+        with self.lock:
+            have = self.data.get(ine)
+        if have is None:
             return None
-        _, _, lon, lat = centers[ine]
-        best = None
-        for other, (_, name, olon, olat) in centers.items():
-            have = self._fresh(other, now) if other != ine else None
-            if have is None:
-                continue
-            km = _km(lon, lat, olon, olat)
-            if km <= self.src["forecast_fallback_km"] and (best is None or km < best[0]):
-                best = (km, have, name)
-        if best is None:
+        if not self.store.snapshot and self.store.now() - have[1] > timedelta(hours=self.src["max_age_h"]):
             return None
-        return best[1][0], best[1][1], f"Previsión de {best[2]}"
+        return have
 
     # --- cache de arranque (data/live/forecast.json) ----------------------------------------------------------
     def save_cache(self):
         if self.cache_path is None:
             return
-        out = {ine: {"issued": issued.isoformat(), "series": [[ts.isoformat(), *v] for ts, v in sorted(s.items())]}
-               for ine, (s, issued) in self.data.items() if issued is not None}
+        out = {ine: {"provider": PROVIDER, "issued": issued.isoformat(),
+                     "series": [[ts.isoformat(), *v] for ts, v in sorted(s.items())],
+                     "day_max": {d.isoformat(): t for d, t in sorted(day_max.items())}}
+               for ine, (s, issued, day_max) in self.data.items()}
         try:
             self.cache_path.parent.mkdir(parents=True, exist_ok=True)
             tmp = self.cache_path.with_suffix(".tmp")
@@ -250,7 +140,7 @@ class ForecastFeed:
             log.warning("cache de prevision sin guardar: %s", type(e).__name__)
 
     def load_cache(self):
-        """Carga la cache descartando lo elaborado hace mas de max_age_h. Devuelve cuantos municipios carga."""
+        """Carga la cache descartando lo descargado hace mas de max_age_h. Devuelve cuantos municipios carga."""
         if self.cache_path is None or not self.cache_path.exists():
             return 0
         try:
@@ -258,15 +148,20 @@ class ForecastFeed:
         except (OSError, ValueError) as e:
             log.warning("cache de prevision ilegible: %s", type(e).__name__)
             return 0
-        now, loaded = self.store.now(), 0
+        now, loaded = self.store.now(), {}
         for ine, item in data.items():
+            if not isinstance(item, dict) or item.get("provider") != PROVIDER:
+                continue
             try:
                 issued = datetime.fromisoformat(item["issued"])
                 series = {datetime.fromisoformat(r[0]): tuple(r[1:]) for r in item["series"]}
-            except (KeyError, TypeError, ValueError):
+                day_max = {date.fromisoformat(d): t for d, t in (item.get("day_max") or {}).items()}
+            except (KeyError, TypeError, ValueError, AttributeError):
                 continue
             if now - issued <= timedelta(hours=self.src["max_age_h"]):
-                self.data[ine] = (series, issued)
-                self.attempt[ine] = now
-                loaded += 1
-        return loaded
+                loaded[ine] = (series, issued, day_max)
+        with self.lock:
+            self.data.update(loaded)
+        if loaded:                                      # la cache cuenta para el TTL: no se repite en el arranque
+            self.fetched_at = max(v[1] for v in loaded.values())
+        return len(loaded)

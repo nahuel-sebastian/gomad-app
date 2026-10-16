@@ -28,7 +28,7 @@ Por qué DuckDB y no Oracle como almacén principal: el uso es de **solo lectura
 portales ──► download ──► data/raw ──► normalize ──► data/clean/*.parquet ──► build_db
 (CKAN, IDEM,  (download_     (+manifest)   (un módulo      (GeoParquet, EPSG:4326)   │
  Nomecalles,   sources.py)                  por fuente)                              ▼
- Ayto, AEMET,                                                    data/gomad.duckdb       (referencia + diario)
+ Ayto, Open-Meteo,                                               data/gomad.duckdb       (referencia + diario)
  OSM)                                                            data/realtime.duckdb    (aire, previsión)
                                                                  data/graph/<zona>/{nodes,edges}.parquet
                                                                                     │ solo lectura
@@ -46,7 +46,7 @@ portales ──► download ──► data/raw ──► normalize ──► dat
 Se amplía `app/ingest/scripts/download_sources.py` (no se reescribe):
 - Campo `refresh` (`reference|weekly|daily|hourly|on_demand`) en cada entrada de `FUENTES` y opción `--refresh <nivel>` (CLAUDE.md §6.4).
 - **Comprobación de cambios** antes de descargar (`metadata_modified` de CKAN, `Last-Modified`/`ETag`). Si no cambia, no se descarga ni se reprocesa.
-- Fuentes nuevas: **OSM** (extracto de Geofabrik de Madrid), **AEMET** (previsión horaria por municipio, clave en `.env`) y **`callejero_completo_2025`** (Nomecalles).
+- Fuentes nuevas: **OSM** (extracto de Geofabrik de Madrid), **Open-Meteo** (previsión horaria de los 179 municipios en una petición, sin clave; sustituye a AEMET desde DEC-16, 16/10) y **`callejero_completo_2025`** (Nomecalles).
 - `data/raw/manifest.json` guarda la fecha de cada recarga (RF-19).
 
 ### 3.2 Normalización
@@ -115,7 +115,7 @@ La API llama al buscador de Nomecalles en nombre del navegador: el front no habl
 ### 4.2 Flujo de `/recommend` (determinista, sin LLM)
 1. **Candidatos:** destinos de la actividad dentro de un radio en línea recta (consulta en DuckDB).
 2. **Distancia real a pie:** un **Dijkstra con límite** desde el origen (`scipy.sparse.csgraph.dijkstra` con `indices` y `limit`) da en una pasada la distancia a todos los candidatos; se descartan los que superan la distancia máxima.
-3. **Contexto:** previsión horaria del municipio (AEMET) y aire de la estación más cercana o de su zona.
+3. **Contexto:** previsión horaria del municipio (Open-Meteo, DEC-16) y aire de la estación más cercana o de su zona.
 4. **Por cada hora de la ventana:** filtros duros (lluvia, calor, aire por encima del umbral del perfil → solo cubiertos) y nota ponderada.
 5. **Mejor franja** = la hora con mejor nota. Si ninguna hora es viable al aire libre → alternativa cubierta (RF-09).
 6. **Explicación con plantillas** a partir de los factores dominantes (RF-10 sin LLM).
@@ -434,7 +434,7 @@ app/
 | A-11 | Tamaño real del grafo regional y latencia en la capital | Rutas, jue 15–sáb 17 | **Medido el 16/10 (§4.4): recomendado el grafo regional** (API 1,5 GB, rutas < 0,5 s en las tres muestras). Pendiente de confirmar por el equipo; si no: Getafe + capital |
 | A-12 | ✅ Proveedor de IA para F6 (D-03) | Decidido el 15/10 | **OCI Language** (servicio de IA de Oracle, sin LLM) + reglas + plantillas: Language extrae entidades y frases clave (`batch_detect_language_entities`, `batch_detect_language_key_phrases`; 0,23 s de media en 5 llamadas, `app/api/scripts/probe_ai.py`), un diccionario del catálogo RF-21 las pasa a `AssistantParams` (con negaciones) y `write_up` redacta con plantillas (D-M1). Descartados: OCI Generative AI (en `eu-madrid-1` el chat da 404 por permisos; `eu-frankfurt-1` no está suscrita) y Anthropic (coste propio). Credenciales: `OCI_*` en `app/.env`; en la VM se copia `~/.oci` y se monta en solo lectura en el contenedor `api` |
 | A-13 | ✅ Desnivel (D-12) | Decidido el 15/10: **sí, Should** | IGN MDT05 → altura por nodo y pendiente por tramo, con el grafo regional (S-R1, sáb 17). Descarga comprobada el 15/10 por el WCS INSPIRE del IGN (CLAUDE.md §7.1): teselas de ≤ 4096 px. Recorte justo después de F6 |
-| A-14 | ✅ Cuota de AEMET (DEC-13 / P-13) | Decidido el 16/10 | `AEMET_PAUSE_S=30`; cada hora los 3 pilotos (`AEMET_HOURLY`) + 1/6 del resto (`AEMET_ROTATION_SLICES=6`): todos cada 6 h, ~16,5 min por ejecución; 429 → un reintento a los 120 s y se salta el municipio; aviso «previsión antigua» si `elaborado` > 12 h. Detalle en la ficha B2 |
+| A-14 | ✅ Cuota de AEMET (DEC-13 / P-13) — **superada por DEC-16: Open-Meteo, una petición para los 179, sin cuota por municipio** | Decidido el 16/10 | `AEMET_PAUSE_S=30`; cada hora los 3 pilotos (`AEMET_HOURLY`) + 1/6 del resto (`AEMET_ROTATION_SLICES=6`): todos cada 6 h, ~16,5 min por ejecución; 429 → un reintento a los 120 s y se salta el municipio; aviso «previsión antigua» si `elaborado` > 12 h. Detalle en la ficha B2 |
 
 ### Ideas para después de la demo (no se hacen ahora)
 - **Núcleo fijo y bordes configurables para la entrega a la organización:** fuentes, umbrales (con cita), pesos, perfiles, actividades y municipios con ruta en ficheros de configuración; repositorio con contrato para poder sustituir DuckDB por Oracle u otro almacén (DDL de Oracle con `SDO_GEOMETRY`, script de carga desde GeoParquet, pruebas de contrato que cualquier implementación debe pasar); `README` de entrega.

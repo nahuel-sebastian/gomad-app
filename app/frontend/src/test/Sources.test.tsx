@@ -20,7 +20,7 @@ describe("Fuentes y aviso", () => {
         expect(headers).toEqual(["Fuente", "Publicador", "Licencia", "Última actualización"]);
         expect(table).toHaveTextContent("CC BY 4.0");
         expect(table).toHaveTextContent("ODbL");
-        expect(table).toHaveTextContent("Aviso legal de AEMET");
+        expect(table).toHaveTextContent("Weather data by Open-Meteo.com");
         expect(table).toHaveTextContent("hace 12 min");
         expect(table).toHaveTextContent("Última recarga fallida: se muestra el dato anterior.");
         expect(table).toHaveTextContent("Sin descargar todavía");

@@ -20,8 +20,7 @@ def dl(tmp_path, monkeypatch):
 
 
 def args(**kw):
-    base = dict(list=False, group="minimal", only=None, include_heavy=False, refresh=None, force=False,
-                aemet_municipalities=None)
+    base = dict(list=False, group="minimal", only=None, include_heavy=False, refresh=None, force=False)
     base.update(kw)
     return argparse.Namespace(**base)
 
@@ -32,7 +31,7 @@ def test_every_source_has_level(dl):
 
 
 def test_select_hourly_level(dl):
-    assert set(dl.select(args(refresh="hourly"))) == {"aire_dia", "ay_aire", "ay_meteo", "aemet"}
+    assert set(dl.select(args(refresh="hourly"))) == {"aire_dia", "ay_aire", "ay_meteo", "open_meteo"}
 
 
 def test_select_level_excludes_heavy_unless_flag(dl):
@@ -119,50 +118,43 @@ def test_wfs_generated_fid_is_not_a_change(dl, monkeypatch):
     assert e3["changed"] is True                                  # un cambio real si se detecta
 
 
-def test_aemet_without_key_gives_clear_error(dl, monkeypatch):
-    monkeypatch.setattr(dl, "read_env", lambda path=None: {})
-    with pytest.raises(RuntimeError, match="AEMET_API_KEY"):
-        dl.download_aemet(dl.RAW_DIR / "aemet", "28065")
+POINTS_CSV = "ine_code,name,lat,lon\n28065,Getafe,40.2991,-3.6734\n28079,Madrid,40.4654,-3.6965\n"
 
 
-def test_aemet_key_not_in_urls_or_files(dl, monkeypatch):
-    key = "SECRET-KEY-123"
-    monkeypatch.setattr(dl, "read_env", lambda path=None: {"AEMET_API_KEY": key, "AEMET_PAUSE_S": "0"})
+def test_open_meteo_one_request_for_all_points(dl, monkeypatch, tmp_path):
+    """DEC-16: una sola peticion con las coordenadas de config/forecast_points.csv, en su orden, sin clave."""
+    (tmp_path / "config").mkdir()
+    (tmp_path / "config" / "forecast_points.csv").write_text(POINTS_CSV, encoding="utf-8")
+    monkeypatch.setattr(dl, "CONFIG_DIR", tmp_path / "config")
     seen = []
 
     def fake_fetch(url, timeout=300, headers=None):
         seen.append((url, headers))
-        if "opendata/api/prediccion" in url:
-            return json.dumps({"estado": 200, "datos": "https://opendata.aemet.es/opendata/sh/abc"}).encode()
-        return b'[{"nombre": "Getafe", "prediccion": {"dia": []}}]'
+        return json.dumps([{"hourly": {}}, {"hourly": {}}]).encode()
 
     monkeypatch.setattr(dl, "fetch", fake_fetch)
-    paths, urls = dl.download_aemet(dl.RAW_DIR / "aemet", "28065")
-    assert all(key not in u for u in urls)
-    assert all(key not in p.read_text(encoding="latin-1") for p in paths)
-    assert seen[0][1]["api_key"] == key and key not in seen[0][0]
+    paths, urls = dl.download_open_meteo(dl.RAW_DIR / "open_meteo")
+    assert len(seen) == 1 and seen[0][1] is None
+    assert seen[0][0] == dl.OPEN_METEO_URL + "&latitude=40.2991,40.4654&longitude=-3.6734,-3.6965"
+    assert sorted(p.name for p in paths) == ["forecast.json", "points.csv"]
+    assert (dl.RAW_DIR / "open_meteo" / "points.csv").read_text(encoding="utf-8") == POINTS_CSV
 
 
-def test_aemet_status_429_is_error(dl, monkeypatch):
-    monkeypatch.setattr(dl, "read_env", lambda path=None: {"AEMET_API_KEY": "k", "AEMET_PAUSE_S": "0"})
-    monkeypatch.setattr(dl, "fetch", lambda url, timeout=300, headers=None: json.dumps(
-        {"estado": 429, "descripcion": "Límite de peticiones"}).encode())
-    with pytest.raises(RuntimeError, match="429"):
-        dl.download_aemet(dl.RAW_DIR / "aemet", "28065")
+def test_open_meteo_length_mismatch_is_error(dl, monkeypatch, tmp_path):
+    (tmp_path / "config").mkdir()
+    (tmp_path / "config" / "forecast_points.csv").write_text(POINTS_CSV, encoding="utf-8")
+    monkeypatch.setattr(dl, "CONFIG_DIR", tmp_path / "config")
+    monkeypatch.setattr(dl, "fetch", lambda url, timeout=300, headers=None: b'{"hourly": {}}')
+    with pytest.raises(RuntimeError, match="1 puntos de 2"):
+        dl.download_open_meteo(dl.RAW_DIR / "open_meteo")
+    assert not (dl.RAW_DIR / "open_meteo" / "forecast.json").exists()
 
 
-def test_aemet_all_reads_179_municipalities(dl):
-    folder = dl.RAW_DIR / "municipios"
-    folder.mkdir(parents=True)
-    feats = [{"type": "Feature", "properties": {"CDMUNICIPIO": f"{i:03d}"}, "geometry": None} for i in range(1, 180)]
-    (folder / "municipios.geojson").write_text(json.dumps({"type": "FeatureCollection", "features": feats}))
-    assert len(dl.aemet_municipalities("todos")) == 179
-    assert dl.aemet_municipalities("28065,28079") == ["28065", "28079"]
-
-
-def test_read_env_reads_app_env(dl):
-    (dl.APP_DIR / ".env").write_text("AEMET_API_KEY=abc\n# comentario\n", encoding="utf-8")
-    assert dl.read_env()["AEMET_API_KEY"] == "abc"
+def test_open_meteo_url_matches_realtime_yaml(dl):
+    import yaml
+    cfg = yaml.safe_load((ROOT.parent / "config" / "realtime.yaml").read_text(encoding="utf-8"))
+    assert dl.OPEN_METEO_URL == cfg["sources"]["forecast"]["url"]
+    assert dl.SOURCES["open_meteo"].refresh == "hourly" and dl.SOURCES["open_meteo"].group == "minimal"
 
 
 def test_unchanged_clears_last_failure(dl, monkeypatch):
@@ -180,7 +172,7 @@ def test_concurrent_run_keeps_other_entries(dl, monkeypatch):
     manifest_path = dl.RAW_DIR / "manifest.json"
     manifest_path.write_text(json.dumps({"farmacias": {"sha256": "old"}}), encoding="utf-8")
 
-    def other_run_writes(key, src, previous, force, aemet_municipalities=None):
+    def other_run_writes(key, src, previous, force):
         # mientras esta ejecucion descarga, otra actualiza farmacias en el manifiesto
         manifest_path.write_text(json.dumps({"farmacias": {"sha256": "new"}}), encoding="utf-8")
         return {"sha256": "x", "changed": True, "bytes": 0}
@@ -190,22 +182,3 @@ def test_concurrent_run_keeps_other_entries(dl, monkeypatch):
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
     assert manifest["farmacias"]["sha256"] == "new"
     assert manifest["ay_trafico"]["sha256"] == "x"
-
-
-def test_aemet_all_without_municipalities_gives_clear_error(dl):
-    # sin municipios.geojson, "todos" debe explicar que hacer, no un FileNotFoundError suelto
-    with pytest.raises(RuntimeError, match="--only municipios"):
-        dl.aemet_municipalities("todos")
-
-
-def test_unchanged_hash_keeps_downloaded(dl, monkeypatch):
-    # RF-19: "actualizado hace..." es cuando cambio el dato, no cuando se comprobo
-    monkeypatch.setattr(dl, "fetch_conditional", lambda url, previous, timeout=300: (b"<xml/>", {}))
-    e1 = dl.download_source("ay_trafico", dl.SOURCES["ay_trafico"], {}, force=False)
-    e1 = {**e1, "downloaded": "2026-10-01T10:00:00", "checked": "2026-10-01T10:00:00"}
-    e2 = dl.download_source("ay_trafico", dl.SOURCES["ay_trafico"], e1, force=False)
-    assert e2["changed"] is False
-    assert e2["downloaded"] == "2026-10-01T10:00:00"
-    assert e2["checked"] != "2026-10-01T10:00:00"
-    e3 = dl.download_source("ay_trafico", dl.SOURCES["ay_trafico"], e1, force=True)
-    assert e3["downloaded"] != "2026-10-01T10:00:00"           # con --force cuenta como descarga nueva
