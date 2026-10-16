@@ -27,7 +27,7 @@ describe("Perfil", () => {
             "45 minutos",
         );
         const durationSlider = screen.getByRole("slider", { name: "Tiempo disponible" });
-        const durationControl = durationSlider.closest(".pref-slider")!;
+        const durationControl = durationSlider.closest<HTMLElement>(".pref-slider")!;
         expect(within(durationControl).getByText("45 min")).toBeInTheDocument();
         expect(within(durationControl).getByText("10 min")).toBeInTheDocument();
         expect(within(durationControl).getByText("180 min")).toBeInTheDocument();
@@ -40,7 +40,7 @@ describe("Perfil", () => {
             "Próximas 3 horas",
         );
         const windowSlider = screen.getByRole("slider", { name: "Ventana horaria" });
-        const windowControl = windowSlider.closest(".pref-slider")!;
+        const windowControl = windowSlider.closest<HTMLElement>(".pref-slider")!;
         expect(within(windowControl).getByText("3h")).toBeInTheDocument();
         expect(within(windowControl).getByText("1h")).toBeInTheDocument();
         expect(within(windowControl).getByText("12h")).toBeInTheDocument();
@@ -149,9 +149,9 @@ describe("Ajustar como dialogo", () => {
         expect(after).not.toBe(before);
     });
 
-    it("Ajustar en Inicio lleva al perfil", async () => {
+    it("«Tus preferencias» en Inicio lleva al perfil", async () => {
         const { user } = renderAt("/");
-        await user.click(screen.getByRole("link", { name: "Ajustar preferencias" }));
+        await user.click(screen.getByRole("link", { name: /^Tus preferencias/ }));
         expect(await screen.findByRole("heading", { level: 1, name: "Tus preferencias" })).toBeInTheDocument();
     });
 

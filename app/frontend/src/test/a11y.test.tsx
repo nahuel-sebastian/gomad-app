@@ -48,7 +48,7 @@ describe("navegacion global", () => {
         renderAt("/");
         const nav = screen.getByRole("navigation", { name: "Principal" });
         const links = within(nav).getAllByRole("link");
-        expect(links.map((l) => l.textContent)).toEqual(["Mi entorno", "Municipios", "Perfil"]);
+        expect(links.map((l) => l.textContent)).toEqual(["Mi entorno", "Municipios", "Preferencias"]);
         expect(screen.queryByRole("button", { name: /menú/i })).not.toBeInTheDocument();
     });
 
@@ -104,8 +104,8 @@ describe("listas y nombres de botones", () => {
         },
     );
 
-    it("«Ajustar» de Inicio es un enlace con nombre accesible al perfil", async () => {
+    it("«Tus preferencias» de Inicio es un enlace con nombre accesible al perfil", async () => {
         renderAt("/", { origin: SAMPLE_ORIGIN });
-        expect(await screen.findByRole("link", { name: "Ajustar preferencias" })).toHaveAttribute("href", "/perfil");
+        expect(await screen.findByRole("link", { name: /^Tus preferencias/ })).toHaveAttribute("href", "/perfil");
     });
 });
