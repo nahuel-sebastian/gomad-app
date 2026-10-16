@@ -144,3 +144,13 @@ def test_dedupe_across_sources_and_same_name_far():
                              duration_min=45, max_distance_m=3000, limit=5)
     page, _ = _page([retiro, jardines, prado_ay, prado_nmc, other], req, 50, 300)
     assert [x.cand.id for x in page] == ["nmc_parques:133", "ay_parques:1", "ay_parques:2"]
+
+
+def test_sources_do_not_repeat(tmp_path):
+    # un destino de VPLA con verde llevaba vpla_redes dos veces (fuente del destino y fuente del verde)
+    res = run(tmp_path, request(limit=10))
+    vpla = next(r for r in res.results if r.destination.id == "vpla_redes:1")
+    assert vpla.sources[0].source == "vpla_redes" and vpla.destination.source.source == "vpla_redes"
+    for r in res.results:
+        ids = [d.source for d in r.sources]
+        assert len(ids) == len(set(ids)), ids

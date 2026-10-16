@@ -20,6 +20,7 @@ DESTINATIONS = [
     ("ay_parques:1", "ay_parques", "Parque Capital", "park", False, "28079", -3.7300, 40.3080, None, {"walk": 0.9}),
     ("nmc_parques:3", "nmc_parques", "Parque Lejano", "park", False, "28065", -3.7300, 40.3500, 0.5, {"walk": 1.0}),
     ("eiel_deporte:2", "eiel_deporte", "Pista de Atletismo", "facility", False, "28065", -3.7310, 40.3055, 0.3, {"run": 1.0}),
+    ("vpla_redes:1", "vpla_redes", "Parques Municipales y Urbanos", "park", False, "28065", -3.7300, 40.3070, 0.9, {"walk": 0.9}),
 ]
 ADDRESSES = [   # ine_code, municipality, street_code, street_type, street, street_norm, number, letter, lon, lat
     ("28065", "Getafe", "065A0460", "Calle", "Madrid", "madrid", 10, "", -3.7314934, 40.3056775),

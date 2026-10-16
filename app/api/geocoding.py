@@ -1,7 +1,7 @@
 """GET /location (RF-01, D-04): direccion con numero o municipio por nombre.
 
-Orden: municipio por nombre -> buscador de Nomecalles (sin clave, cache 1 h), resuelto con el callejero normalizado
-(clean/addresses.parquet) -> si el buscador cae o no aporta, busqueda local en el callejero.
+Orden: municipio por nombre -> callejero normalizado local (clean/addresses.parquet) -> buscador de Nomecalles
+(sin clave, cache 1 h en memoria, resuelto con el mismo callejero) solo si el local no encuentra el vial.
 El texto es la ubicacion de la persona: nunca se escribe en los logs."""
 import re
 import time

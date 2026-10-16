@@ -21,3 +21,4 @@ labels:
   callejero: "Callejero (Comunidad de Madrid)"
   "config:weights": "Pesos por defecto de la nota (criterio propio)"
   "config:routing": "Pesos de la ruta saludable (criterio propio)"
+  "config:straight_line": "Distancia aproximada: línea recta (criterio propio)"

@@ -1,4 +1,4 @@
-"""POST /route (arquitectura §4.4): directa y saludable en paralelo sobre el grafo de la zona.
+"""POST /route (arquitectura §4.4): directa y saludable, una detras de otra, sobre el grafo de la zona.
 
 Fuera de la red o desconectado: linea recta marcada approximate y aviso. Nunca un 500 por una ruta imposible."""
 import math
@@ -109,9 +109,11 @@ def route(req, repo, graphs):
     speed = walking_speed_kmh(req.profile, weights_cfg)
     located = graphs.locate([(req.origin.lon, req.origin.lat), (req.destination.lon, req.destination.lat)],
                             routing["snap_max_m"])
+    # sin red, la ruta es una estimacion propia: se cita como criterio propio (RF-19)
     straight = lambda warning: s.RouteResponse(direct=_straight("direct", req.origin, req.destination, speed),
                                                healthy=_straight("healthy", req.origin, req.destination, speed),
-                                               warnings=[warning], sources=[])
+                                               warnings=[warning],
+                                               sources=[data_source("config:straight_line", labels, None, True)])
     if located is None:
         return straight(NO_NETWORK)
     zone, nodes, snaps = located

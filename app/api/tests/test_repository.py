@@ -20,7 +20,7 @@ def test_haversine():
 
 def test_candidates_by_box_distance_and_activity(repo):
     found = repo.candidates(ORIGIN["lon"], ORIGIN["lat"], 1000, ["walk"], "any", 400)
-    assert {c.id for c in found} == {"eiel_parques:1", "nmc_parques:1", "nmc_parques:2", "ay_parques:1"}
+    assert {c.id for c in found} == {"eiel_parques:1", "nmc_parques:1", "nmc_parques:2", "ay_parques:1", "vpla_redes:1"}
     first = next(c for c in found if c.id == "eiel_parques:1")
     assert first.activity == "walk" and first.suitability == 1.0 and first.straight_m == pytest.approx(93, abs=1)
     assert next(c for c in found if c.id == "nmc_parques:2").green is None

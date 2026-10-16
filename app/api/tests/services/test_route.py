@@ -51,6 +51,8 @@ def test_route_outside_graph_is_approximate(setup):
     assert res.direct.geometry.coordinates == [[ORIGIN["lon"], ORIGIN["lat"]], [far["lon"], far["lat"]]]
     assert res.direct.description.startswith("Línea recta de")
     assert any("línea recta" in w for w in res.warnings)
+    assert res.sources and all(d.own_criterion for d in res.sources)            # RF-19: tambien la aproximada
+    assert res.sources[0].label == "Distancia aproximada: línea recta (criterio propio)"
 
 
 def test_geometry_without_repeated_points(setup):

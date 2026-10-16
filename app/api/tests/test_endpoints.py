@@ -115,6 +115,7 @@ def test_route_outside_graph_is_approximate(mini):
     data = r.json()
     assert data["direct"]["approximate"] and data["healthy"]["approximate"]
     assert data["direct"]["geometry"]["type"] == "LineString"
+    assert data["sources"] and all(d["own_criterion"] for d in data["sources"])
 
 
 @pytest.mark.slow

@@ -219,7 +219,7 @@ class _Run:
     def _sources(self, x):
         c = x.cand
         out = [data_source(c.source, self.labels, self.dates.get(c.source))]
-        if c.green is not None:
+        if c.green is not None and c.source != "vpla_redes":     # el verde sale de VPLA: no repetir la fuente
             out.append(data_source("vpla_redes", self.labels, self.dates.get("vpla_redes")))
         if c.ine_code in self.issued:
             out.append(data_source("aemet", self.labels, self.issued[c.ine_code]))
