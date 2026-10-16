@@ -116,6 +116,20 @@ export default function Results() {
 
     const items = [...(first.data?.results ?? []), ...(extra?.items ?? [])];
     const hasMore = extra ? extra.hasMore : (first.data?.has_more ?? false);
+    // destino resaltado en el mapa: el de la tarjeta con foco o bajo el puntero (RF-11)
+    const [selectedId, setSelectedId] = useState<string | null>(null);
+    const cardIndex = (target: EventTarget) =>
+        [...(listRef.current?.children ?? [])].findIndex((li) => li.contains(target as Node));
+    const selectCard = (target: EventTarget) => {
+        const id = items[cardIndex(target)]?.destination.id;
+        if (id && id !== selectedId) setSelectedId(id);
+    };
+    // pulsar un marcador lleva el foco a su tarjeta (y el foco la selecciona)
+    const focusCard = (id: string) => {
+        const link = listRef.current?.children[items.findIndex((i) => i.destination.id === id)]?.querySelector("a");
+        link?.scrollIntoView({ block: "nearest" });
+        link?.focus();
+    };
 
     useEffect(() => {
         if (first.data) {
@@ -363,7 +377,9 @@ export default function Results() {
                                     ref={listRef}
                                     className="results-list"
                                     aria-label="Resultados"
-                                    aria-busy={stale ? true : undefined}>
+                                    aria-busy={stale ? true : undefined}
+                                    onFocus={(e) => selectCard(e.target)}
+                                    onMouseOver={(e) => selectCard(e.target)}>
                                     {items.map((item, i) => (
                                         <ResultCard key={item.destination.id} item={item} index={i} />
                                     ))}
@@ -392,6 +408,8 @@ export default function Results() {
                 <MapView
                     className="map-demo"
                     origin={origin.coordinate}
+                    selectedId={selectedId}
+                    onSelect={focusCard}
                     markers={items.map((item, i) => ({
                         id: item.destination.id,
                         number: i + 1,

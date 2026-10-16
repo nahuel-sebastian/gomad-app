@@ -14,7 +14,7 @@ const ROUTE_MAIN_COLOR = "#135c3a";
 const ROUTE_SECONDARY_COLOR = "#55677a";
 
 export default function MapCanvas(props: MapViewProps) {
-    const { markers, origin, route, secondaryRoute } = props;
+    const { markers, selectedId, origin, route, secondaryRoute, onSelect } = props;
     const bounds = boundsOf(mapPoints(props));
     const mapRef = useRef<MapRef>(null);
     // clave por valor: un array nuevo con los mismos puntos no reencuadra
@@ -67,8 +67,18 @@ export default function MapCanvas(props: MapViewProps) {
                     </Marker>
                 )}
                 {markers.map((m) => (
-                    <Marker key={m.id} longitude={m.coordinate.lon} latitude={m.coordinate.lat}>
-                        <span className="map-marker">{m.number}</span>
+                    <Marker
+                        key={m.id}
+                        longitude={m.coordinate.lon}
+                        latitude={m.coordinate.lat}
+                        onClick={(e) => {
+                            // que el clic no llegue al mapa
+                            e.originalEvent.stopPropagation();
+                            onSelect?.(m.id);
+                        }}>
+                        <span className={`map-marker${m.id === selectedId ? " map-marker--selected" : ""}`}>
+                            {m.number}
+                        </span>
                     </Marker>
                 ))}
             </Map>

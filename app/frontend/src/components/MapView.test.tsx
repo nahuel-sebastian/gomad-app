@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { toLineString, type LonLat } from "../lib/geometry";
 import { boundsOf, mapPoints } from "./mapUtils";
@@ -128,6 +128,25 @@ describe("MapCanvas: ruta", () => {
         expect(fitBoundsMock).toHaveBeenCalledTimes(1);
         rerender(<MapView markers={[...MARKERS]} />);
         expect(fitBoundsMock).toHaveBeenCalledTimes(1);
+    });
+});
+
+describe("MapCanvas: seleccion", () => {
+    it("el marcador seleccionado lleva la clase de seleccion", async () => {
+        withWebGL();
+        const { container } = render(<MapView markers={MARKERS} selectedId={MARKERS[1].id} />);
+        await screen.findByTestId("maplibre");
+        const selected = container.querySelectorAll(".map-marker--selected");
+        expect(selected).toHaveLength(1);
+        expect(selected[0]).toHaveTextContent("2");
+    });
+
+    it("pulsar un marcador llama a onSelect con su id", async () => {
+        withWebGL();
+        const onSelect = vi.fn();
+        render(<MapView markers={MARKERS} onSelect={onSelect} />);
+        fireEvent.click(await screen.findByText("2"));
+        expect(onSelect).toHaveBeenCalledWith(MARKERS[1].id);
     });
 });
 
