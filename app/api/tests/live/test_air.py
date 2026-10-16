@@ -101,3 +101,28 @@ def test_build_live_registers_air():
     from live import build_live
     store = build_live(settings.load("realtime"), client=None, snapshot_dir=None)
     assert {"air_cm", "air_ay"} <= set(store._fetchers)
+
+
+def test_cold_start_seeds_buffer_from_ingest(tmp_path):
+    """Tras reiniciar, el bufer de 24 h se siembra con clean/air_reading: el PM10 de ayer cuenta (como en la ruta batch)."""
+    import pyarrow as pa
+    import pyarrow.parquet as pq
+    seed = tmp_path / "air_reading"
+    seed.mkdir()
+    hours = [datetime(2026, 10, 15, 10) + timedelta(hours=h) for h in range(15)]        # 15/10 10:00 -> 16/10 00:00
+    # como los parquet reales de la ingesta: timestamp en nanosegundos (pyarrow devuelve pandas.Timestamp)
+    pq.write_table(pa.table({"station_id": ["28065014"] * 15, "magnitude": [10] * 15,
+                             "ts": pa.array(hours, pa.timestamp("ns")),
+                             "value": [60.0] * 15, "flag": ["V"] * 15}), seed / "aire_dia_20261015.parquet")
+    cfg = settings.load("realtime")
+    now = datetime(2026, 10, 16, 9, 30)
+
+    def handler(request):
+        return httpx.Response(200, content=CM if "comunidad" in str(request.url) else AY)
+    store = LiveStore(cfg, client=httpx.Client(transport=httpx.MockTransport(handler)), now=lambda: now)
+    register_air(store, cfg, seed_dir=seed)
+    store.refresh("air_cm")
+    cats = dict(air_categories([store.get("air_cm").value], DAY, DAY + timedelta(hours=9), ICA, 3)["28065014"])
+    # PM10 24 h = (15 x 60 + 11+9+1+1+1+2+8+18+35) / 24 = 41,1 -> moderate (sin semilla: solo 9 h, no cuenta -> fair)
+    assert cats[DAY + timedelta(hours=9)] == "moderate"
+    assert all(type(r[2]) is datetime for r in store.get("air_cm").value)    # nunca pandas.Timestamp

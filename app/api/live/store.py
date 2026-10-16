@@ -8,11 +8,18 @@ import threading
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from pathlib import Path
+from zoneinfo import ZoneInfo
 
 log = logging.getLogger("gomad.api")
 
 REQUIRED = ("ttl_s", "max_age_h", "timeout_s")
+MADRID = ZoneInfo("Europe/Madrid")
 RETRY_FAILED_S = 60          # tras un fallo se reintenta como mucho cada minuto (o antes si el TTL es menor)
+
+
+def madrid_now():
+    """Hora local de Madrid sin zona, como los datos (el reloj del contenedor es UTC)."""
+    return datetime.now(MADRID).replace(tzinfo=None)
 
 
 class PortalError(Exception):
@@ -49,7 +56,7 @@ class LiveStore:
         self.cfg = cfg
         self.sources = cfg["sources"]
         self.client = client
-        self.now = now or datetime.now
+        self.now = now or madrid_now
         self.snapshot_dir = Path(snapshot_dir) if snapshot_dir else None
         self._fetchers, self._entries, self._locks, self._tasks = {}, {}, {}, []
         self._stop = threading.Event()

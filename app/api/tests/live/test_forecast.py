@@ -225,3 +225,18 @@ def test_portal_error_is_logged_without_key(caplog):
     ours = " ".join(r.getMessage() for r in caplog.records if r.name == "gomad.api")   # no el log de httpx
     assert "28065" in ours and "429" in ours
     assert KEY not in caplog.text
+
+
+def test_snapshot_mode_serves_recorded_forecast(tmp_path):
+    """Demo sin red (L-4): la prevision grabada el lunes se sirve el martes; nunca se abre una conexion."""
+    (tmp_path / "forecast").mkdir()
+    (tmp_path / "forecast" / "28065.json").write_text(json.dumps([DOC], ensure_ascii=False), "utf-8")
+
+    def no_network(request):
+        raise AssertionError("conexion abierta")
+    cfg = settings.load("realtime")
+    store = LiveStore(cfg, client=httpx.Client(transport=httpx.MockTransport(no_network)),
+                      now=Clock(ISSUED + timedelta(days=2)), snapshot_dir=tmp_path)
+    feed = ForecastFeed(store, cfg, codes=["28065"], key=None)
+    assert feed.step() == "ok:28065"
+    assert feed.get("28065")[1] == ISSUED                  # 48 h despues: en modo grabado no caduca

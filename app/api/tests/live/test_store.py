@@ -148,3 +148,17 @@ def test_realtime_yaml_without_max_age_names_source():
     with pytest.raises(ValueError, match="air_cm.*max_age_h"):
         validate_realtime(bad)
     validate_realtime(settings.load("realtime"))             # el YAML real es valido
+
+
+def test_default_clock_is_madrid_local_time(monkeypatch):
+    """En Docker el reloj del sistema es UTC; los datos (ts del aire, elaborado de AEMET) son hora de Madrid."""
+    from zoneinfo import ZoneInfo
+    monkeypatch.setenv("TZ", "UTC")
+    time.tzset()
+    try:
+        store = LiveStore(cfg())
+        madrid = datetime.now(ZoneInfo("Europe/Madrid")).replace(tzinfo=None)
+        assert abs((store.now() - madrid).total_seconds()) < 5
+    finally:
+        monkeypatch.undo()
+        time.tzset()

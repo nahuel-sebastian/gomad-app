@@ -5,10 +5,16 @@ codigo de otro): formato largo con la validacion del origen, medias moviles del 
 """
 import csv
 import io
+import logging
 import math
 from datetime import datetime, timedelta
+from pathlib import Path
+
+import pyarrow.parquet as pq
 
 from engine.rules import aqi_category
+
+log = logging.getLogger("gomad.api")
 
 # magnitudes del fichero -> contaminante del ICA (descripcion oficial del fichero, umbrales.md §1.2)
 POLLUTANTS = {1: "SO2", 8: "NO2", 9: "PM2_5", 10: "PM10", 14: "O3"}
@@ -74,9 +80,32 @@ class AirFeed:
         return readings, observed
 
 
-def register_air(store, cfg):
+# prefijo de los parquet que deja la ingesta en clean/air_reading/ (<fuente>_<dia>.parquet)
+SEED_PREFIX = {"air_cm": "aire_dia", "air_ay": "ay_aire"}
+
+
+def seed_readings(seed_dir, source, since):
+    """Lecturas ya normalizadas por la ingesta desde `since`: arranque en frio con las medias de 24 h completas."""
+    rows = []
+    for path in sorted(Path(seed_dir).glob(f"{SEED_PREFIX[source]}_*.parquet")):
+        try:
+            t = pq.read_table(path, columns=["station_id", "magnitude", "ts", "value"]).to_pydict()
+        except Exception as e:      # un parquet roto no impide arrancar
+            log.warning("semilla de aire ilegible (%s): %s", path.name, type(e).__name__)
+            continue
+        for station, magnitude, ts, value in zip(t["station_id"], t["magnitude"], t["ts"], t["value"]):
+            ts = ts.to_pydatetime() if hasattr(ts, "to_pydatetime") else ts     # ns -> pandas.Timestamp
+            if ts is not None and ts >= since and value is not None and int(magnitude) in POLLUTANTS:
+                rows.append((station, int(magnitude), ts, float(value)))
+    return rows
+
+
+def register_air(store, cfg, seed_dir=None):
     for name in ("air_cm", "air_ay"):
         feed = AirFeed(name, cfg["sources"][name]["url"], cfg["air_buffer_h"])
+        if seed_dir is not None:
+            now = store.now()
+            feed.merge(seed_readings(seed_dir, name, now - timedelta(hours=feed.buffer_h)), now)
         store.register(name, feed.fetch)
 
 

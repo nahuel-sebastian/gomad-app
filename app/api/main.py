@@ -48,7 +48,8 @@ async def lifespan(app: FastAPI):
     live = None if os.environ.get("GOMAD_LIVE") == "off" else build_live(
         realtime, httpx.Client(), snapshot_dir=os.environ.get("GOMAD_LIVE_SNAPSHOT") or None,
         centers=lambda: [(m[0], m[1], m[3], m[4]) for m in geocoder.municipalities()],
-        cache_path=settings.DATA_DIR / "live" / "forecast.json")
+        cache_path=settings.DATA_DIR / "live" / "forecast.json",
+        air_seed_dir=settings.DATA_DIR / "clean" / "air_reading")
     app.state.live = live
     app.state.repo = Repository(settings.DATA_DIR, live=live)
     if live is not None:

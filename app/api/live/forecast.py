@@ -194,6 +194,8 @@ class ForecastFeed:
         have = self.data.get(ine)
         if have is None or have[1] is None:
             return None
+        if self.store.snapshot:          # demo sin red: lo grabado se sirve (la app dice «datos grabados»)
+            return have
         return have if now - have[1] <= timedelta(hours=self.src["max_issued_age_h"]) else None
 
     def get(self, ine):
