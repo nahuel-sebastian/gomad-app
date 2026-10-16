@@ -185,3 +185,18 @@ class Repository:
         return self._query(self.main, """SELECT id, type, source, lon, lat FROM route_poi
                                          WHERE working IS NOT FALSE AND lon BETWEEN ? AND ? AND lat BETWEEN ? AND ?""",
                            [min_lon, max_lon, min_lat, max_lat], required=True, numpy=True)
+
+    def municipality(self, ine_code):
+        """(nombre de la tabla, poblacion) o None si el codigo no es de los 179."""
+        rows = self._query(self.main, "SELECT name, population FROM municipality WHERE ine_code = ?", [ine_code],
+                           required=True)
+        return rows[0] if rows else None
+
+    def municipality_indicators(self, ine_code):
+        """{key: (value, unit, year, source)} de municipality_indicator (Task 35); value None = «sin datos»."""
+        try:
+            rows = self._query(self.main, """SELECT key, value, unit, year, source FROM municipality_indicator
+                                             WHERE ine_code = ?""", [ine_code], required=True)
+        except duckdb.CatalogException as e:      # base anterior a la Task 35
+            raise DataUnavailable("Los indicadores de municipio todavía no están cargados en el servidor.") from e
+        return {key: (_number(value), unit, year, source) for key, value, unit, year, source in rows}

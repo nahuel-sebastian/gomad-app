@@ -14,6 +14,7 @@ from engine.scoring import validate_weights
 from geocoding import Geocoder
 from repository import DataUnavailable, Repository
 from routing.store import GraphStore
+from services import municipality as municipality_service
 from services import recommend as recommend_service
 from services import route as route_service
 
@@ -114,8 +115,13 @@ def route(request: s.RouteRequest, repo: Repository = Depends(get_repo), graphs:
 
 
 @app.get("/municipality/{ine_code}", response_model=s.MunicipalityResponse)
-def municipality(ine_code: str):
-    _not_implemented()
+def municipality(ine_code: str, repo: Repository = Depends(get_repo)):
+    try:
+        return municipality_service.municipality(ine_code, repo)
+    except municipality_service.UnknownMunicipality as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except DataUnavailable as e:
+        raise HTTPException(status_code=503, detail=str(e))
 
 
 @app.post("/assistant/interpret", response_model=s.InterpretResponse)

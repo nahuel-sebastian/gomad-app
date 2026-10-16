@@ -31,6 +31,18 @@ ADDRESSES = [   # ine_code, municipality, street_code, street_type, street, stre
     ("28065", "Getafe", "065A0200", "Calle", "de las Rozas", "de las rozas", 3, "", -3.7280000, 40.3060000),
     ("28127", "Las Rozas de Madrid", "127A0001", "Calle", "Real", "real", 1, "", -3.8700000, 40.4900000),
 ]
+# ine_code, category, key, value, unit, year, source (Task 35). Getafe con valores; Madrid sin VPLA -> green NULL;
+# health_centres 0 en Madrid es inventado (solo para probar «no hay» en el encaje de la Task 37)
+INDICATORS = [
+    ("28065", "sport", "sport_facilities", 19.0, "instalaciones", None, "nmc_deporte"),
+    ("28065", "nature", "green_m2_per_inhabitant", 172.788, "m²/hab.", 2025, "vpla_redes"),
+    ("28065", "health", "health_centres", 9.0, "centros", None, "sanitarios"),
+    ("28065", "health", "aed_per_1000", 1.366, "por 1.000 hab.", None, "desfibriladores"),
+    ("28065", "education", "schools", 105.0, "centros", None, "educativos"),
+    ("28065", "connectivity", "good_3g_pct", None, "%", 2023, "eiel_nucleos"),
+    ("28079", "nature", "green_m2_per_inhabitant", None, "m²/hab.", 2025, "vpla_redes"),
+    ("28079", "health", "health_centres", 0.0, "centros", None, "sanitarios"),
+]
 MUNICIPALITY_BOXES = {"28065": ("GETAFE", box(-3.80, 40.25, -3.65, 40.34)),
                       "28079": ("MADRID", box(-3.85, 40.34, -3.55, 40.55)),
                       "28127": ("ROZAS DE MADRID (LAS)", box(-3.95, 40.45, -3.86, 40.56))}
@@ -84,6 +96,12 @@ def build_mini_data(base, *, forecast=True, precip=0.0, feels=20.0, air=True, gr
     con.execute("""INSERT INTO source_date VALUES ('eiel_parques', '2026-10-14T15:51:38', NULL),
         ('aire_dia', '2026-10-16T09:10:00', '2026-10-16T09:05:00.123456'),
         ('osm', '2026-10-14T15:42:30', 'Tue, 13 Oct 2026 23:55:22 GMT')""")
+    con.execute("""CREATE TABLE municipality_indicator (ine_code VARCHAR, category VARCHAR, key VARCHAR, value DOUBLE,
+                   unit VARCHAR, year INTEGER, source VARCHAR)""")
+    con.executemany("INSERT INTO municipality_indicator VALUES (?, ?, ?, ?, ?, ?, ?)", INDICATORS)
+    con.execute("INSERT INTO source_date VALUES ('nmc_deporte', '2026-10-16T15:56:26', NULL)")
+    con.execute("""INSERT INTO route_poi VALUES
+        ('ay_areas_caninas:1', 'dog_area', 'ay_areas_caninas', '28079', NULL, NULL, -3.7019, 40.4196)""")
     con.close()
     rt = duckdb.connect(str(base / "realtime.duckdb"))
     rt.execute("""CREATE TABLE forecast (ine_code VARCHAR, ts TIMESTAMP_NS, temp DOUBLE, feels_like DOUBLE,
