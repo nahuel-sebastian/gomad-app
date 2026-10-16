@@ -71,6 +71,7 @@ def test_patones_without_nomecalles_is_null(db):
 def test_green_null_outside_vpla(db):
     assert value(db, "28079", "green_m2_per_inhabitant") is None   # Madrid, sin VPLA
     assert value(db, "28065", "green_m2_per_inhabitant") > 0       # Getafe
+    assert value(db, "28016", "green_m2_per_inhabitant") == 0      # en VPLA sin zonas verdes: 0, no «sin datos»
     leaked = db.execute("SELECT count(*) FROM municipality_indicator i JOIN municipality m USING (ine_code) "
                         "WHERE i.key='green_m2_per_inhabitant' AND NOT m.in_vpla AND i.value IS NOT NULL").fetchone()[0]
     assert leaked == 0
@@ -85,7 +86,7 @@ def test_health_centres_total(db):
 @pytest.mark.slow
 @pytest.mark.parametrize("key, covered", [
     ("sport_facilities", 178), ("sport_facilities_per_1000", 178), ("catalog_activities", 179),
-    ("green_m2_per_inhabitant", 163),   # ficha: 162 (Ruling: datos del 16/10)
+    ("green_m2_per_inhabitant", 167),   # ficha: 162; hoy in_vpla = 167 (Ruling)
     ("drove_roads_km", 171),            # ficha: 169 (Ruling: 28077 y 289xx por cruce espacial)
     ("recreation_areas", 55), ("bus_stops_per_1000", 179),
     ("rail_stations", 39),              # ficha: metro 15, cercanías 33 (hoy 34); unión 39

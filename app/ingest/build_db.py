@@ -127,7 +127,10 @@ def indicator_values(con, config):
     sport = _count(_shp("nmc_deporte")["CMUN"].map(ine_code))
     catalog = con.execute("SELECT d.ine_code, count(DISTINCT a.activity) AS n FROM destination_activity a "
                           "JOIN destination d ON d.id = a.destination_id GROUP BY 1").df().set_index("ine_code")["n"]
+    # DEC-09: NULL solo fuera de VPLA; un municipio de VPLA sin zonas verdes tiene 0 m2
+    in_vpla = [c for (c,) in con.execute("SELECT ine_code FROM municipality WHERE in_vpla").fetchall()]
     green = gpd.read_parquet(CLEAN / "green.parquet").groupby("ine_code")["area_m2"].sum()
+    green = green.reindex(in_vpla, fill_value=0.0)
     vp = gpd.read_file(RAW / "vias_pecuarias" / "vias_pecuarias.geojson").set_crs(25830, allow_override=True)
     vp_code = vp["CD_MUNI"].map(ine_code).where(lambda c: c.isin(codes))
     # 28077 (codigo antiguo de 28901) y 289xx (distritos de Madrid anexionados): por su punto representativo
