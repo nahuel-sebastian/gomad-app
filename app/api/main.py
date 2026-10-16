@@ -13,7 +13,8 @@ import settings
 from engine.rules import validate_rules
 from engine.scoring import validate_weights
 from geocoding import Geocoder
-from live.store import LiveStore, validate_realtime
+from live import build_live
+from live.store import validate_realtime
 from repository import DataUnavailable, Repository
 from routing.store import GraphStore
 from services import municipality as municipality_service
@@ -40,7 +41,7 @@ async def lifespan(app: FastAPI):
     realtime = settings.load("realtime")
     validate_realtime(realtime)
     # datos en vivo en memoria (DEC-15); GOMAD_LIVE=off (pruebas) deja la lectura de realtime.duckdb
-    live = None if os.environ.get("GOMAD_LIVE") == "off" else LiveStore(
+    live = None if os.environ.get("GOMAD_LIVE") == "off" else build_live(
         realtime, httpx.Client(), snapshot_dir=os.environ.get("GOMAD_LIVE_SNAPSHOT") or None)
     app.state.live = live
     app.state.repo = Repository(settings.DATA_DIR, live=live)
