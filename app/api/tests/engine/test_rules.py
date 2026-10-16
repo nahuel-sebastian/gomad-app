@@ -203,3 +203,15 @@ def test_zone_table_with_unknown_zone_fails():
     zones = {f"28{i:03d}": "722802" for i in range(1, 180)} | {"28065": "999999"}
     with pytest.raises(ValueError):
         validate_rules({"heat": HEAT}, zones)
+
+
+def test_validate_rules_reads_zone_table_from_config_dir(tmp_path):
+    (tmp_path / "heat_zones.csv").write_text("ine_code,municipality,zone_code\n28065,Getafe,722802\n", encoding="utf-8")
+    with pytest.raises(ValueError, match="179"):
+        validate_rules({"heat": HEAT}, config_dir=tmp_path)
+    validate_rules(load("rules"), config_dir=CONFIG_DIR)
+
+
+def test_heat_without_zone_table_fails():
+    with pytest.raises(ValueError):
+        validate_rules({"heat": {k: v for k, v in HEAT.items() if k != "zone_table"}})

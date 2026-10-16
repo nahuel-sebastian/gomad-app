@@ -1,4 +1,6 @@
-from datetime import timedelta
+from datetime import datetime, timedelta
+
+import duckdb
 
 import pytest
 
@@ -43,7 +45,7 @@ def test_missing_factors_renormalize_with_warnings(tmp_path):
     assert sum(f.weight for f in capital.factors) == pytest.approx(1)
     assert "Verde: sin datos en Getafe, Madrid." in res.warnings
     assert "Previsión: sin datos para Madrid." in res.warnings
-    assert any(w.startswith("Calor:") for w in res.warnings)              # DEC-06 pendiente (heat null)
+    assert not any(w.startswith("Calor:") for w in res.warnings)          # DEC-06 cargado: ya hay umbral
 
 
 def test_air_from_nearest_station_with_coverage(tmp_path):
@@ -154,3 +156,66 @@ def test_sources_do_not_repeat(tmp_path):
     for r in res.results:
         ids = [d.source for d in r.sources]
         assert len(ids) == len(set(ids)), ids
+
+
+# guion de Carmen (DEC-06): Getafe, zona 722802 (umbral 37,4 °C); sensacion termica que baja por la tarde
+CARMEN_FEELS = {15: 36.0, 16: 36.0, 17: 36.0, 18: 34.0, 19: 33.0, 20: 31.0, 21: 29.0, 22: 28.0}
+
+
+def carmen(tmp_path, day_max, profile="senior", days=None, start=15, end=22, **kw):
+    """Prevision de Getafe de 0 a 23 h; pico day_max a las 16 h (las demas de 14 a 18 h, un grado menos)."""
+    base = build_mini_data(tmp_path / "data", forecast=False)
+    rt = duckdb.connect(str(base / "realtime.duckdb"))
+    for day, peak in (days or {16: day_max}).items():
+        for h in range(24):
+            temp = None if peak is None and 14 <= h <= 18 else (peak if h == 16 else peak - 1 if 14 <= h <= 18 else 25.0)
+            rt.execute("INSERT INTO forecast VALUES ('28065', ?, ?, ?, 0, 0, 5, 'Despejado', '2026-10-16T08:00:00')",
+                       [datetime(2026, 10, day, h), temp, CARMEN_FEELS.get(h, 25.0)])
+    rt.close()
+    req = request(profile=profile, window_start=datetime(2026, 10, 16, start),
+                  window_end=datetime(2026, 10, 16, end) if end > start else datetime(2026, 10, 17, end), **kw)
+    return recommend(req, Repository(base), GraphStore(), now=NOW)
+
+
+def test_carmen_38_now_no_better_at_21(tmp_path):
+    res = carmen(tmp_path, 38.0)
+    rec = res.results[0]
+    assert rec.best_hour == datetime(2026, 10, 16, 21)
+    assert rec.explanation.startswith(
+        "Ahora no: mejor a las 21:00 (día de calor (máx. prevista 38 °C, umbral de tu zona 37,4 °C)")
+    assert "(umbral de criterio propio)" in rec.explanation
+    assert "Día de calor en tu zona" not in res.warnings
+
+
+def test_carmen_38_surprise_has_covered_alternative(tmp_path):
+    res = carmen(tmp_path, 38.0, activity=None, limit=3)
+    assert any(r.destination.covered for r in res.results)
+
+
+def test_carmen_36_is_not_heat_day(tmp_path):
+    res = carmen(tmp_path, 36.0)
+    assert res.results[0].best_hour == datetime(2026, 10, 16, 15)
+    assert not res.results[0].explanation.startswith("Ahora no")
+    assert "Día de calor en tu zona" not in res.warnings
+
+
+def test_heat_day_general_only_warns(tmp_path):
+    res = carmen(tmp_path, 38.0, profile="general")
+    assert "Día de calor en tu zona" in res.warnings
+    assert res.results[0].hours[0].outdoor_ok is True
+
+
+def test_heat_day_kids_companion_blocks(tmp_path):
+    rec = carmen(tmp_path, 38.0, profile="general", companions=["kids"]).results[0]
+    assert rec.hours[0].outdoor_ok is False and rec.best_hour == datetime(2026, 10, 16, 21)
+
+
+def test_heat_day_max_ignores_missing_temps(tmp_path):
+    rec = carmen(tmp_path, None, days={16: None}).results[0]
+    assert rec.hours[0].outdoor_ok is True                                # sin temperatura de pico: no es dia de calor
+
+
+def test_window_across_days_uses_each_day_max(tmp_path):
+    rec = carmen(tmp_path, 38.0, days={16: 38.0, 17: 30.0}, start=22, end=17).results[0]
+    by_hour = {h.hour: h for h in rec.hours}
+    assert by_hour[datetime(2026, 10, 17, 15)].outdoor_ok is True         # el 17 no es dia de calor
