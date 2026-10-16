@@ -309,7 +309,7 @@ docker compose -f app/deploy/docker-compose.yml logs api | grep "grafos cargados
 
 - **Nunca** se copian `app/.env` ni `~/.oci` con `rsync`: las claves se crean a mano en la VM.
 - No copiar mientras la ingesta local está escribiendo (`build_db` sustituye los `.duckdb` de golpe; si se copia a medias, se repite).
-- Tras cada refresco local de los datos (sobre todo el horario: aire y previsión) hay que volver a copiar al menos `realtime.duckdb`; la api lo reabre en cada petición, no hace falta reiniciarla. Si cambian `gomad.duckdb`, `clean/` o `graph/`, copiar y reiniciar la api (`deploy.sh --no-pull`): los nombres de municipio y los grafos se cargan al arrancar. Más adelante la ingesta correrá en la VM (S-D2, D-D1).
+- Tras cada refresco local de los datos (sobre todo el horario: aire y previsión) hay que volver a copiar al menos `realtime.duckdb`; la api lo reabre en cada petición, no hace falta reiniciarla. Si cambian `gomad.duckdb`, `clean/` o `graph/`, copiar y reiniciar la api en la VM con `docker compose -f app/deploy/docker-compose.yml restart api` (y comprobar `docker compose -f app/deploy/docker-compose.yml logs api | grep "grafos cargados"`): los nombres de municipio y los grafos se cargan al arrancar. `deploy.sh` no sirve para esto: si la imagen no cambia, `up -d --build` no vuelve a crear el contenedor y la api sigue con los datos viejos en memoria. Más adelante la ingesta correrá en la VM (S-D2, D-D1).
 - **La geolocalización del navegador solo funciona con HTTPS:** mientras la VM vaya por HTTP, se prueba escribiendo una dirección.
 - Comprobado en local el 16/10 con `rsync -an` (en seco) hacia un directorio temporal: copia exactamente esos 9 ficheros.
 
