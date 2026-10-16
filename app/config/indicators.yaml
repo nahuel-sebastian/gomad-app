@@ -17,7 +17,8 @@ indicators:
   # n.º de filas por CMUN / poblacion x 1000
   - {key: sport_facilities_per_1000, category: sport, label: "Instalaciones deportivas por 1.000 hab.",
      source: [nmc_deporte, padron], unit: "por 1.000 hab.", no_rows: "null", year: null}
-  # n.º de las actividades de activities.yaml con al menos un destino en el municipio
+  # n.º de las actividades de activities.yaml con al menos un destino en el municipio; «de 8» debe ser el
+  # n.º de actividades de activities.yaml (indicators.load lo comprueba)
   - {key: catalog_activities, category: sport, label: "Actividades del catálogo disponibles",
      source: [destination_activity], unit: "de 8", no_rows: "zero", year: null}
   # suma de area_m2 de clean/green.parquet / poblacion; NULL fuera de VPLA
@@ -35,7 +36,8 @@ indicators:
   # n.º de estaciones de metro + cercanias por CMUN
   - {key: rail_stations, category: mobility, label: "Estaciones de metro y cercanías",
      source: [nmc_estmetro, nmc_estcerca], unit: "estaciones", no_rows: "zero", year: null}
-  # centro_nro_registro distintos con centro_tipo «Centro de salud» o «Consultorio de atencion primaria»
+  # centro_nro_registro distintos con centro_tipo «Centro de salud» o «Consultorio de atención primaria»
+  # (literales del dato, con tilde: copiarlos asi en build_db)
   - {key: health_centres, category: health, label: "Centros de salud y consultorios",
      source: [sanitarios], unit: "centros", no_rows: "zero", year: null}
   # n.º por cruce espacial / poblacion x 1000

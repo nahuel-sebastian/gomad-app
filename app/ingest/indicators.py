@@ -3,6 +3,8 @@
 Las categorias, perfiles y acompanantes son copia del contrato (app/api/schemas.py): ningun servicio importa
 codigo de otro; test_contract_enums_in_sync las compara con el openapi.json.
 """
+import re
+
 import yaml
 
 from common import CONFIG_DIR
@@ -12,6 +14,9 @@ PROFILES = ("general", "senior", "stroller", "sensitive")
 COMPANIONS = ("dog", "kids")
 REQUIRED = ("key", "category", "label", "source", "unit", "no_rows", "year")
 NO_ROWS = ("zero", "null")
+# tipos de route_poi: furniture.py (Ayto. y DEA) y graph.py (OSM); test_poi_types_in_sync_with_route_poi los compara
+POI_TYPES = ("fountain", "bench", "bin", "dog_area", "playground", "aed")
+CATALOG_UNIT = re.compile(r"^de (\d+)$")   # «de 8»: actividades del catalogo con destino (activities.yaml)
 
 
 class IndicatorConfigError(ValueError):
@@ -22,7 +27,9 @@ def _fail(msg):
     raise IndicatorConfigError(f"indicators.yaml: {msg}")
 
 
-def _check_indicator(ind, n):
+def _check_indicator(ind, n, activities_count):
+    if not isinstance(ind, dict):
+        _fail(f"el indicador n.º {n} debe ser un mapa con {', '.join(REQUIRED)}; es {ind!r}")
     name = ind.get("key") or f"n.º {n}"
     for field in REQUIRED:
         if field not in ind:
@@ -34,8 +41,13 @@ def _check_indicator(ind, n):
         _fail(f"el indicador «{name}» tiene no_rows «{ind['no_rows']}»; debe ser {' o '.join(NO_ROWS)}")
     if not isinstance(ind["source"], list) or not ind["source"]:
         _fail(f"el indicador «{name}» necesita «source» como lista de ids de fuente")
-    if ind["year"] is not None and not isinstance(ind["year"], int):
+    if ind["year"] is not None and (isinstance(ind["year"], bool) or not isinstance(ind["year"], int)):
         _fail(f"el indicador «{name}» tiene «year» {ind['year']!r}; debe ser un año o null")
+    unit = CATALOG_UNIT.match(str(ind["unit"]))
+    if activities_count is not None and "destination_activity" in ind["source"] and unit \
+            and int(unit.group(1)) != activities_count:
+        _fail(f"el indicador «{name}» tiene la unidad «{ind['unit']}», pero activities.yaml tiene "
+              f"{activities_count} actividades: debe ser «de {activities_count}»")
 
 
 def _check_refs(kind, allowed, mapping, keys):
@@ -45,25 +57,34 @@ def _check_refs(kind, allowed, mapping, keys):
         if isinstance(refs, dict):
             if "route_poi" not in refs:
                 _fail(f"fit: {kind} «{who}» necesita una lista de indicadores o «route_poi»")
+            if refs["route_poi"] not in POI_TYPES:
+                _fail(f"fit: {kind} «{who}» cita el tipo de route_poi «{refs['route_poi']}», que no existe "
+                      f"({', '.join(POI_TYPES)})")
             continue
         for ref in refs:
             if ref not in keys:
                 _fail(f"fit: {kind} «{who}» cita el indicador «{ref}», que no existe")
 
 
-def validate(config):
-    """Devuelve config si es valido; si no, IndicatorConfigError con un mensaje legible."""
+def validate(config, activities_count=None):
+    """Devuelve config si es valido; si no, IndicatorConfigError con un mensaje legible.
+
+    activities_count: n.º de actividades de activities.yaml, para comprobar la unidad «de N» (None = no se mira).
+    """
     if not isinstance(config.get("population_year"), int):
         _fail("falta «population_year» (año del padrón para las tasas)")
     seen = set()
     for n, ind in enumerate(config.get("indicators") or [], start=1):
-        _check_indicator(ind, n)
+        _check_indicator(ind, n, activities_count)
         if ind["key"] in seen:
             _fail(f"clave repetida «{ind['key']}»")
         seen.add(ind["key"])
     if not seen:
         _fail("no hay indicadores")
     fit = config.get("fit") or _fail("falta la sección «fit» (encaje RF-18)")
+    threshold = fit.get("met_if_above")
+    if isinstance(threshold, bool) or not isinstance(threshold, (int, float)):
+        _fail(f"fit: «met_if_above» debe ser un número; es {threshold!r}")
     if fit.get("own_criterion") is not True:
         _fail("fit: es criterio propio y debe llevar «own_criterion: true»")
     _check_refs("perfil", PROFILES, fit.get("profiles"), seen)
@@ -73,4 +94,5 @@ def validate(config):
 
 def load(path=None):
     path = path or CONFIG_DIR / "indicators.yaml"
-    return validate(yaml.safe_load(path.read_text(encoding="utf-8")))
+    activities = yaml.safe_load((CONFIG_DIR / "activities.yaml").read_text(encoding="utf-8"))["activities"]
+    return validate(yaml.safe_load(path.read_text(encoding="utf-8")), activities_count=len(activities))

@@ -68,3 +68,29 @@ def test_contract_enums_in_sync(root):
     assert list(CATEGORIES) == schemas["Indicator"]["properties"]["category"]["enum"]
     assert list(PROFILES) == schemas["RecommendRequest"]["properties"]["profile"]["enum"]
     assert list(COMPANIONS) == schemas["RecommendRequest"]["properties"]["companions"]["items"]["enum"]
+
+
+@pytest.mark.parametrize("change, message", [
+    (lambda c: c["indicators"][0].update(year=True), r"sport_facilities.*«year» True"),
+    (lambda c: c["indicators"].append("health_centres"), r"n\.º 15.*mapa"),
+    (lambda c: c["fit"].update(met_if_above="0"), r"met_if_above"),
+    (lambda c: c["fit"]["companions"]["dog"].update(route_poi="dog_park"), r"route_poi «dog_park»"),
+])
+def test_more_bad_values_fail_readably(real, change, message):
+    change(real)
+    with pytest.raises(IndicatorConfigError, match=message):
+        validate(real)
+
+
+def test_catalog_unit_follows_activities_yaml(real):
+    n = len(yaml.safe_load((CONFIG_DIR / "activities.yaml").read_text(encoding="utf-8"))["activities"])
+    assert validate(copy.deepcopy(real), activities_count=n)
+    with pytest.raises(IndicatorConfigError, match=rf"catalog_activities.*«de {n}»"):
+        validate(real, activities_count=n + 1)
+
+
+def test_poi_types_in_sync_with_route_poi():
+    from graph import OSM_POI
+    from indicators import POI_TYPES
+    from normalize.furniture import CITY_COUNCIL
+    assert set(POI_TYPES) == set(OSM_POI.values()) | set(CITY_COUNCIL.values()) | {"aed"}
