@@ -222,3 +222,19 @@ def test_build_live_uses_config_points(tmp_path):
     assert isinstance(store.forecast, ForecastFeed)
     assert len(store.forecast.points) == 179
     assert store.forecast.step in store._tasks
+
+
+def test_repository_offline_reads_temp_max_day(tmp_path):
+    """Sin vivo (GOMAD_LIVE=off, demo sin red): la Tmax diaria sale de la columna temp_max_day de la ingesta."""
+    import duckdb
+    from mini_data import NOW as MINI_NOW, build_mini_data
+    base = build_mini_data(tmp_path / "data")
+    repo = Repository(base)
+    repo.forecast(["28065"], MINI_NOW, MINI_NOW + timedelta(hours=2))
+    assert repo.forecast_day_max == {}                                    # base antigua: sin columna
+    con = duckdb.connect(str(base / "realtime.duckdb"))
+    con.execute("ALTER TABLE forecast ADD COLUMN temp_max_day DOUBLE")
+    con.execute("UPDATE forecast SET temp_max_day = 38.0")
+    con.close()
+    by, _ = repo.forecast(["28065"], MINI_NOW, MINI_NOW + timedelta(hours=2))
+    assert by["28065"] and repo.forecast_day_max["28065"] == {MINI_NOW.date(): 38.0}
