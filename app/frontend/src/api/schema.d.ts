@@ -337,6 +337,11 @@ export interface components {
             /** Year */
             year: number | null;
             source: components["schemas"]["DataSource"];
+            /**
+             * Extra Sources
+             * @default []
+             */
+            extra_sources: components["schemas"]["DataSource"][];
         };
         /** InterpretRequest */
         InterpretRequest: {
@@ -397,6 +402,11 @@ export interface components {
             indicators: components["schemas"]["Indicator"][];
             /** Fit */
             fit: string[];
+            /**
+             * Fit Own Criterion
+             * @default false
+             */
+            fit_own_criterion: boolean;
         };
         /** RecommendRequest */
         RecommendRequest: {

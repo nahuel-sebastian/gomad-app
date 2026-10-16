@@ -32,6 +32,8 @@ async def lifespan(app: FastAPI):
     # un error de configuracion para el arranque, no sale como 500 en una peticion
     validate_rules(settings.load("rules"))
     validate_weights(settings.load("weights")["defaults"])
+    municipality_service.validate_fit(settings.load("indicators"),
+                                      [a["id"] for a in settings.load("activities")["activities"]])
     app.state.repo = Repository(settings.DATA_DIR)
     t0 = time.perf_counter()
     app.state.graphs = GraphStore.load(settings.DATA_DIR / "graph")

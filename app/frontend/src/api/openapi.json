@@ -914,6 +914,14 @@
      },
      "source": {
       "$ref": "#/components/schemas/DataSource"
+     },
+     "extra_sources": {
+      "items": {
+       "$ref": "#/components/schemas/DataSource"
+      },
+      "type": "array",
+      "title": "Extra Sources",
+      "default": []
      }
     },
     "additionalProperties": false,
@@ -1110,6 +1118,11 @@
       },
       "type": "array",
       "title": "Fit"
+     },
+     "fit_own_criterion": {
+      "type": "boolean",
+      "title": "Fit Own Criterion",
+      "default": false
      }
     },
     "additionalProperties": false,
