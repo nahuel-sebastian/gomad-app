@@ -96,8 +96,8 @@ export default function Sources() {
                 </p>
                 <p className="muted">
                     Las categorías y recomendaciones de calidad del aire son las del Índice Nacional de Calidad del
-                    Aire (BOE-A-2020-10426). El umbral de calor es, por ahora, de criterio propio, a la espera del
-                    plan de calor del Ministerio de Sanidad.
+                    Aire (BOE-A-2020-10426). Todavía no hay un umbral oficial de calor cargado: no se evalúa el calor
+                    hasta tener el del plan de calor del Ministerio de Sanidad.
                 </p>
             </section>
 
@@ -117,6 +117,12 @@ export default function Sources() {
                     <li>
                         Asistente de rutas. Para interpretar tu texto solo se envía el texto; tu ubicación solo se usa
                         para calcular la ruta y no se guarda.
+                    </li>
+                    <li>
+                        Si no encontramos la dirección que escribes en nuestro callejero, la consultamos en el buscador
+                        público de Nomecalles (Comunidad de Madrid): solo se envía el texto que escribes (en minúsculas y
+                        sin tildes), nunca tu ubicación. El servidor guarda esa respuesta como mucho 1 hora en memoria
+                        para no repetir la consulta; no se escribe en disco ni en los registros.
                     </li>
                     <li>Las fuentes tipográficas se sirven desde nuestro servidor, sin terceros.</li>
                     <li>

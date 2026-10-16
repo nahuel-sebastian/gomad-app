@@ -41,6 +41,23 @@ describe("Fuentes y aviso", () => {
         expect(screen.getByRole("region", { name: "Nuestros datos" })).toHaveTextContent("CC BY 4.0");
     });
 
+    it("dice que una dirección no encontrada se consulta en Nomecalles solo con el texto", () => {
+        renderAt("/fuentes");
+        const privacy = screen.getByRole("region", { name: "Privacidad" });
+        expect(privacy).toHaveTextContent(/buscador público de Nomecalles \(Comunidad de Madrid\)/);
+        expect(privacy).toHaveTextContent(/solo se envía el texto que escribes/);
+        expect(privacy).toHaveTextContent(/nunca tu ubicación/);
+        expect(privacy).toHaveTextContent(/como mucho 1 hora en memoria/);
+        expect(privacy).toHaveTextContent(/no se escribe en disco ni en los registros/);
+    });
+
+    it("el calor dice lo mismo que la API: sin umbral oficial cargado, no se evalúa", () => {
+        renderAt("/fuentes");
+        const medical = screen.getByRole("heading", { level: 2, name: "No es consejo médico" }).closest("section")!;
+        expect(medical).toHaveTextContent(/Todavía no hay un umbral oficial de calor cargado: no se evalúa el calor/);
+        expect(medical).not.toHaveTextContent(/criterio propio/);
+    });
+
     it("error de carga con Reintentar", async () => {
         vi.spyOn(sourcesApi, "getSources").mockRejectedValueOnce(new Error("red"));
         const { user } = renderAt("/fuentes");
