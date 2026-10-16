@@ -99,8 +99,9 @@ def test_every_response_source_is_listed(tmp_path):
         assert d.label.startswith(listed[d.source]["name"]), (d.label, listed[d.source]["name"])
 
 
-def test_nomecalles_license_says_no_open_license_found():
-    """Ruling (Task 38): Nomecalles no publica licencia localizable; la columna Licencia lo dice y cita la atribucion."""
+def test_nomecalles_license_is_comunidad_reuse_notice():
+    """Nomecalles es publico: se reutiliza con las condiciones del aviso legal de la Comunidad (citar la fuente)."""
     entry = settings.load("sources")["catalog"]["nmc_deporte"]
-    assert "sin licencia abierta publicada" in entry["license"].lower()
+    assert "aviso legal de la comunidad de madrid" in entry["license"].lower()
     assert "© Nomecalles" in entry["license"]
+    assert "sin licencia" not in entry["license"].lower()

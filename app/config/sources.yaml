@@ -2,7 +2,8 @@
 # labels: texto de cada fuente para la persona (DataSource.label y nombre en /sources).
 # catalog: editor, licencia y URL de cada fuente usada; /sources las lista en este orden (B1 Task 38).
 # Licencias comprobadas el 16/10/2026: CKAN Comunidad y Ayuntamiento (package_show) e IDEM (CSW, ficha EIEL)
-# dicen CC BY 4.0. Nomecalles no publica licencia localizable: se dice asi y se cita su atribucion (Ruling de la Task 38).
+# dicen CC BY 4.0. Nomecalles no tiene licencia CC propia: es publico y se reutiliza con el aviso legal de la
+# Comunidad de Madrid (citar la fuente, sin alterar el dato, con la fecha).
 # destination_activity es la tabla de build_db con el catalogo unificado: dato derivado propio (CC BY, CLAUDE.md §2.11).
 labels:
   eiel_deporte: "Instalaciones deportivas (EIEL 2023, Comunidad de Madrid)"
@@ -21,6 +22,9 @@ labels:
   ay_polideportivos: "Polideportivos (Ayuntamiento de Madrid)"
   ay_parques: "Parques y jardines (Ayuntamiento de Madrid)"
   aire_dia: "Calidad del aire (Comunidad de Madrid)"
+  aire_estaciones: "Estaciones de calidad del aire (Comunidad de Madrid)"
+  ay_aire_estaciones: "Estaciones de calidad del aire (Ayuntamiento de Madrid)"
+  municipios: "Límites municipales (Comunidad de Madrid)"
   ay_aire: "Calidad del aire (Ayuntamiento de Madrid)"
   aemet: "Previsión horaria (AEMET)"
   osm: "Red peatonal y mobiliario (© colaboradores de OpenStreetMap)"
@@ -55,8 +59,10 @@ catalog:
                       url: "https://idem.comunidad.madrid/catalogocartografia"}
   vias_pecuarias: {publisher: "Comunidad de Madrid (IDEM)", license: "CC BY 4.0",
                    url: "https://idem.comunidad.madrid/catalogocartografia"}
+  municipios: {publisher: "Comunidad de Madrid (IDEM)", license: "CC BY 4.0",
+               url: "https://idem.comunidad.madrid/catalogocartografia"}
   nmc_deporte: &nomecalles {publisher: "Instituto de Estadística de la Comunidad de Madrid (Nomecalles)",
-                            license: "Sin licencia abierta publicada; se cita «© Nomecalles, Instituto de Estadística de la Comunidad de Madrid»",
+                            license: "Aviso legal de la Comunidad de Madrid: reutilización citando «© Nomecalles, Instituto de Estadística de la Comunidad de Madrid»",
                             url: "https://gestiona.comunidad.madrid/nomecalles_web/"}
   nmc_parques: *nomecalles
   nmc_busparadas: *nomecalles
@@ -65,6 +71,8 @@ catalog:
   callejero: *nomecalles
   aire_dia: {publisher: "Comunidad de Madrid", license: "CC BY 4.0",
              url: "https://datos.comunidad.madrid/dataset/calidad_aire_datos_dia"}
+  aire_estaciones: {publisher: "Comunidad de Madrid", license: "CC BY 4.0",
+                    url: "https://datos.comunidad.madrid/dataset/calidad_aire_estaciones"}
   desfibriladores: {publisher: "Comunidad de Madrid", license: "CC BY 4.0",
                     url: "https://datos.comunidad.madrid/dataset/desfibriladores_externos_fuera_ambito_sanitario"}
   sanitarios: {publisher: "Comunidad de Madrid", license: "CC BY 4.0",
@@ -87,6 +95,8 @@ catalog:
                url: "https://datos.madrid.es/dataset/200761-0-parques-jardines"}
   ay_aire: {publisher: "Ayuntamiento de Madrid", license: "CC BY 4.0",
             url: "https://datos.madrid.es/dataset/212531-0-calidad-aire-tiempo-real"}
+  ay_aire_estaciones: {publisher: "Ayuntamiento de Madrid", license: "CC BY 4.0",
+                       url: "https://datos.madrid.es/dataset/212629-0-estaciones-control-aire"}
   ay_fuentes: {publisher: "Ayuntamiento de Madrid", license: "CC BY 4.0",
                url: "https://datos.madrid.es/dataset/300051-0-fuentes"}
   ay_bancos: {publisher: "Ayuntamiento de Madrid", license: "CC BY 4.0",
