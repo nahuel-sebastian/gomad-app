@@ -82,10 +82,10 @@ describe("Fuentes y aviso", () => {
         expect(screen.queryByRole("button", { name: "Ver este ejemplo" })).not.toBeInTheDocument();
     });
 
-    it("dice que la tabla de fuentes todavía es de ejemplo", async () => {
+    it("ya no dice que la tabla de fuentes sea de ejemplo: llega del servidor", async () => {
         renderAt("/fuentes");
         const table = await screen.findByRole("table", { name: "Fuentes de datos" });
-        expect(table.closest("section")).toHaveTextContent(/Lista de ejemplo/);
+        expect(table.closest("section")).not.toHaveTextContent(/Lista de ejemplo/);
     });
 });
 

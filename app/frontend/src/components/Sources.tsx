@@ -42,10 +42,6 @@ export default function Sources() {
                           ? "Fuentes cargadas."
                           : ""}
                 </p>
-                <p className="muted">
-                    Lista de ejemplo: las recomendaciones, rutas y direcciones ya usan los datos reales; esta tabla
-                    con licencias y fechas de cada fuente llegará del servidor en la próxima versión.
-                </p>
                 {sources.status === "loading" && !sources.data && <p className="muted">Cargando fuentes…</p>}
                 {sources.status === "error" && (
                     <ErrorMessage message="No se pudieron cargar las fuentes." onRetry={sources.reload} />

@@ -124,9 +124,6 @@ export default function Municipality() {
                             ? "Población: sin datos"
                             : `Población: ${formatNumber(m.population)} habitantes`}
                     </p>
-                    <p className="notice notice--warn" role="note">
-                        Cifras de ejemplo: todavía no son los datos reales de este municipio.
-                    </p>
 
                     <h2 className="muni__heading">¿Qué ofrece este municipio?</h2>
                     <div className="muni__grid">

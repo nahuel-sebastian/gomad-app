@@ -46,7 +46,7 @@ describe("Vista de municipio", () => {
         expect(screen.getAllByText("Sin datos").length).toBeGreaterThan(0);
         expect(screen.getByText(/no cubre este municipio/)).toBeInTheDocument();
         expect(screen.getByRole("heading", { level: 2, name: "¿Cómo encaja contigo?" })).toBeInTheDocument();
-        expect(screen.getByText(/Cifras de ejemplo/)).toBeInTheDocument();
+        expect(screen.queryByText(/Cifras de ejemplo/)).not.toBeInTheDocument();
         expect(container).not.toHaveTextContent(/ranking|puesto|mejor que|peor que/i);
         await expectNoAxeViolations(container);
     });
