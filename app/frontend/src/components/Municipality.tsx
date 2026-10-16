@@ -51,8 +51,12 @@ function IndicatorValue({ indicator }: { indicator: Indicator }) {
 export default function Municipality() {
     const { ine_code = "" } = useParams();
     const navigate = useNavigate();
-    const { setOrigin } = useAppState();
-    const data = useAsync(() => getMunicipality(ine_code), [ine_code]);
+    const { setOrigin, preferences } = useAppState();
+    const { profile, companions } = preferences;
+    const data = useAsync(
+        () => getMunicipality(ine_code, { profile, companions }),
+        [ine_code, profile, companions.join(",")],
+    );
     const [locating, setLocating] = useState(false);
     const [locateFailed, setLocateFailed] = useState(false);
     const notFound = data.error instanceof ApiError && data.error.status === 404;
