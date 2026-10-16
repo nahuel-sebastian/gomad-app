@@ -1,6 +1,7 @@
 """GET /sources (B1 Task 38): editor, licencia, URL y fechas de cada fuente usada (RF-19)."""
 import json
-from datetime import timedelta
+from datetime import datetime, timedelta
+from types import SimpleNamespace
 
 from fastapi.testclient import TestClient
 
@@ -106,6 +107,19 @@ def test_open_meteo_license_and_attribution(tmp_path):
     assert om["publisher"] == "Open-Meteo.com" and om["url"] == "https://open-meteo.com/"
     assert om["license"].startswith("CC BY 4.0") and "Weather data by Open-Meteo.com" in om["license"]
     assert om["name"] == "Previsión horaria (Open-Meteo)"
+
+
+def test_open_meteo_date_from_live_forecast(tmp_path):
+    """RF-19 con la prevision en vivo: la fecha de Open-Meteo es la de la ultima descarga de la API."""
+    base = build_mini_data(tmp_path / "data")
+    live = SimpleNamespace(forecast=SimpleNamespace(fetched_at=datetime(2026, 10, 16, 23, 14, 45)))
+    app.dependency_overrides[get_repo] = lambda: Repository(base, live=live)
+    try:
+        r = TestClient(app).get("/sources")
+    finally:
+        app.dependency_overrides.clear()
+    got = {x["id"]: x for x in r.json()["sources"]}
+    assert got["open_meteo"]["last_refresh"] == "2026-10-16T23:14:45"
 
 
 def test_nomecalles_license_is_comunidad_reuse_notice():

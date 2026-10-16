@@ -176,6 +176,27 @@ def test_cache_roundtrip_drops_old(tmp_path):
     assert fresh.step() == "idle"                                         # la cache cuenta para el TTL
 
 
+def test_cache_from_other_provider_is_dropped(tmp_path):
+    """Al desplegar DEC-16 la cache vieja (sin provider) no se sirve como Open-Meteo aunque sea reciente."""
+    cache = tmp_path / "live" / "forecast.json"
+    feed, _ = feed_at(NOW, cache_path=cache)
+    feed.step()
+    data = json.loads(cache.read_text("utf-8"))
+    assert all(item["provider"] == "open_meteo" for item in data.values())
+    for item in data.values():
+        del item["provider"]
+    cache.write_text(json.dumps(data), "utf-8")
+    fresh, _ = feed_at(NOW + timedelta(minutes=5), cache_path=cache)
+    assert fresh.load_cache() == 0 and fresh.get("28065") is None
+    assert fresh.step() == "ok:3"                                          # pide ya, sin esperar al TTL
+
+
+def test_fetched_at_without_microseconds():
+    feed, _ = feed_at(datetime(2026, 10, 16, 10, 0, 5, 123456))
+    feed.step()
+    assert feed.fetched_at == datetime(2026, 10, 16, 10, 0, 5) and feed.get("28065")[1].microsecond == 0
+
+
 def test_snapshot_mode_serves_recorded_forecast(tmp_path):
     """Demo sin red (L-4): la prevision grabada se sirve dias despues; nunca se abre una conexion."""
     (tmp_path / "forecast").mkdir()

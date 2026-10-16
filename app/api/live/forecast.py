@@ -17,6 +17,9 @@ from live.store import PortalError
 
 log = logging.getLogger("gomad.api")
 
+# marca de la cache: una cache de otro proveedor (la de antes de DEC-16) se descarta al arrancar
+PROVIDER = "open_meteo"
+
 
 def load_points(path):
     """[(ine, nombre, lat, lon)] de forecast_points.csv, en el orden del fichero."""
@@ -83,7 +86,7 @@ class ForecastFeed:
 
     def step(self):
         """Como mucho una peticion. Devuelve que ha hecho (para pruebas y logs)."""
-        now = self.store.now()
+        now = self.store.now().replace(microsecond=0)
         if self.next_try is not None and now < self.next_try:
             return "wait"
         if self.failures == 0 and self.fetched_at is not None \
@@ -124,7 +127,7 @@ class ForecastFeed:
     def save_cache(self):
         if self.cache_path is None:
             return
-        out = {ine: {"issued": issued.isoformat(),
+        out = {ine: {"provider": PROVIDER, "issued": issued.isoformat(),
                      "series": [[ts.isoformat(), *v] for ts, v in sorted(s.items())],
                      "day_max": {d.isoformat(): t for d, t in sorted(day_max.items())}}
                for ine, (s, issued, day_max) in self.data.items()}
@@ -147,6 +150,8 @@ class ForecastFeed:
             return 0
         now, loaded = self.store.now(), {}
         for ine, item in data.items():
+            if not isinstance(item, dict) or item.get("provider") != PROVIDER:
+                continue
             try:
                 issued = datetime.fromisoformat(item["issued"])
                 series = {datetime.fromisoformat(r[0]): tuple(r[1:]) for r in item["series"]}
