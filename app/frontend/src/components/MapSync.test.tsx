@@ -5,6 +5,7 @@ import { expectNoAxeViolations, renderAt, SAMPLE_ORIGIN } from "../test/render";
 
 // Seleccion sincronizada lista <-> mapa en Resultados (RF-11) con el mapa de MapLibre simulado
 vi.mock("react-map-gl/maplibre", async () => (await import("../test/mapMock")).mapLibreModule());
+vi.mock("maplibre-gl", async () => (await import("../test/mapMock")).maplibreModule());
 
 const WITH_SEARCH = {
     origin: SAMPLE_ORIGIN,
@@ -55,6 +56,17 @@ describe("Resultados: lista y mapa sincronizados", () => {
         fireEvent.click(marker);
         await waitFor(() => expect(document.activeElement).toBe(links[2]));
         expect(selectedMarker(container)).toHaveTextContent("3");
+    });
+
+    it("pulsar un marcador lo selecciona aunque la ventana no tenga el foco", async () => {
+        withWebGL();
+        const { container } = renderAt("/resultados", WITH_SEARCH);
+        await cardLinks();
+        // sin foco en la ventana, focus() no lanza el evento focus
+        vi.spyOn(HTMLElement.prototype, "focus").mockImplementation(() => {});
+        const marker = [...container.querySelectorAll(".map-marker")].find((m) => m.textContent === "2")!;
+        fireEvent.click(marker);
+        await waitFor(() => expect(selectedMarker(container)).toHaveTextContent("2"));
     });
 
     it("axe sin violaciones con el mapa real", async () => {

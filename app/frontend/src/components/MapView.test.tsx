@@ -1,12 +1,13 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { toLineString, type LonLat } from "../lib/geometry";
-import { boundsOf, mapPoints } from "./mapUtils";
+import { boundsOf, fitPadding, mapPoints } from "./mapUtils";
 import MapView, { MapErrorBoundary, type MapMarker } from "./MapView";
-import { fitBoundsMock, lastMapProps, withWebGL } from "../test/mapMock";
+import { fitBoundsMock, lastMapProps, setWorkerUrlMock, withWebGL } from "../test/mapMock";
 
 // jsdom no tiene WebGL: se simula react-map-gl con componentes de DOM simples
 vi.mock("react-map-gl/maplibre", async () => (await import("../test/mapMock")).mapLibreModule());
+vi.mock("maplibre-gl", async () => (await import("../test/mapMock")).maplibreModule());
 
 const ORIGIN = { lon: -3.7315, lat: 40.3057 };
 const MARKERS: MapMarker[] = [
@@ -45,6 +46,13 @@ describe("MapView", () => {
             "data-style",
             "https://tiles.openfreemap.org/styles/liberty",
         );
+    });
+
+    it("indica a MapLibre la URL de su worker empaquetado por Vite", async () => {
+        withWebGL();
+        render(<MapView markers={MARKERS} />);
+        await screen.findByTestId("maplibre");
+        expect(setWorkerUrlMock).toHaveBeenCalledWith(expect.stringContaining("maplibre-gl-worker"));
     });
 
     it("muestra la atribucion de OpenStreetMap y OpenFreeMap", async () => {
@@ -147,6 +155,31 @@ describe("MapCanvas: seleccion", () => {
         render(<MapView markers={MARKERS} onSelect={onSelect} />);
         fireEvent.click(await screen.findByText("2"));
         expect(onSelect).toHaveBeenCalledWith(MARKERS[1].id);
+    });
+});
+
+describe("encuadre con margenes", () => {
+    it("fitPadding lee los margenes de las variables CSS y si no, 40 px", () => {
+        const el = document.createElement("div");
+        expect(fitPadding(el)).toEqual({ top: 40, right: 40, bottom: 40, left: 40 });
+        el.style.setProperty("--map-fit-top", "116px");
+        el.style.setProperty("--map-fit-bottom", "188px");
+        document.body.append(el);
+        expect(fitPadding(el)).toEqual({ top: 116, right: 40, bottom: 188, left: 40 });
+        el.remove();
+    });
+
+    it("en movil el encuadre deja sitio a la barra y a la hoja de resultados", async () => {
+        withWebGL();
+        // jsdom no hereda variables CSS: la regla va sobre el propio contenedor del mapa
+        const sheet = document.createElement("style");
+        sheet.textContent = ".map-canvas { --map-fit-top: 116px; --map-fit-bottom: 188px; }";
+        document.head.append(sheet);
+        render(<MapView markers={MARKERS} />);
+        await screen.findByTestId("maplibre");
+        sheet.remove();
+        const view = lastMapProps().initialViewState as { fitBoundsOptions: { padding: unknown } };
+        expect(view.fitBoundsOptions.padding).toEqual({ top: 116, right: 40, bottom: 188, left: 40 });
     });
 });
 

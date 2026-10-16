@@ -1,9 +1,10 @@
-import { forwardRef, useImperativeHandle, type ReactNode } from "react";
+import { forwardRef, useImperativeHandle, useRef, type ReactNode } from "react";
 import { vi } from "vitest";
 
 // Simulacro de react-map-gl/maplibre para jsdom (sin WebGL): cada componente pinta un
 // elemento de DOM con sus datos en atributos para poder comprobarlos.
 // Uso: vi.mock("react-map-gl/maplibre", async () => (await import("../test/mapMock")).mapLibreModule());
+// y vi.mock("maplibre-gl", async () => (await import("../test/mapMock")).maplibreModule());
 
 type Props = Record<string, unknown> & { children?: ReactNode };
 
@@ -20,9 +21,12 @@ export function lastMapProps(): Props {
 export function mapLibreModule() {
     const Map = forwardRef<unknown, Props>(function MockMap(props, ref) {
         mapPropsMock(props);
-        useImperativeHandle(ref, () => ({ fitBounds: fitBoundsMock }));
+        // como MapLibre: el lienzo nace enfocable y onLoad no llega en jsdom
+        const canvas = useRef<HTMLCanvasElement>(null);
+        useImperativeHandle(ref, () => ({ fitBounds: fitBoundsMock, getCanvas: () => canvas.current }));
         return (
             <div data-testid="maplibre" data-style={String(props.mapStyle)}>
+                <canvas ref={canvas} tabIndex={0} aria-label="Map" />
                 {props.children as ReactNode}
             </div>
         );
@@ -48,6 +52,13 @@ export function mapLibreModule() {
     );
     const Layer = ({ id }: Props) => <div data-layer={String(id)} />;
     return { default: Map, Map, Marker, Source, Layer };
+}
+
+// URL del worker que MapCanvas pasa a maplibre-gl (en jsdom no se carga maplibre-gl real)
+export const setWorkerUrlMock = vi.fn();
+
+export function maplibreModule() {
+    return { setWorkerUrl: setWorkerUrlMock };
 }
 
 // Hace que el navegador simulado diga que tiene WebGL

@@ -49,3 +49,17 @@
     color: var(--navy);
     font-size: 11px;
 }
+
+/* Margenes del encuadre (los lee MapCanvas). En movil, Resultados pinta el mapa a pantalla
+   completa: arriba la barra «Volver/Ajustar» (12 + 92 px) y abajo la hoja recogida (164 px) */
+@media (max-width: 767px) {
+    .map-demo {
+        --map-fit-top: 116px;
+        --map-fit-bottom: 188px;
+    }
+
+    /* la atribucion tiene que verse: encima de la hoja recogida */
+    .map-demo .map-view__attribution {
+        bottom: 168px;
+    }
+}

@@ -124,8 +124,9 @@ export default function Results() {
         const id = items[cardIndex(target)]?.destination.id;
         if (id && id !== selectedId) setSelectedId(id);
     };
-    // pulsar un marcador lleva el foco a su tarjeta (y el foco la selecciona)
+    // pulsar un marcador lo selecciona y lleva el foco a su tarjeta
     const focusCard = (id: string) => {
+        setSelectedId(id);
         const link = listRef.current?.children[items.findIndex((i) => i.destination.id === id)]?.querySelector("a");
         link?.scrollIntoView({ block: "nearest" });
         link?.focus();

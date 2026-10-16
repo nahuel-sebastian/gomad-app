@@ -11,7 +11,24 @@ export type Bounds = [LonLat, LonLat];
 
 // con un solo punto se abre +-0,005 grados (unos 500 m): criterio propio
 const MIN_HALF_SPAN = 0.005;
-export const FIT_OPTIONS = { padding: 40, maxZoom: 16 };
+export const FIT_MAX_ZOOM = 16;
+const FIT_DEFAULT_PADDING_PX = 40;
+
+export interface Padding {
+    top: number;
+    right: number;
+    bottom: number;
+    left: number;
+}
+
+// Margenes del encuadre: las variables CSS --map-fit-{top,right,bottom,left} del contenedor
+// (p. ej. en movil, la barra de arriba y la hoja de resultados tapan parte del mapa)
+export function fitPadding(element: Element): Padding {
+    const style = getComputedStyle(element);
+    const side = (name: keyof Padding) =>
+        parseFloat(style.getPropertyValue(`--map-fit-${name}`)) || FIT_DEFAULT_PADDING_PX;
+    return { top: side("top"), right: side("right"), bottom: side("bottom"), left: side("left") };
+}
 
 // Caja [[oeste, sur], [este, norte]] de los puntos; null si no hay ninguno
 export function boundsOf(points: LonLat[]): Bounds | null {
