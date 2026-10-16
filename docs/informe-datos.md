@@ -41,10 +41,10 @@ Cobertura = municipios distintos reconocidos sobre 179. «Vía» = cómo se iden
 | `ay_aire_estaciones` | 24 | capital | — | UTF-8 BOM | 4326 | |
 | `ay_meteo` | 68 | capital | `MUNICIPIO`=079 | UTF-8 BOM | — | |
 | **Servicios** | | | | | | |
-| `sanitarios` | 45.978 | 179 | `municipio_nombre` | UTF-8 BOM | 25830 | ✔ una fila por servicio: 15.879 centros; **429** centros de salud + consultorios. 20 puntos fuera de Madrid |
+| `sanitarios` | 45.978 | 179 | `municipio_nombre` | UTF-8 BOM | 25830 | ✔ una fila por servicio: 15.879 centros; **429** centros de salud + consultorios (16/10: 46.000 filas, 15.885 centros, **430**). 20 puntos fuera de Madrid |
 | `farmacias` | 2.956 | 160 | `MUNICIPIO_NOMBRE` | UTF-8 BOM | 25830 | ⚠ coma decimal en 2.760 coordenadas |
 | `educativos` | 7.757 | 170 | `CDMUNI` | UTF-8 BOM | 25830 | ✔ ALTA 3.906 (BAJA 3.552). De ALTA, 55 sin coordenadas |
-| `atencion_social` | 2.648 | 137 | `municipio_codigo` | UTF-8 BOM | 25830 | ⚠ 177 filas con municipio «RESERVADO» |
+| `atencion_social` | 2.648 | 137 | `municipio_codigo` | UTF-8 BOM | 25830 | ⚠ 177 filas con municipio «RESERVADO» (16/10: 2.643 filas, 175, 138 municipios) |
 | `desfibriladores` | 12.941 | 161 | `municipio_codigo` | UTF-8 BOM | 4326 y 25830 | ⚠ lat/lon con **coma decimal en todas**; 9,3 % sin municipio (usar coordenadas) |
 | `eiel_sanitario` / `_ensenanza` / `_cultural` / `_nucleos` | 194 / 636 / 659 / 467 | 154 / 135 / 153 / 155 | `MUN` | — | 25830 | |
 | `nmc_bibliotecas` | **16** | **1** | `CMUN`=079 | UTF-8 | 25830 | ⚠ solo las 16 bibliotecas públicas de la **red regional en la capital** |
@@ -73,7 +73,7 @@ Cobertura = municipios distintos reconocidos sobre 179. «Vía» = cómo se iden
 5. **Código de municipio sin ceros a la izquierda** en `aire_dia` (`6`, `16`, `171`) y de 3 dígitos en casi todas las fuentes (`079`). Siempre normalizar a `28` + 3 dígitos.
 6. **`aire_zonas` solo trae nombres de municipio en mayúsculas**, sin código. Hay que unirlo por nombre normalizado; «Horcajo de la Sierra-Aoslos» no casa: en el CSV aparece como «HORCAJO DE LA SIERRA».
 7. **Más comas decimales de las esperadas:** `farmacias` (2.760 de 2.952), `desfibriladores` lat/lon (todas), `aire_estaciones` (todas), `estaciones_aire_idem` (23), `pm.xml` (todas).
-8. **`atencion_social`:** 177 filas con municipio, calle y código postal «RESERVADO» (centros protegidos). No se pueden situar: excluirlas del mapa y contarlas aparte.
+8. **`atencion_social`:** 177 filas con municipio, calle y código postal «RESERVADO» (centros protegidos; 175 en la descarga del 16/10). No se pueden situar: excluirlas del mapa y contarlas aparte.
 9. **Coordenadas fuera de la Comunidad:** 62 paradas de bus (y 10 con 0,0), 20 servicios sanitarios, 1 instalación del Ayuntamiento. → Filtro de caja/polígono en la ingesta.
 10. **`nmc_bibliotecas` no sirve para RF-09** (alternativa cubierta) fuera de la capital: son 16 bibliotecas de la red regional, todas en Madrid. Para el resto de municipios: EIEL `cultural` (columna `BIBLIOTECA`, 153 municipios).
 11. **Nomecalles `deporte`: la columna `CATEGORIA` no da el deporte** (un solo valor, «INSTALACION DEPORTIVA»). Sí hay `URL` hacia `escorpio.csd.gob.es` (Censo Nacional de Instalaciones Deportivas del CSD) en parte de las filas y `DS_REVISAR=true` en 179. ✔ Se confirma que hay que deducir el deporte del nombre (§6.5).
