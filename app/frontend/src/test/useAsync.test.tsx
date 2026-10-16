@@ -1,6 +1,6 @@
 import { act, renderHook, waitFor } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
-import { useAsync } from "./useAsync";
+import { useAsync } from "../data/useAsync";
 
 describe("useAsync", () => {
     it("pasa de cargando a datos", async () => {

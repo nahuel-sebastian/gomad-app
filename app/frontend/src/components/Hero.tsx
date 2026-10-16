@@ -9,7 +9,7 @@ interface HeroProps {
 
 export default function Hero({ title, children }: HeroProps) {
     return (
-        <section className="hero" id="entorno">
+        <section className="hero gomad-component gomad-hero" id="entorno">
             <svg
                 className="hero__scene"
                 viewBox="0 0 390 230"

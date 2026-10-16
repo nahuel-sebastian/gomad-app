@@ -35,7 +35,7 @@ const CATEGORY_ICONS: Record<IndicatorCategory, string> = {
 function IndicatorValue({ indicator }: { indicator: Indicator }) {
     const meta = [indicator.year, indicator.source.label].filter(Boolean).join(" · ");
     return (
-        <dd>
+        <dd className="gomad-component gomad-indicator-value">
             {indicator.value === null ? (
                 <strong className="indicator__nodata">Sin datos</strong>
             ) : (
@@ -59,10 +59,10 @@ export default function Municipality() {
 
     if (notFound) {
         return (
-            <section className="container page">
+            <section className="container page gomad-component gomad-municipality">
                 <PageHeading className="view-title">Municipio no encontrado</PageHeading>
                 <p className="view-subtitle">No encontramos ese municipio. Comprueba el código o búscalo en la lista.</p>
-                <Link to="/municipios" className="button">
+                <Link to="/municipios" className="button gomad-action gomad-action-view-municipalities">
                     Ver todos los municipios
                 </Link>
             </section>
@@ -94,8 +94,8 @@ export default function Municipality() {
     };
 
     return (
-        <section className="container page muni" aria-labelledby="municipio-titulo">
-            <Link to="/municipios" className="back-button">
+        <section className="container page muni gomad-component gomad-municipality" aria-labelledby="municipio-titulo">
+            <Link to="/municipios" className="back-button gomad-action gomad-action-view-municipalities">
                 <svg
                     width="18"
                     height="18"
@@ -178,7 +178,7 @@ export default function Municipality() {
                     {locateFailed && (
                         <ErrorMessage message="No se pudo situar el municipio. Inténtalo de nuevo." />
                     )}
-                    <button type="button" className="button button--primary" onClick={searchHere} disabled={locating}>
+                    <button type="button" className="button button--primary gomad-action gomad-action-search-in-municipality" onClick={searchHere} disabled={locating}>
                         Buscar actividad en {m.name}
                     </button>
                 </>

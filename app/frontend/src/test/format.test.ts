@@ -7,8 +7,8 @@ import {
     formatScore,
     formatSourceDate,
     formatTimeAgo,
-} from "./format";
-import { aqiLabel, verdictFor } from "./labels";
+} from "../lib/format";
+import { aqiLabel, verdictFor } from "../lib/labels";
 
 describe("formato es-ES", () => {
     it("formatea notas con coma decimal", () => {

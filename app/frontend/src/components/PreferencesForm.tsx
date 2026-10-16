@@ -1,13 +1,19 @@
+import { useState } from "react";
 import type { Companion, Factor, Profile, Setting } from "../api/types";
 import { getActivities } from "../data/activities";
 import { useAsync } from "../data/useAsync";
-import { COMPANION_LABELS, FACTOR_LABELS, PROFILE_LABELS, SETTING_LABELS } from "../lib/labels";
+import { COMPANION_LABELS, FACTOR_LABELS, SETTING_LABELS } from "../lib/labels";
 import { useAppState } from "../state/context";
 import ErrorMessage from "./ErrorMessage";
 import PrefSlider from "./PrefSlider";
 
 const SETTINGS: Setting[] = ["any", "outdoor", "indoor"];
-const PROFILES: Profile[] = ["general", "senior", "stroller", "sensitive"];
+const PROFILES: Exclude<Profile, "general">[] = ["senior", "stroller", "sensitive"];
+const PROFILE_OPTION_LABELS: Record<Exclude<Profile, "general">, string> = {
+    senior: "Con personas mayores",
+    stroller: "Con carrito",
+    sensitive: "Sensible a la contaminación",
+};
 const COMPANIONS: Companion[] = ["dog", "kids"];
 // orden de los pesos: los del prototipo y despues la adecuacion (P-11)
 const FACTORS: Factor[] = ["proximity", "green", "air", "weather", "suitability"];
@@ -27,6 +33,7 @@ function km(meters: number): string {
 // Formulario de preferencias (pantallas §6): se usa en /perfil y en el dialogo
 export default function PreferencesForm() {
     const { preferences, updatePreferences, resetPreferences } = useAppState();
+    const [savedPreferences, setSavedPreferences] = useState<typeof preferences | null>(null);
     const activities = useAsync(() => getActivities(), []);
     // los pesos por defecto los decide el motor (/activities); sin ellos no se pintan los pesos
     const defaults = activities.data?.default_weights ?? null;
@@ -43,9 +50,10 @@ export default function PreferencesForm() {
         });
 
     return (
-        <div className="prefs-form">
+        <div className="prefs-form gomad-component gomad-preferences-form">
             <PrefSlider
                 label="Tiempo disponible"
+                controls
                 min={10}
                 max={180}
                 step={5}
@@ -55,6 +63,7 @@ export default function PreferencesForm() {
             />
             <PrefSlider
                 label="Distancia máxima a pie"
+                controls
                 min={500}
                 max={10000}
                 step={500}
@@ -64,6 +73,7 @@ export default function PreferencesForm() {
             />
             <PrefSlider
                 label="Ventana horaria"
+                controls
                 min={1}
                 max={12}
                 step={1}
@@ -76,9 +86,10 @@ export default function PreferencesForm() {
                 <legend className="field__label">Lugar</legend>
                 <div className="seg">
                     {SETTINGS.map((s) => (
-                        <label key={s} className="seg__option">
+                        <label key={s} className={`seg__option gomad-option gomad-option-setting-${s}`}>
                             <input
                                 type="radio"
+                                className={`gomad-field gomad-field-setting-${s}`}
                                 name="setting"
                                 checked={preferences.setting === s}
                                 onChange={() => updatePreferences({ setting: s })}
@@ -91,33 +102,27 @@ export default function PreferencesForm() {
 
             <fieldset className="prefs-form__group">
                 <legend className="field__label">Perfil (opcional)</legend>
-                <div className="option-list">
-                    {PROFILES.map((p) => (
-                        <label key={p} className="option">
-                            <input
-                                type="radio"
-                                name="profile"
-                                checked={preferences.profile === p}
-                                onChange={() => updatePreferences({ profile: p })}
-                            />
-                            <span>{PROFILE_LABELS[p]}</span>
-                        </label>
-                    ))}
-                </div>
-            </fieldset>
-
-            <fieldset className="prefs-form__group">
-                <legend className="field__label">Salgo con…</legend>
-                <div className="option-list">
+                <div className="companion-options">
                     {COMPANIONS.map((c) => (
-                        <label key={c} className="option">
+                        <label key={c} className={`companion-option gomad-option gomad-option-companion-${c}`}>
                             <input
                                 type="checkbox"
+                                className={`gomad-field gomad-field-companion-${c}`}
                                 checked={preferences.companions.includes(c)}
                                 onChange={() => toggleCompanion(c)}
                             />
                             <span>{COMPANION_LABELS[c]}</span>
                         </label>
+                    ))}
+                    {PROFILES.map((p) => (
+                        <button
+                            key={p}
+                            type="button"
+                            className={`companion-option gomad-action gomad-option gomad-option-profile-${p}`}
+                            aria-pressed={preferences.profile === p}
+                            onClick={() => updatePreferences({ profile: preferences.profile === p ? "general" : p })}>
+                            {PROFILE_OPTION_LABELS[p]}
+                        </button>
                     ))}
                 </div>
             </fieldset>
@@ -145,16 +150,24 @@ export default function PreferencesForm() {
                                 onCommit={(v) => setWeight(f, v)}
                             />
                         ))}
-                        <button type="button" className="button" onClick={() => updatePreferences({ weights: null })}>
+                        <button type="button" className="button gomad-action gomad-action-reset-weights" onClick={() => updatePreferences({ weights: null })}>
                             Restablecer valores por defecto
                         </button>
                     </>
                 )}
             </fieldset>
 
-            <button type="button" className="button button--quiet" onClick={resetPreferences}>
-                Borrar todas mis preferencias
-            </button>
+            <div className="prefs-form__footer">
+                <button type="button" className="button button--quiet gomad-action gomad-action-clear-preferences" aria-label="Borrar todas mis preferencias" onClick={resetPreferences}>
+                    <span className="prefs-form__footer-label--full" aria-hidden="true">Borrar todas mis preferencias</span>
+                    <span className="prefs-form__footer-label--short" aria-hidden="true">Borrar</span>
+                </button>
+                <button type="button" className="button button--primary gomad-action gomad-action-save-preferences" aria-label="Guardar preferencias" onClick={() => setSavedPreferences(preferences)}>
+                    <span className="prefs-form__footer-label--full" aria-hidden="true">Guardar preferencias</span>
+                    <span className="prefs-form__footer-label--short" aria-hidden="true">Guardar</span>
+                </button>
+            </div>
+            {savedPreferences === preferences && <p className="muted" role="status">Preferencias guardadas durante esta sesión.</p>}
         </div>
     );
 }

@@ -4,7 +4,7 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
 // vitest no entrega el CSS con ?raw: se lee del disco
-const css = readFileSync(resolve(__dirname, "main.css"), "utf-8");
+const css = readFileSync(resolve(__dirname, "../styles/main.css"), "utf-8");
 
 // Contraste WCAG entre dos colores #rrggbb
 function luminance(hex: string): number {

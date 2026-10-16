@@ -3,7 +3,7 @@ import PreferencesForm from "./PreferencesForm";
 
 export default function Profile() {
     return (
-        <section className="container page" aria-labelledby="perfil-titulo">
+        <section className="container page gomad-component gomad-profile" aria-labelledby="perfil-titulo">
             <PageHeading className="view-title" id="perfil-titulo">
                 Tus preferencias
             </PageHeading>

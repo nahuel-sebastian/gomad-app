@@ -7,5 +7,5 @@ interface IconProps {
 // Cuando llegue la fuente propia, basta con poner {name} como texto (ligadura)
 // y la clase de icons.css; las pantallas no cambian.
 export default function Icon({ name }: IconProps) {
-    return <span className="icon" aria-hidden="true" data-icon={name} />;
+    return <span className="icon gomad-component gomad-icon" aria-hidden="true" data-icon={name} />;
 }

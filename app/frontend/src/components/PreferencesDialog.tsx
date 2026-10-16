@@ -19,11 +19,11 @@ export default function PreferencesDialog({ trigger }: PreferencesDialogProps) {
             <Dialog.Trigger asChild>{trigger}</Dialog.Trigger>
             <Dialog.Portal>
                 <Dialog.Overlay className="sheet-overlay" />
-                <Dialog.Content className="sheet">
+                <Dialog.Content className="sheet gomad-component gomad-preferences-dialog">
                     <div className="sheet__header">
                         <Dialog.Title className="sheet__title">Tus preferencias</Dialog.Title>
                         <Dialog.Close asChild>
-                            <button type="button" className="button button--primary">
+                            <button type="button" className="button button--primary gomad-action gomad-action-close-preferences">
                                 Listo
                             </button>
                         </Dialog.Close>

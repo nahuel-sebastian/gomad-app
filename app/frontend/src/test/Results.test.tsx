@@ -3,7 +3,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import * as recommendApi from "../data/recommend";
 import { ApiError } from "../data/errors";
 import { selectScenario } from "../data/scenarios";
-import { expectNoAxeViolations, renderAt, SAMPLE_ORIGIN } from "../test/render";
+import { expectNoAxeViolations, renderAt, SAMPLE_ORIGIN } from "./render";
 
 const WITH_SEARCH = {
     origin: SAMPLE_ORIGIN,

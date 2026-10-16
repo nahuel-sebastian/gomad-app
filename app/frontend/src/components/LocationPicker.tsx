@@ -87,7 +87,7 @@ export default function LocationPicker({ onPicked, highlight }: LocationPickerPr
 
     return (
         <section
-            className={`panel location${highlight ? " location--highlight" : ""}`}
+            className={`panel location gomad-component gomad-location-picker${highlight ? " location--highlight" : ""}`}
             aria-labelledby="ubicacion-titulo"
             id="ubicacion">
             <h2 className="panel__title" id="ubicacion-titulo">
@@ -111,26 +111,26 @@ export default function LocationPicker({ onPicked, highlight }: LocationPickerPr
                 </p>
             )}
 
-            <button type="button" className="button button--primary" onClick={locate} disabled={locating}>
-                {locating ? "Buscando tu ubicación…" : "Usar mi ubicación"}
-            </button>
-
             <form className="location__form" onSubmit={onSubmit} role="search" aria-label="Buscar ubicación">
-                <label htmlFor={inputId} className="field__label">
+                <label htmlFor={inputId} className="sr-only">
                     Escribe una dirección o un municipio
                 </label>
-                <div className="location__row">
-                    <input
-                        id={inputId}
-                        className="field__input"
-                        type="text"
-                        autoComplete="off"
-                        maxLength={200}
-                        value={text}
-                        onChange={(e) => setText(e.target.value)}
-                    />
-                    <button type="submit" className="button">
-                        Buscar
+                <input
+                    id={inputId}
+                    className="field__input gomad-field gomad-field-location-search"
+                    type="text"
+                    autoComplete="off"
+                    maxLength={200}
+                    placeholder="Escribe una dirección o un municipio"
+                    value={text}
+                    onChange={(e) => setText(e.target.value)}
+                />
+                <div className="location__actions">
+                    <button type="submit" className="button gomad-action gomad-action-search-location">
+                        <span>Buscar</span>
+                    </button>
+                    <button type="button" className="button button--primary gomad-action gomad-action-use-location" onClick={locate} disabled={locating}>
+                        <span>{locating ? "Buscando tu ubicación…" : "Usar mi ubicación"}</span>
                     </button>
                 </div>
             </form>
@@ -143,7 +143,7 @@ export default function LocationPicker({ onPicked, highlight }: LocationPickerPr
                 <ul role="list" className="location__candidates" aria-label="Lugares encontrados">
                     {search.candidates.map((c) => (
                         <li key={`${c.ine_code}-${c.label}`}>
-                            <button type="button" className="candidate" onClick={() => pick(c)}>
+                            <button type="button" className="candidate gomad-action gomad-action-select-location" onClick={() => pick(c)}>
                                 {c.label}
                             </button>
                         </li>

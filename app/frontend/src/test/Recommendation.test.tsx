@@ -5,7 +5,7 @@ import { recommend } from "../data/recommend";
 import { selectScenario } from "../data/scenarios";
 import { buildRecommendRequest } from "../lib/request";
 import { DEFAULT_PREFERENCES } from "../state/context";
-import { expectNoAxeViolations, renderAt, SAMPLE_ORIGIN } from "../test/render";
+import { expectNoAxeViolations, renderAt, SAMPLE_ORIGIN } from "./render";
 
 async function sampleResults(
     activity: string | null = "walk",

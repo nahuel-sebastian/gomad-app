@@ -141,7 +141,7 @@ export default function Assistant() {
                     : "";
 
     return (
-        <section className="container page assistant" aria-labelledby="asistente-titulo">
+        <section className="container page assistant gomad-component gomad-assistant" aria-labelledby="asistente-titulo">
             <PageHeading className="view-title" id="asistente-titulo">
                 Asistente de rutas
             </PageHeading>
@@ -168,13 +168,13 @@ export default function Assistant() {
                     <textarea
                         id={textId}
                         ref={textRef}
-                        className="field__input"
+                        className="field__input gomad-field gomad-field-assistant-request"
                         maxLength={500}
                         placeholder={`Por ejemplo: «${EXAMPLE}»`}
                         value={text}
                         onChange={(e) => setText(e.target.value)}
                     />
-                    <button type="submit" className="button" disabled={interpretation.status === "loading"}>
+                    <button type="submit" className="button gomad-action gomad-action-interpret-request" disabled={interpretation.status === "loading"}>
                         Interpretar
                     </button>
                 </form>
@@ -203,9 +203,10 @@ export default function Assistant() {
                         <legend className="field__label">Actividad</legend>
                         <div className="seg">
                             {(["walk", "run"] as const).map((a) => (
-                                <label key={a} className="seg__option">
+                                <label key={a} className={`seg__option gomad-option gomad-option-assistant-activity-${a}`}>
                                     <input
                                         type="radio"
+                                        className={`gomad-field gomad-field-assistant-activity-${a}`}
                                         name="assistant-activity"
                                         checked={activity === a}
                                         onChange={() => setActivity(a)}
@@ -223,7 +224,7 @@ export default function Assistant() {
                             </label>
                             <input
                                 id={`${textId}-km`}
-                                className="field__input"
+                                className="field__input gomad-field gomad-field-assistant-distance"
                                 type="number"
                                 inputMode="decimal"
                                 min={0.5}
@@ -239,7 +240,7 @@ export default function Assistant() {
                             </label>
                             <input
                                 id={`${textId}-min`}
-                                className="field__input"
+                                className="field__input gomad-field gomad-field-assistant-duration"
                                 type="number"
                                 inputMode="numeric"
                                 min={5}
@@ -254,12 +255,12 @@ export default function Assistant() {
                     <fieldset className="prefs-form__group">
                         <legend className="field__label">Tipo de ruta</legend>
                         <div className="seg">
-                            <label className="seg__option">
-                                <input type="radio" name="loop" checked={loop} onChange={() => setLoop(true)} />
+                            <label className="seg__option gomad-option gomad-option-route-circular">
+                                <input type="radio" className="gomad-field gomad-field-route-circular" name="loop" checked={loop} onChange={() => setLoop(true)} />
                                 <span>Circular</span>
                             </label>
-                            <label className="seg__option">
-                                <input type="radio" name="loop" checked={!loop} onChange={() => setLoop(false)} />
+                            <label className="seg__option gomad-option gomad-option-route-one-way">
+                                <input type="radio" className="gomad-field gomad-field-route-one-way" name="loop" checked={!loop} onChange={() => setLoop(false)} />
                                 <span>Solo ida</span>
                             </label>
                         </div>
@@ -269,9 +270,10 @@ export default function Assistant() {
                         <legend className="field__label">Pasar por</legend>
                         <div className="option-grid">
                             {PASS_BY.map((p) => (
-                                <label key={p} className="option">
+                                <label key={p} className={`option gomad-option gomad-option-pass-by-${p}`}>
                                     <input
                                         type="checkbox"
+                                        className={`gomad-field gomad-field-pass-by-${p}`}
                                         checked={passBy.includes(p)}
                                         onChange={() => setPassBy(toggle(passBy, p))}
                                     />
@@ -285,9 +287,10 @@ export default function Assistant() {
                         <legend className="field__label">Evitar</legend>
                         <div className="option-grid">
                             {AVOID.map((a) => (
-                                <label key={a} className="option">
+                                <label key={a} className={`option gomad-option gomad-option-avoid-${a}`}>
                                     <input
                                         type="checkbox"
+                                        className={`gomad-field gomad-field-avoid-${a}`}
                                         checked={avoid.includes(a)}
                                         onChange={() => setAvoid(toggle(avoid, a))}
                                     />
@@ -303,7 +306,7 @@ export default function Assistant() {
                         </p>
                     )}
 
-                    <button type="submit" className="button button--primary">
+                    <button type="submit" className="button button--primary gomad-action gomad-action-calculate-route">
                         Calcular ruta
                     </button>
                 </form>

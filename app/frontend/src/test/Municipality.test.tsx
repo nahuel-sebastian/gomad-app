@@ -1,25 +1,27 @@
 import { screen, waitFor, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import * as municipalityApi from "../data/municipality";
-import { expectNoAxeViolations, renderAt } from "../test/render";
+import { expectNoAxeViolations, renderAt } from "./render";
 
 afterEach(() => {
     vi.restoreAllMocks();
 });
 
 describe("Lista de municipios", () => {
-    it("lista los 179 y filtra por nombre sin tildes", async () => {
+    it("muestra tarjetas por partes y filtra por nombre sin tildes", async () => {
         const { user, container } = renderAt("/municipios");
         expect(screen.getByRole("heading", { level: 1, name: "Municipios" })).toBeInTheDocument();
         const list = await screen.findByRole("list", { name: "Municipios de la Comunidad de Madrid" });
-        expect(within(list).getAllByRole("link")).toHaveLength(179);
+        expect(within(list).getAllByRole("link")).toHaveLength(12);
+        await user.click(screen.getByRole("button", { name: "Mostrar más municipios" }));
+        expect(within(list).getAllByRole("link")).toHaveLength(24);
         await user.type(screen.getByLabelText("Busca un municipio"), "alcala");
         await waitFor(() =>
             expect(within(list).getAllByRole("link").map((a) => a.textContent)).toContain(
                 "Alcalá de Henares",
             ),
         );
-        expect(screen.getByRole("status")).toHaveTextContent(/\d+ municipios?/);
+        expect(screen.getByRole("status")).toHaveTextContent(/Mostrando \d+ de \d+ municipios?/);
         await expectNoAxeViolations(container);
     });
 

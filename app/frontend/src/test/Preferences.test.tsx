@@ -1,7 +1,7 @@
 import { screen, waitFor, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import * as activitiesApi from "../data/activities";
-import { expectNoAxeViolations, renderAt, SAMPLE_ORIGIN } from "../test/render";
+import { expectNoAxeViolations, renderAt, SAMPLE_ORIGIN } from "./render";
 
 const WITH_SEARCH = {
     origin: SAMPLE_ORIGIN,
@@ -14,10 +14,9 @@ describe("Perfil", () => {
         expect(screen.getByRole("heading", { level: 1, name: "Tus preferencias" })).toBeInTheDocument();
         const place = screen.getByRole("group", { name: "Lugar" });
         expect(within(place).getByRole("radio", { name: "Indiferente" })).toBeChecked();
-        const profile = screen.getByRole("group", { name: "Perfil (opcional)" });
-        expect(within(profile).getAllByRole("radio")).toHaveLength(4);
-        const companions = screen.getByRole("group", { name: "Salgo con…" });
+        const companions = screen.getByRole("group", { name: "Perfil (opcional)" });
         expect(within(companions).getAllByRole("checkbox")).toHaveLength(2);
+        expect(within(companions).getAllByRole("button")).toHaveLength(3);
         expect(screen.getByRole("slider", { name: "Tiempo disponible" })).toHaveAttribute(
             "aria-valuetext",
             "45 minutos",
@@ -53,6 +52,38 @@ describe("Perfil", () => {
                 "15 %, importancia baja",
             ),
         );
+    });
+
+    it("ajusta los tres filtros por sus pasos con botones accesibles", async () => {
+        const { user } = renderAt("/perfil");
+        await user.click(screen.getByRole("button", { name: "Aumentar tiempo disponible" }));
+        expect(screen.getByRole("slider", { name: "Tiempo disponible" })).toHaveAttribute("aria-valuetext", "50 minutos");
+        await user.click(screen.getByRole("button", { name: "Disminuir distancia máxima a pie" }));
+        expect(screen.getByRole("slider", { name: "Distancia máxima a pie" })).toHaveAttribute("aria-valuetext", "2,5 km");
+        await user.click(screen.getByRole("button", { name: "Aumentar ventana horaria" }));
+        expect(screen.getByRole("slider", { name: "Ventana horaria" })).toHaveAttribute("aria-valuetext", "Próximas 4 horas");
+    });
+
+    it("permite elegir varios acompañantes y activar o quitar un perfil", async () => {
+        const { user } = renderAt("/perfil");
+        const companions = screen.getByRole("group", { name: "Perfil (opcional)" });
+        await user.click(within(companions).getByRole("checkbox", { name: "Con perro" }));
+        expect(within(companions).getByRole("checkbox", { name: "Con perro" })).toBeChecked();
+        await user.click(within(companions).getByRole("checkbox", { name: "Con niños" }));
+        expect(within(companions).getByRole("checkbox", { name: "Con niños" })).toBeChecked();
+        await user.click(within(companions).getByRole("button", { name: "Con personas mayores" }));
+        expect(within(companions).getByRole("button", { name: "Con personas mayores" })).toHaveAttribute("aria-pressed", "true");
+        await user.click(within(companions).getByRole("button", { name: "Con personas mayores" }));
+        expect(within(companions).getByRole("button", { name: "Con personas mayores" })).toHaveAttribute("aria-pressed", "false");
+        expect(within(companions).getByRole("checkbox", { name: "Con perro" })).toBeChecked();
+    });
+
+    it("confirma el guardado en sesión y retira la confirmación al cambiar un filtro", async () => {
+        const { user } = renderAt("/perfil");
+        await user.click(screen.getByRole("button", { name: "Guardar preferencias" }));
+        expect(screen.getByRole("status", { name: "" })).toHaveTextContent("Preferencias guardadas durante esta sesión.");
+        await user.click(screen.getByRole("checkbox", { name: "Con perro" }));
+        expect(screen.queryByText("Preferencias guardadas durante esta sesión.")).not.toBeInTheDocument();
     });
 
     it("el resumen de Inicio refleja los cambios", async () => {
@@ -99,10 +130,10 @@ describe("Ajustar como dialogo", () => {
         expect(after).not.toBe(before);
     });
 
-    it("se abre tambien desde Ajustar en Inicio", async () => {
+    it("Ajustar en Inicio lleva al perfil", async () => {
         const { user } = renderAt("/");
-        await user.click(screen.getByRole("button", { name: "Ajustar preferencias" }));
-        expect(await screen.findByRole("dialog", { name: "Tus preferencias" })).toBeInTheDocument();
+        await user.click(screen.getByRole("link", { name: "Ajustar preferencias" }));
+        expect(await screen.findByRole("heading", { level: 1, name: "Tus preferencias" })).toBeInTheDocument();
     });
 
     it("con todos los pesos a 0 se ve el aviso de la API", async () => {

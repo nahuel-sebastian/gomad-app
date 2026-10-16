@@ -1,9 +1,9 @@
 import { screen, waitFor, within } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
-import { recommend } from "./data/recommend";
-import { buildRecommendRequest } from "./lib/request";
-import { DEFAULT_PREFERENCES } from "./state/context";
-import { renderAt, SAMPLE_ORIGIN } from "./test/render";
+import { recommend } from "../data/recommend";
+import { buildRecommendRequest } from "../lib/request";
+import { DEFAULT_PREFERENCES } from "../state/context";
+import { renderAt, SAMPLE_ORIGIN } from "./render";
 
 // Pruebas de los hallazgos de la auditoria de accesibilidad (15/10)
 
@@ -58,7 +58,7 @@ describe("anuncios y foco (I1, I8)", () => {
         await screen.findByRole("list", { name: "Resultados" });
         await user.click(screen.getByRole("button", { name: /Ajustar/ }));
         const dialog = await screen.findByRole("dialog", { name: "Tus preferencias" });
-        await user.click(within(dialog).getByRole("radio", { name: "Persona mayor" }));
+        await user.click(within(dialog).getByRole("button", { name: "Con personas mayores" }));
         await waitFor(() => expect(within(dialog).getByRole("status")).toHaveTextContent(/\d+ resultados con tus preferencias/));
     });
 

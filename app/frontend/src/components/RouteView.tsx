@@ -55,8 +55,8 @@ export default function RouteView() {
     const pois = variant ? poiSummary(variant) : [];
 
     return (
-        <section className="container page route-page" aria-labelledby="ruta-titulo">
-            <Link to={`/resultados/${encodeURIComponent(id)}`} className="back-button">
+        <section className="container page route-page gomad-component gomad-route-view" aria-labelledby="ruta-titulo">
+            <Link to={`/resultados/${encodeURIComponent(id)}`} className="back-button gomad-action gomad-action-back-to-recommendation">
                 <svg
                     width="18"
                     height="18"
@@ -79,9 +79,10 @@ export default function RouteView() {
             <fieldset className="seg">
                 <legend className="sr-only">Variante de ruta</legend>
                 {VARIANTS.map((v) => (
-                    <label key={v.kind} className="seg__option">
+                    <label key={v.kind} className={`seg__option gomad-option gomad-option-route-variant-${v.kind}`}>
                         <input
                             type="radio"
+                            className={`gomad-field gomad-field-route-variant-${v.kind}`}
                             name="variante"
                             value={v.kind}
                             checked={kind === v.kind}

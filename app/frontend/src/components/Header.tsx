@@ -26,9 +26,9 @@ export default function Header() {
     const current = sectionOf(pathname);
 
     return (
-        <header className="header">
+        <header className="header gomad-component gomad-header">
             <div className="container header__inner">
-                <Link to="/" className="logo" aria-label="GoMad, ir al inicio">
+                <Link to="/" className="logo gomad-action gomad-action-go-home" aria-label="GoMad, ir al inicio">
                     <img
                         src="/images/logo.png"
                         alt=""
@@ -48,7 +48,7 @@ export default function Header() {
                             <li key={link.to}>
                                 <Link
                                     to={link.to}
-                                    className="nav__link"
+                                    className={`nav__link gomad-action gomad-action-navigate gomad-action-navigate-${link.to === "/" ? "home" : link.to.slice(1)}`}
                                     aria-current={
                                         pathname === link.to ? "page" : current === link.to ? "true" : undefined
                                     }>

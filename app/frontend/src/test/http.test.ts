@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { RecommendRequest } from "../api/types";
-import { ApiError } from "./errors";
-import { getJson, postJson } from "./http";
+import { ApiError } from "../data/errors";
+import { getJson, postJson } from "../data/http";
 
 const json = (status: number, body: unknown) =>
     new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json" } });
@@ -87,7 +87,7 @@ describe("cliente HTTP", () => {
         vi.stubEnv("MODE", "production");
         const fetchMock = vi.fn().mockResolvedValue(json(200, { results: [], has_more: false, warnings: [], medical_disclaimer: "" }));
         vi.stubGlobal("fetch", fetchMock);
-        const { recommend } = await import("./recommend");
+        const { recommend } = await import("../data/recommend");
         const req = { origin: { lat: 40.3, lon: -3.7 } } as RecommendRequest;
         await recommend(req);
         expect(fetchMock.mock.calls[0][0]).toBe("/api/recommend");

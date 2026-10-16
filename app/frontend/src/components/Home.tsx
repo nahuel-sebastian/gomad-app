@@ -12,7 +12,6 @@ import ErrorMessage from "./ErrorMessage";
 import Hero from "./Hero";
 import Icon from "./Icon";
 import LocationPicker from "./LocationPicker";
-import PreferencesDialog from "./PreferencesDialog";
 
 type MomentHour = HourEvaluation | undefined;
 
@@ -40,7 +39,7 @@ function MomentChips({ hour, failed }: { hour: MomentHour; failed: boolean }) {
     const { origin } = useAppState();
 
     return (
-        <ul role="list" className="chips" aria-label="Ahora en tu zona">
+        <ul role="list" className="chips gomad-component gomad-moment-chips" aria-label="Ahora en tu zona">
             <li>
                 <Chip tone="info" icon="location_on">
                     {origin ? origin.municipality : "Sin ubicación todavía"}
@@ -106,7 +105,7 @@ export default function Home() {
                 <MomentChips hour={moment.hour} failed={moment.failed} />
             </Hero>
 
-            <div className="container home">
+            <div className="container home gomad-component gomad-home">
                 <p className="sr-only" role="status" aria-live="polite">
                     {live}
                 </p>
@@ -153,7 +152,7 @@ export default function Home() {
                         <ul role="list" className="activities" aria-label="Actividades">
                             {activities.data.activities.map((a: Activity) => (
                                 <li key={a.id}>
-                                    <button type="button" className="activity" onClick={() => go(a.id, a.label)}>
+                                    <button type="button" className="activity gomad-action gomad-action-select-activity" onClick={() => go(a.id, a.label)}>
                                         <span className="activity__tile" aria-hidden="true">
                                             <Icon name={a.icon} />
                                         </span>
@@ -166,7 +165,7 @@ export default function Home() {
                 </section>
 
                 <div className="home__secondary">
-                    <button type="button" className="panel panel--action surprise" onClick={() => go(null)}>
+                    <button type="button" className="panel panel--action surprise gomad-action gomad-action-surprise" onClick={() => go(null)}>
                         <span className="surprise__tile" aria-hidden="true">
                             <Icon name="auto_awesome" />
                         </span>
@@ -185,17 +184,13 @@ export default function Home() {
                             </h2>
                             <strong>{preferencesSummary(preferences)}</strong>
                         </div>
-                        <PreferencesDialog
-                            trigger={
-                                <button type="button" className="button" aria-label="Ajustar preferencias">
-                                    <span>Ajustar</span>
-                                </button>
-                            }
-                        />
+                        <Link to="/perfil" className="button gomad-action gomad-action-adjust-preferences" aria-label="Ajustar preferencias">
+                            <span>Ajustar</span>
+                        </Link>
                     </section>
                 </div>
 
-                <Link to="/asistente" className="panel panel--action assistant-link">
+                <Link to="/asistente" className="panel panel--action assistant-link gomad-action gomad-action-open-assistant">
                     <span className="panel__title">Asistente de rutas</span>
                     <span className="muted">
                         Escribe lo que quieres («5 km andando, con fuentes y bancos») y te propongo una ruta.

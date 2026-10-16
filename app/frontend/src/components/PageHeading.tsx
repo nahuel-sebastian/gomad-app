@@ -22,7 +22,7 @@ export default function PageHeading({
     }, [text]);
 
     return (
-        <h1 id={id} className={className} tabIndex={-1}>
+        <h1 id={id} className={`gomad-component gomad-page-heading${className ? ` ${className}` : ""}`} tabIndex={-1}>
             {children}
         </h1>
     );

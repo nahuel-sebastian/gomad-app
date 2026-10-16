@@ -1,6 +1,6 @@
 import { screen, waitFor, within } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
-import { expectNoAxeViolations, renderAt } from "./test/render";
+import { expectNoAxeViolations, renderAt } from "./render";
 
 describe("diseno comun", () => {
     it("pinta Inicio con un h1, skip link y main#contenido sin violaciones de axe", async () => {

@@ -22,8 +22,8 @@ function ResultCard({ item, index }: { item: Recommendation; index: number }) {
     const showBest = item.best_hour !== null && item.best_hour !== now?.hour;
 
     return (
-        <li>
-            <Link to={`/resultados/${encodeURIComponent(item.destination.id)}`} className="result-card">
+        <li className="gomad-component gomad-result-card">
+            <Link to={`/resultados/${encodeURIComponent(item.destination.id)}`} className="result-card gomad-action gomad-action-open-recommendation">
                 <span className="result-card__number" aria-hidden="true">
                     {index + 1}
                 </span>
@@ -154,7 +154,7 @@ export default function Results() {
     const adjust = (
         <PreferencesDialog
             trigger={
-                <button type="button" className="button">
+                <button type="button" className="button gomad-action gomad-action-adjust-preferences">
                     Ajustar preferencias
                 </button>
             }
@@ -162,9 +162,9 @@ export default function Results() {
     );
 
     return (
-        <section className="results-screen" aria-labelledby="resultados-titulo">
+        <section className="results-screen gomad-component gomad-results" aria-labelledby="resultados-titulo">
             <div className="results-desktop-toolbar">
-                <button className="back-button" type="button" onClick={() => navigate("/")}>
+                <button className="back-button gomad-action gomad-action-go-home" type="button" onClick={() => navigate("/")}>
                     <svg
                         width="18"
                         height="18"
@@ -183,7 +183,7 @@ export default function Results() {
                 <div className="results-filters">
                     <PreferencesDialog
                         trigger={
-                            <button className="filter-button" type="button" aria-label="Ajustar preferencias">
+                            <button className="filter-button gomad-action gomad-action-adjust-preferences" type="button" aria-label="Ajustar preferencias">
                                 <svg
                                     width="18"
                                     height="18"
@@ -282,7 +282,7 @@ export default function Results() {
                         }
                     }}>
                     <button
-                        className="results-sheet__handle"
+                        className="results-sheet__handle gomad-action gomad-action-toggle-results-sheet"
                         type="button"
                         aria-label={
                             isSheetExpanded
@@ -377,7 +377,7 @@ export default function Results() {
                             {hasMore && first.status === "success" && !moreFailed && (
                                 <button
                                     type="button"
-                                    className="button button--full"
+                                    className="button button--full gomad-action gomad-action-show-more-results"
                                     onClick={() => !loadingMore && loadMore()}
                                     aria-disabled={loadingMore}>
                                     <span>{loadingMore ? "Cargando…" : "Ver más opciones"}</span>

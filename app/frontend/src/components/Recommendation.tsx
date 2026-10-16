@@ -47,10 +47,10 @@ export default function Recommendation() {
     );
 
     return (
-        <section className="detail-screen" aria-labelledby="detail-title">
+        <section className="detail-screen gomad-component gomad-recommendation" aria-labelledby="detail-title">
             <div className="detail-dialog">
                 <header className="detail-header">
-                    <Link to="/resultados" className="detail-header__back">
+                    <Link to="/resultados" className="detail-header__back gomad-action gomad-action-back-to-results">
                         Volver a resultados
                     </Link>
                     <p className="detail-header__count">
@@ -160,7 +160,7 @@ export default function Recommendation() {
                         </p>
                         {nowBad && alternative && (
                             <p className="detail-alt">
-                                <Link to={`/resultados/${encodeURIComponent(alternative.destination.id)}`}>
+                                <Link to={`/resultados/${encodeURIComponent(alternative.destination.id)}`} className="gomad-action gomad-action-open-covered-alternative">
                                     Alternativa cubierta: {alternative.destination.name}
                                 </Link>
                             </p>
@@ -214,10 +214,10 @@ export default function Recommendation() {
                     <div className="detail-actions">
                         <Link
                             to={`/ruta/${encodeURIComponent(item.destination.id)}`}
-                            className="button button--primary">
+                            className="button button--primary gomad-action gomad-action-view-route">
                             Ver ruta en el mapa
                         </Link>
-                        <Link to="/resultados" className="button">
+                        <Link to="/resultados" className="button gomad-action gomad-action-back-to-results">
                             Ver otras opciones
                         </Link>
                     </div>

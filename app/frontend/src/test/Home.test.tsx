@@ -1,14 +1,33 @@
-import { screen, waitFor, within } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { StrictMode } from "react";
+import { MemoryRouter } from "react-router";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import AppRoutes from "../AppRoutes";
 import * as activitiesApi from "../data/activities";
 import * as locationApi from "../data/location";
-import { expectNoAxeViolations, renderAt, SAMPLE_ORIGIN } from "../test/render";
+import { AppStateProvider } from "../state/AppState";
+import { expectNoAxeViolations, renderAt, SAMPLE_ORIGIN } from "./render";
 
 afterEach(() => {
     vi.restoreAllMocks();
 });
 
 describe("Inicio", () => {
+    it("no enfoca el título al cargar en StrictMode, pero sí al navegar", async () => {
+        const user = userEvent.setup();
+        render(
+            <StrictMode>
+                <MemoryRouter initialEntries={["/"]}>
+                    <AppStateProvider><AppRoutes /></AppStateProvider>
+                </MemoryRouter>
+            </StrictMode>,
+        );
+        expect(screen.getByRole("heading", { level: 1, name: "¿Qué te apetece hacer hoy?" })).not.toHaveFocus();
+        await user.click(screen.getByRole("link", { name: "Ajustar preferencias" }));
+        await waitFor(() => expect(screen.getByRole("heading", { level: 1, name: "Tus preferencias" })).toHaveFocus());
+    });
+
     it("tiene un h1 neutro, no fijo a buen tiempo", () => {
         renderAt("/");
         const h1 = screen.getByRole("heading", { level: 1 });
@@ -148,7 +167,7 @@ describe("Inicio", () => {
             screen.getByText("45 min · hasta 3 km · interior o exterior"),
         ).toBeInTheDocument();
         expect(
-            screen.getByRole("button", { name: /Ajustar/ }),
+            screen.getByRole("link", { name: /Ajustar/ }),
         ).toBeInTheDocument();
     });
 

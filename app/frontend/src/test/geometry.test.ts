@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { RouteVariant } from "../api/types";
-import { lineCoordinates, toLineString } from "./geometry";
+import { lineCoordinates, toLineString } from "../lib/geometry";
 
 describe("geometria de la ruta", () => {
     it("lee las coordenadas de un LineString", () => {

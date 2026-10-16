@@ -1,9 +1,9 @@
 import { screen, waitFor, within } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
-import { recommend } from "./data/recommend";
-import { buildRecommendRequest } from "./lib/request";
-import { DEFAULT_PREFERENCES } from "./state/context";
-import { expectNoAxeViolations, renderAt, SAMPLE_ORIGIN } from "./test/render";
+import { recommend } from "../data/recommend";
+import { buildRecommendRequest } from "../lib/request";
+import { DEFAULT_PREFERENCES } from "../state/context";
+import { expectNoAxeViolations, renderAt, SAMPLE_ORIGIN } from "./render";
 
 async function stateWithResults() {
     const data = await recommend(
@@ -104,8 +104,8 @@ describe("listas y nombres de botones", () => {
         },
     );
 
-    it("los botones «Ajustar» de Inicio y Resultados se llaman «Ajustar preferencias»", async () => {
+    it("«Ajustar» de Inicio es un enlace con nombre accesible al perfil", async () => {
         renderAt("/", { origin: SAMPLE_ORIGIN });
-        expect(await screen.findByRole("button", { name: "Ajustar preferencias" })).toHaveTextContent("Ajustar");
+        expect(await screen.findByRole("link", { name: "Ajustar preferencias" })).toHaveAttribute("href", "/perfil");
     });
 });

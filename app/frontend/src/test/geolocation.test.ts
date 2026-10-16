@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { LOCATION_MESSAGES, locateWithBrowser, municipalityAt } from "./geolocation";
+import { LOCATION_MESSAGES, locateWithBrowser, municipalityAt } from "../data/geolocation";
 
 function fakeGeo(result: { lat: number; lon: number } | { code: number }): Geolocation {
     return {

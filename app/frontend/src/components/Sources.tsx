@@ -22,7 +22,7 @@ export default function Sources() {
     const sources = useAsync(() => getSources(), []);
 
     return (
-        <section className="container page" aria-labelledby="fuentes-titulo">
+        <section className="container page gomad-component gomad-sources" aria-labelledby="fuentes-titulo">
             <PageHeading className="view-title" id="fuentes-titulo">
                 Fuentes, licencias y aviso
             </PageHeading>
@@ -65,7 +65,7 @@ export default function Sources() {
                             {sources.data.sources.map((s) => (
                                 <tr key={s.id} role="row">
                                     <td role="cell" data-label="Fuente">
-                                        <a href={s.url} className="sources-table__link" rel="noreferrer noopener">
+                                        <a href={s.url} className="sources-table__link gomad-action gomad-action-open-source" rel="noreferrer noopener">
                                             {s.name}
                                         </a>
                                     </td>

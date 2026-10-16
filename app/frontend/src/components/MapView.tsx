@@ -56,7 +56,7 @@ export default function MapView({
         coords.map((c) => project(c).map((n) => n.toFixed(2)).join(",")).join(" ");
 
     return (
-        <div className={`map-view${className ? ` ${className}` : ""}`} aria-hidden="true">
+        <div className={`map-view gomad-component gomad-map-view${className ? ` ${className}` : ""}`} aria-hidden="true">
             {points.length > 0 && (
                 <svg className="map-view__svg" viewBox={`0 0 ${SIZE} ${SIZE}`} preserveAspectRatio="xMidYMid meet">
                     {secondary.length > 1 && (

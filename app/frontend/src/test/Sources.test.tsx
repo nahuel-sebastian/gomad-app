@@ -2,7 +2,7 @@ import { screen, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { selectScenario } from "../data/scenarios";
 import * as sourcesApi from "../data/sources";
-import { expectNoAxeViolations, renderAt } from "../test/render";
+import { expectNoAxeViolations, renderAt } from "./render";
 
 afterEach(() => {
     vi.restoreAllMocks();

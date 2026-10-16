@@ -1,7 +1,7 @@
 import { screen, waitFor, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import * as assistantApi from "../data/assistant";
-import { expectNoAxeViolations, renderAt, SAMPLE_ORIGIN } from "../test/render";
+import { expectNoAxeViolations, renderAt, SAMPLE_ORIGIN } from "./render";
 
 afterEach(() => {
     vi.restoreAllMocks();

@@ -1,14 +1,14 @@
 import { afterEach, describe, expect, it } from "vitest";
 import type { RecommendRequest } from "../api/types";
-import { getActivities } from "./activities";
-import { assistantRoute, interpret } from "./assistant";
-import { ApiError } from "./errors";
-import { isSampleLocation, sampleLocation, searchLocation } from "./location";
-import { setMockScenario } from "./mock/scenario";
-import { getMunicipality, listMunicipalities } from "./municipality";
-import { recommend } from "./recommend";
-import { getRoute } from "./route";
-import { getSources } from "./sources";
+import { getActivities } from "../data/activities";
+import { assistantRoute, interpret } from "../data/assistant";
+import { ApiError } from "../data/errors";
+import { isSampleLocation, sampleLocation, searchLocation } from "../data/location";
+import { setMockScenario } from "../data/mock/scenario";
+import { getMunicipality, listMunicipalities } from "../data/municipality";
+import { recommend } from "../data/recommend";
+import { getRoute } from "../data/route";
+import { getSources } from "../data/sources";
 
 const ORIGIN = { lat: 40.3057, lon: -3.7329 };
 
