@@ -93,4 +93,40 @@ describe("cliente HTTP", () => {
         expect(fetchMock.mock.calls[0][0]).toBe("/api/recommend");
         expect(JSON.parse((fetchMock.mock.calls[0][1] as RequestInit).body as string)).toEqual(req);
     });
+    it("fuera de las pruebas, getMunicipality llama a /api/municipality con las preferencias", async () => {
+        vi.stubEnv("MODE", "production");
+        const fetchMock = vi.fn().mockImplementation(() => Promise.resolve(json(200, { ine_code: "28065" })));
+        vi.stubGlobal("fetch", fetchMock);
+        const { getMunicipality } = await import("../data/municipality");
+        await getMunicipality("28065", { activities: ["walk", "padel"], profile: "senior", companions: ["dog"] });
+        expect(fetchMock.mock.calls[0][0]).toBe(
+            "/api/municipality/28065?activities=walk&activities=padel&profile=senior&companions=dog",
+        );
+        await getMunicipality("28065");
+        await getMunicipality("28065", { profile: "general", companions: [] });
+        expect(fetchMock.mock.calls[1][0]).toBe("/api/municipality/28065");
+        expect(fetchMock.mock.calls[2][0]).toBe("/api/municipality/28065");
+    });
+
+    it("getMunicipality con 404 o 503 lanza ApiError con su código", async () => {
+        vi.stubEnv("MODE", "production");
+        const { getMunicipality } = await import("../data/municipality");
+        vi.stubGlobal("fetch", vi.fn().mockResolvedValue(json(404, { detail: "Municipio no encontrado" })));
+        expect(await failure(getMunicipality("28999"))).toMatchObject({ status: 404 });
+        vi.stubGlobal("fetch", vi.fn().mockResolvedValue(json(503, { detail: "Los datos todavía no están cargados." })));
+        expect(await failure(getMunicipality("28065"))).toMatchObject({
+            status: 503,
+            message: "Los datos todavía no están cargados.",
+        });
+    });
+
+    it("fuera de las pruebas, getSources llama a GET /api/sources", async () => {
+        vi.stubEnv("MODE", "production");
+        const fetchMock = vi.fn().mockResolvedValue(json(200, { sources: [] }));
+        vi.stubGlobal("fetch", fetchMock);
+        const { getSources } = await import("../data/sources");
+        await expect(getSources()).resolves.toEqual({ sources: [] });
+        expect(fetchMock.mock.calls[0][0]).toBe("/api/sources");
+        expect((fetchMock.mock.calls[0][1] as RequestInit).method).toBe("GET");
+    });
 });

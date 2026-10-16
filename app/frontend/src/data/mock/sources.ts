@@ -75,6 +75,24 @@ export function sourcesMock(): SourcesResponse {
                 last_refresh: null,
                 last_failure: null,
             },
+            {
+                id: "boe_ica",
+                name: "Índice Nacional de Calidad del Aire (BOE-A-2020-10426)",
+                publisher: "Ministerio para la Transición Ecológica (BOE)",
+                license: "BOE: norma oficial, reutilización libre",
+                url: "https://www.boe.es/diario_boe/txt.php?id=BOE-A-2020-10426",
+                last_refresh: null,
+                last_failure: null,
+            },
+            {
+                id: "config:weights",
+                name: "Pesos por defecto de la nota (criterio propio)",
+                publisher: "Equipo GoMad (criterio propio)",
+                license: "CC BY 4.0",
+                url: "https://<YOUR_DOMAIN>",
+                last_refresh: null,
+                last_failure: null,
+            },
         ],
     };
 }

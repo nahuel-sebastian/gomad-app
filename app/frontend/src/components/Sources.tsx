@@ -5,8 +5,13 @@ import { formatTimeAgo } from "../lib/format";
 import ErrorMessage from "./ErrorMessage";
 import PageHeading from "./PageHeading";
 
+// Referencias oficiales de umbrales: se citan, no se descargan (app/config/sources.yaml)
+const OFFICIAL_REFERENCES = new Set(["boe_ica", "sanidad_calor"]);
+
 function refreshText(source: SourceInfo) {
     if (!source.last_refresh) {
+        if (source.id.startsWith("config:")) return "Criterio propio: no se descarga";
+        if (OFFICIAL_REFERENCES.has(source.id)) return "Referencia oficial: no se descarga";
         return "Sin descargar todavía";
     }
     return formatTimeAgo(source.last_refresh);
@@ -41,10 +46,6 @@ export default function Sources() {
                         : sources.data
                           ? "Fuentes cargadas."
                           : ""}
-                </p>
-                <p className="muted">
-                    Lista de ejemplo: las recomendaciones, rutas y direcciones ya usan los datos reales; esta tabla
-                    con licencias y fechas de cada fuente llegará del servidor en la próxima versión.
                 </p>
                 {sources.status === "loading" && !sources.data && <p className="muted">Cargando fuentes…</p>}
                 {sources.status === "error" && (
