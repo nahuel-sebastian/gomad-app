@@ -41,7 +41,12 @@ def run_readings():
     out_dir.mkdir(parents=True, exist_ok=True)
     written = []
     for source, columns in (("aire_dia", ["provincia", "h24"]), ("ay_aire", ["PROVINCIA", "H24"])):
-        long = long_readings(read_csv(latest_csv(RAW / source, columns)))
+        try:
+            path = latest_csv(RAW / source, columns)
+        except FileNotFoundError as e:   # p. ej. el portal publico el CSV vacio y no hay uno anterior
+            print(f"   {source}: sin CSV valido, se salta ({e})")
+            continue
+        long = long_readings(read_csv(path))
         if long.empty:   # al cambiar de dia puede no haber ninguna hora valida todavia
             continue
         for day, group in long.groupby(long["ts"].dt.strftime("%Y%m%d")):
