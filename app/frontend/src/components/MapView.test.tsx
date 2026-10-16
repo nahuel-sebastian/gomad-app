@@ -1,9 +1,16 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { toLineString, type LonLat } from "../lib/geometry";
-import { boundsOf, fitPadding, mapPoints } from "./mapUtils";
+import { boundsOf, fitPadding, hasWebGL, mapPoints } from "./mapUtils";
 import MapView, { MapErrorBoundary, type MapMarker } from "./MapView";
-import { fitBoundsMock, lastMapProps, setWorkerUrlMock, withWebGL } from "../test/mapMock";
+import {
+    fitBoundsMock,
+    lastMapProps,
+    setMapScenario,
+    setStyleMock,
+    setWorkerUrlMock,
+    withWebGL,
+} from "../test/mapMock";
 
 // jsdom no tiene WebGL: se simula react-map-gl con componentes de DOM simples
 vi.mock("react-map-gl/maplibre", async () => (await import("../test/mapMock")).mapLibreModule());
@@ -29,6 +36,8 @@ const OTHER = toLineString([
 
 afterEach(() => {
     vi.restoreAllMocks();
+    setMapScenario("ok");
+    setStyleMock.mockClear();
 });
 
 describe("MapView", () => {
@@ -96,6 +105,42 @@ describe("MapView", () => {
             </MapErrorBoundary>,
         );
         expect(screen.getByText("esquema")).toBeInTheDocument();
+    });
+});
+
+describe("MapLibre que falla", () => {
+    it("hasWebGL solo acepta WebGL2 (MapLibre 6 no usa WebGL1)", () => {
+        vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockImplementation(((type: string) =>
+            type === "webgl" ? {} : null) as never);
+        expect(hasWebGL()).toBe(false);
+    });
+
+    it("si MapLibre no puede crear el mapa vuelve al esquema", async () => {
+        withWebGL();
+        vi.spyOn(console, "error").mockImplementation(() => {});
+        setMapScenario("creation-fails");
+        const { container } = render(<MapView markers={MARKERS} origin={ORIGIN} />);
+        await waitFor(() => expect(container.querySelector(".map-view__svg")).not.toBeNull());
+        expect(screen.queryByTestId("maplibre")).toBeNull();
+    });
+
+    it("si no llega el estilo de teselas pone un fondo liso para que se dibuje la ruta", async () => {
+        withWebGL();
+        setMapScenario("style-fails");
+        render(<MapView markers={[]} origin={ORIGIN} route={MAIN} />);
+        await screen.findByTestId("maplibre");
+        expect(setStyleMock).toHaveBeenCalledTimes(1);
+        const style = setStyleMock.mock.calls[0][0];
+        expect(style.version).toBe(8);
+        expect(style.layers).toEqual([expect.objectContaining({ type: "background" })]);
+    });
+
+    it("un fallo de tesela con el estilo ya cargado no cambia el estilo", async () => {
+        withWebGL();
+        setMapScenario("tile-error");
+        render(<MapView markers={MARKERS} />);
+        await screen.findByTestId("maplibre");
+        expect(setStyleMock).not.toHaveBeenCalled();
     });
 });
 

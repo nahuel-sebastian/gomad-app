@@ -1,4 +1,4 @@
-import { forwardRef, useImperativeHandle, useRef, type ReactNode } from "react";
+import { forwardRef, useEffect, useImperativeHandle, useRef, type ReactNode } from "react";
 import { vi } from "vitest";
 
 // Simulacro de react-map-gl/maplibre para jsdom (sin WebGL): cada componente pinta un
@@ -10,6 +10,19 @@ type Props = Record<string, unknown> & { children?: ReactNode };
 
 // registra las props de cada render del mapa simulado
 const mapPropsMock = vi.fn();
+
+// Que pasa al montar el mapa simulado: "ok"; "creation-fails" (MapLibre no crea el mapa,
+// p. ej. sin WebGL2: react-map-gl llama a onError con target null); "style-fails" (no
+// llega el estilo de teselas); "tile-error" (estilo cargado y despues falla una tesela)
+export type MapScenario = "ok" | "creation-fails" | "style-fails" | "tile-error";
+let scenario: MapScenario = "ok";
+
+export function setMapScenario(value: MapScenario) {
+    scenario = value;
+}
+
+// setStyle del mapa simulado (lo que llama MapCanvas si el estilo no carga)
+export const setStyleMock = vi.fn();
 
 // fitBounds del mapa simulado (lo que llama MapCanvas al reencuadrar)
 export const fitBoundsMock = vi.fn();
@@ -24,6 +37,20 @@ export function mapLibreModule() {
         // como MapLibre: el lienzo nace enfocable y onLoad no llega en jsdom
         const canvas = useRef<HTMLCanvasElement>(null);
         useImperativeHandle(ref, () => ({ fitBounds: fitBoundsMock, getCanvas: () => canvas.current }));
+        useEffect(() => {
+            const onError = props.onError as ((e: unknown) => void) | undefined;
+            const onStyleData = props.onStyleData as ((e: unknown) => void) | undefined;
+            const target = { setStyle: setStyleMock };
+            const error = new Error(scenario);
+            if (scenario === "creation-fails") onError?.({ type: "error", target: null, error });
+            if (scenario === "style-fails") onError?.({ type: "error", target, error });
+            if (scenario === "tile-error") {
+                onStyleData?.({ type: "styledata", target, dataType: "style" });
+                onError?.({ type: "error", target, error });
+            }
+            // solo al montar, como MapLibre
+            // eslint-disable-next-line react-hooks/exhaustive-deps
+        }, []);
         return (
             <div data-testid="maplibre" data-style={String(props.mapStyle)}>
                 <canvas ref={canvas} tabIndex={0} aria-label="Map" />

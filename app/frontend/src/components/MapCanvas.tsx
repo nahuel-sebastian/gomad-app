@@ -2,12 +2,13 @@ import { setWorkerUrl } from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 import workerUrl from "maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
-import Map, { Layer, Marker, Source, type MapRef } from "react-map-gl/maplibre";
+import Map, { Layer, Marker, Source, type ErrorEvent, type MapRef } from "react-map-gl/maplibre";
 import "../styles/map.css";
 import { lineCoordinates } from "../lib/geometry";
 import type { MapViewProps } from "./MapView";
 import {
     boundsOf,
+    FALLBACK_STYLE,
     FIT_MAX_ZOOM,
     fitPadding,
     MAP_ATTRIBUTION,
@@ -38,6 +39,21 @@ export default function MapCanvas(props: MapViewProps) {
     // margenes leidos del CSS antes de pintar; el mapa se crea cuando ya se conocen
     const [padding, setPadding] = useState<Padding | null>(null);
 
+    // si MapLibre no puede crear el mapa (sin WebGL2, sin memoria de GPU), react-map-gl solo
+    // llama a onError: se relanza en el render para que MapErrorBoundary pinte el esquema
+    const [creationError, setCreationError] = useState<Error | null>(null);
+    const styleLoaded = useRef(false);
+
+    const handleError = (e: ErrorEvent) => {
+        if (!e.target) {
+            setCreationError(e.error ?? new Error("No se pudo crear el mapa"));
+        } else if (!styleLoaded.current) {
+            // no llega el estilo de teselas: fondo liso para que se dibujen ruta y marcadores
+            styleLoaded.current = true;
+            e.target.setStyle(FALLBACK_STYLE);
+        }
+    };
+
     useLayoutEffect(() => {
         if (containerRef.current) setPadding(fitPadding(containerRef.current));
     }, []);
@@ -50,6 +66,10 @@ export default function MapCanvas(props: MapViewProps) {
         fittedKey.current = boundsKey;
         mapRef.current?.fitBounds(bounds, { padding, maxZoom: FIT_MAX_ZOOM, duration: 0 });
     }, [boundsKey, bounds, padding]);
+
+    if (creationError) {
+        throw creationError;
+    }
 
     return (
         <div className="map-canvas" ref={containerRef}>
@@ -64,6 +84,10 @@ export default function MapCanvas(props: MapViewProps) {
                     mapStyle={TILE_STYLE_URL}
                     attributionControl={false}
                     keyboard={false}
+                    onError={handleError}
+                    onStyleData={() => {
+                        styleLoaded.current = true;
+                    }}
                     initialViewState={
                         bounds ? { bounds, fitBoundsOptions: { padding, maxZoom: FIT_MAX_ZOOM } } : undefined
                     }

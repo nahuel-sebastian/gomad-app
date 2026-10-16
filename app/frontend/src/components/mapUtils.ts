@@ -7,6 +7,14 @@ import type { MapViewProps } from "./MapView";
 export const TILE_STYLE_URL = "https://tiles.openfreemap.org/styles/liberty";
 export const MAP_ATTRIBUTION = "© OpenStreetMap · OpenFreeMap";
 
+// Estilo de respaldo si no llega el de OpenFreeMap: fondo liso del color de .map-view, para
+// que se puedan dibujar la ruta y los marcadores (react-map-gl solo anade fuentes con estilo)
+export const FALLBACK_STYLE = {
+    version: 8 as const,
+    sources: {},
+    layers: [{ id: "background", type: "background" as const, paint: { "background-color": "#e9eff3" } }],
+};
+
 export type Bounds = [LonLat, LonLat];
 
 // con un solo punto se abre +-0,005 grados (unos 500 m): criterio propio
@@ -60,11 +68,11 @@ export function mapPoints({ markers, origin, route, secondaryRoute }: MapViewPro
     ];
 }
 
-// true si el navegador puede crear un contexto WebGL (MapLibre lo necesita)
+// true si el navegador puede crear un contexto WebGL2 (MapLibre 6 no tiene respaldo WebGL1)
 export function hasWebGL(): boolean {
     try {
         const canvas = document.createElement("canvas");
-        const context = canvas.getContext("webgl2") ?? canvas.getContext("webgl");
+        const context = canvas.getContext("webgl2");
         if (!context) {
             return false;
         }

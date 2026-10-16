@@ -88,7 +88,8 @@ function Schematic({ markers, selectedId, origin, route, secondaryRoute }: MapVi
 
 const MapCanvas = lazy(() => import("./MapCanvas"));
 
-// Si MapLibre falla (p. ej. se pierde el contexto WebGL), se pinta el respaldo
+// Si falla la carga diferida de MapCanvas o MapLibre no puede crear el mapa (MapCanvas
+// relanza ese error en el render), se pinta el respaldo
 export class MapErrorBoundary extends Component<{ fallback: ReactNode; children: ReactNode }, { failed: boolean }> {
     state = { failed: false };
 
