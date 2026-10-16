@@ -55,7 +55,7 @@ describe("diseno comun", () => {
     it("lleva el foco al h1 al navegar a otra pantalla", async () => {
         const { user } = renderAt("/");
         const nav = screen.getByRole("navigation", { name: "Principal" });
-        await user.click(within(nav).getByRole("link", { name: "Perfil" }));
+        await user.click(within(nav).getByRole("link", { name: "Preferencias" }));
         const h1 = await screen.findByRole("heading", {
             level: 1,
             name: "Tus preferencias",
