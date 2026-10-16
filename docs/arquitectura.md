@@ -409,7 +409,7 @@ app/
 |---|---|---|---|
 | A-01 | ~~Framework del frontend~~ | ✅ 14/10 | React + Vite sobre el prototipo (§5) |
 | A-02 | Detalle de cada pantalla (§5.2) | Con la maquetadora, al maquetar | No cambia la arquitectura |
-| A-03 | Nombre y dominio (D-10) | Nombre ✅ **GoMad** (15/10); dominio pendiente (V-F4) | Afecta al dominio del despliegue |
+| A-03 | Nombre y dominio (D-10) | Nombre ✅ **GoMad** (15/10); dominio ✅ DuckDNS (16/10, V-F4) | Afecta al dominio del despliegue |
 | A-04 | ✅ Pesos por defecto y velocidades (D-07) | Decidido el 15/10 | `app/config/weights.yaml`: cercanía 30 · adecuación 25 · verde 20 · aire 15 · meteo 10; caminar 4,5, correr 9, mayor/carrito 3,5 km/h; ruta: `routing.yaml` sin cambios. Todo criterio propio |
 | A-05 | ✅ Regla de aire por perfil (D-05) | Decidido el 15/10 | `app/config/rules.yaml`: general y carrito desde Desfavorable, sensible y mayor desde Regular (BOE; mayor = criterio propio). Lluvia (D-07b): desde el 50 % |
 | A-06 | ✅ Umbrales de calor (D-06) | Decidido el 16/10 | Opción C: «día de calor» si la Tmáx horaria del día supera el umbral de Sanidad de su zona (35,8 / 37,4 / 39,2 °C; `heat_zones.csv`); perfiles de riesgo (mayor, carrito, con niños) sin exterior de 14 a 19 h y desempate por menor sensación térmica; resto, aviso. Sin niveles. Formato de `heat` en la ficha B3 de `docs/trabajo-paralelo.md` |
