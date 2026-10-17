@@ -73,3 +73,101 @@ def test_categories_match_measured_rules():
     hours = sorted(series["O3"])
     measured = dict(air_categories([readings], hours[0], hours[-1], ica, 0)["x"])
     assert categories(series, ica) == measured
+
+
+# --- Task 91: feed en vivo -------------------------------------------------------------------------------------------
+class Clock:
+    def __init__(self, t):
+        self.t = t
+
+    def __call__(self):
+        return self.t
+
+
+class Cams:
+    """Portal falso: la muestra repetida tantas veces como coordenadas pida la URL."""
+
+    def __init__(self, status=None):
+        self.status, self.calls = list(status or []), []
+
+    def __call__(self, request):
+        self.calls.append(request)
+        if self.status:
+            code = self.status.pop(0)
+            if code != 200:
+                return httpx.Response(code, json={"error": True})
+        n = len(parse_qs(urlsplit(str(request.url)).query)["latitude"][0].split(","))
+        body = [copy.deepcopy(SAMPLE[i % len(SAMPLE)]) for i in range(n)]
+        return httpx.Response(200, json=body if n > 1 else body[0])
+
+
+def air_feed_at(now, portal=None, points=None, **kw):
+    from live.air_forecast import AirForecastFeed
+    clock = Clock(now)
+    cfg = settings.load("realtime")
+    store = LiveStore(cfg, client=httpx.Client(transport=httpx.MockTransport(portal or Cams())), now=clock)
+    return AirForecastFeed(store, cfg, points or POINTS, settings.load("ica_thresholds"), **kw), clock
+
+
+def test_one_request_for_all_points_and_ttl():
+    from live.forecast import load_points
+    portal = Cams()
+    pts = load_points(settings.CONFIG_DIR / "forecast_points.csv")
+    feed, clock = air_feed_at(NOW, portal, points=pts)
+    assert feed.step() == "ok:179" and len(portal.calls) == 1
+    q = parse_qs(urlsplit(str(portal.calls[0].url)).query)
+    assert len(q["latitude"][0].split(",")) == 179 and q["past_days"] == ["1"]
+    assert q["hourly"] == ["ozone,nitrogen_dioxide,pm10,pm2_5"]
+    cats, issued = feed.get("28065")
+    assert datetime(2026, 10, 16, 12) in cats and issued == NOW
+    assert feed.step() == "idle" and len(portal.calls) == 1
+    clock.t = NOW + timedelta(hours=3)
+    assert feed.step() == "ok:179" and len(portal.calls) == 2
+
+
+def test_failure_waits_globally_and_keeps_data(caplog):
+    portal = Cams(status=[200, 429, 503])
+    feed, clock = air_feed_at(NOW, portal)
+    assert feed.step() == "ok:3"
+    clock.t = NOW + timedelta(hours=3)
+    with caplog.at_level(logging.WARNING, logger="gomad.api"):
+        assert feed.step() == "429"
+        assert feed.next_try == clock.t + timedelta(seconds=120)
+        assert feed.step() == "wait" and len(portal.calls) == 2
+        assert feed.get("28065") is not None                 # se conserva lo anterior
+        clock.t = feed.next_try
+        assert feed.step() == "503"
+        assert feed.next_try == clock.t + timedelta(seconds=240)
+    assert feed.last_error == "HTTP 503"
+    assert not any("latitude" in r.getMessage() for r in caplog.records)
+    clock.t = feed.next_try
+    assert feed.step() == "ok:3" and feed.failures == 0
+
+
+def test_get_respects_max_age():
+    feed, clock = air_feed_at(NOW)
+    feed.step()
+    clock.t = NOW + timedelta(hours=25)
+    assert feed.get("28065") is None
+
+
+def test_cache_roundtrip_and_expiry(tmp_path):
+    path = tmp_path / "live" / "air_forecast.json"
+    feed, _ = air_feed_at(NOW, cache_path=path)
+    feed.step()
+    other, clock = air_feed_at(NOW + timedelta(hours=1), cache_path=path)
+    assert other.load_cache() == 3
+    assert other.get("28079") == feed.get("28079") and other.fetched_at == NOW
+    assert other.step() == "idle"                            # la cache cuenta para el TTL
+    late, _ = air_feed_at(NOW + timedelta(hours=25), cache_path=path)
+    assert late.load_cache() == 0
+    path.write_text("no es json", encoding="utf-8")
+    assert air_feed_at(NOW, cache_path=path)[0].load_cache() == 0
+
+
+def test_build_live_registers_air_forecast(tmp_path):
+    from live import build_live
+    store = build_live(settings.load("realtime"), httpx.Client(transport=httpx.MockTransport(Cams())),
+                       cache_path=tmp_path / "live" / "forecast.json")
+    assert store.air_forecast.cache_path.name == "air_forecast.json"
+    assert store.air_forecast.step in store._tasks
