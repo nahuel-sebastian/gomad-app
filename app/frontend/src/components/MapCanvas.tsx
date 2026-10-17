@@ -2,10 +2,18 @@ import { setWorkerUrl } from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 import workerUrl from "maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
-import Map, { Layer, Marker, Source, type ErrorEvent, type MapRef } from "react-map-gl/maplibre";
+import Map, {
+    Layer,
+    Marker,
+    Source,
+    type ErrorEvent,
+    type MapLayerMouseEvent,
+    type MapRef,
+} from "react-map-gl/maplibre";
 import "../styles/map.css";
 import { lineCoordinates } from "../lib/geometry";
 import MapPin from "./MapPin";
+import { pinImage, PIN_PIXEL_RATIO } from "./mapPinImage";
 import type { MapViewProps } from "./MapView";
 import {
     boundsOf,
@@ -14,9 +22,13 @@ import {
     fitPadding,
     MAP_ATTRIBUTION,
     mapPoints,
+    nearbyFeatures,
+    pointInfo,
     TILE_STYLE_URL,
+    type NearbyProperties,
     type Padding,
 } from "./mapUtils";
+import { useNearbyPoints, type ViewSource } from "./useNearbyPoints";
 
 // Mapa de MapLibre (V-F1). Solo lo carga MapView en diferido cuando hay WebGL, asi
 // maplibre-gl no entra en el paquete inicial.
@@ -28,9 +40,30 @@ setWorkerUrl(workerUrl);
 // MapLibre no lee variables CSS: mismos valores que --green-dark y --muted de main.css
 const ROUTE_MAIN_COLOR = "#135c3a";
 const ROUTE_SECONDARY_COLOR = "#55677a";
+// grupos de puntos cercanos: --navy de main.css
+const CLUSTER_COLOR = "#12395b";
+const NEARBY_LAYERS = ["nearby-clusters", "nearby-points"];
+
+type StyleImageMap = {
+    on(type: "styleimagemissing", listener: (e: { id: string }) => void): unknown;
+    hasImage(id: string): boolean;
+    addImage(id: string, image: ImageData, options: { pixelRatio: number }): unknown;
+};
+
+// MapLibre pide cada imagen de pin la primera vez que la necesita (tambien tras setStyle)
+function registerPinImages(map: StyleImageMap) {
+    map.on("styleimagemissing", (e) => {
+        if (map.hasImage(e.id)) return;
+        const image = pinImage(e.id);
+        if (image) map.addImage(e.id, image, { pixelRatio: PIN_PIXEL_RATIO });
+    });
+}
 
 export default function MapCanvas(props: MapViewProps) {
-    const { markers, selectedId, origin, route, secondaryRoute, onSelect } = props;
+    const { markers, selectedId, origin, route, secondaryRoute, onSelect, explore = false } = props;
+    const { nearby, refresh } = useNearbyPoints(explore);
+    const [info, setInfo] = useState("");
+    const imagesFor = useRef<unknown>(null);
     const bounds = boundsOf(mapPoints(props));
     const mapRef = useRef<MapRef>(null);
     // clave por valor: un array nuevo con los mismos puntos no reencuadra
@@ -44,6 +77,22 @@ export default function MapCanvas(props: MapViewProps) {
     // llama a onError: se relanza en el render para que MapErrorBoundary pinte el esquema
     const [creationError, setCreationError] = useState<Error | null>(null);
     const styleLoaded = useRef(false);
+
+    const handleClick = (e: MapLayerMouseEvent) => {
+        const feature = e.features?.[0];
+        if (!feature) {
+            setInfo("");
+            return;
+        }
+        const properties = (feature.properties ?? {}) as Partial<NearbyProperties> & { cluster?: boolean };
+        const geometry = feature.geometry as { type: string; coordinates?: [number, number] };
+        if (properties.cluster && geometry.coordinates) {
+            // un grupo: acercar para separarlo
+            e.target.easeTo({ center: geometry.coordinates, zoom: e.target.getZoom() + 2 });
+            return;
+        }
+        setInfo(pointInfo(properties));
+    };
 
     const handleError = (e: ErrorEvent) => {
         if (!e.target) {
@@ -78,6 +127,11 @@ export default function MapCanvas(props: MapViewProps) {
                 <Map
                     ref={(map: MapRef | null) => {
                         mapRef.current = map;
+                        const raw = map?.getMap?.() as unknown as StyleImageMap | undefined;
+                        if (raw && imagesFor.current !== raw) {
+                            imagesFor.current = raw;
+                            registerPinImages(raw);
+                        }
                         // la lista es el equivalente completo: el lienzo no entra en el orden de
                         // tabulacion desde que existe (onLoad espera a estilo y teselas)
                         map?.getCanvas().setAttribute("tabindex", "-1");
@@ -89,6 +143,10 @@ export default function MapCanvas(props: MapViewProps) {
                     onStyleData={() => {
                         styleLoaded.current = true;
                     }}
+                    onLoad={(e) => refresh(e.target as unknown as ViewSource)}
+                    onMoveEnd={(e) => refresh(e.target as unknown as ViewSource)}
+                    interactiveLayerIds={explore ? NEARBY_LAYERS : undefined}
+                    onClick={explore ? handleClick : undefined}
                     initialViewState={
                         bounds ? { bounds, fitBoundsOptions: { padding, maxZoom: FIT_MAX_ZOOM } } : undefined
                     }
@@ -110,6 +168,52 @@ export default function MapCanvas(props: MapViewProps) {
                                 type="line"
                                 layout={{ "line-cap": "round", "line-join": "round" }}
                                 paint={{ "line-color": ROUTE_MAIN_COLOR, "line-width": 6 }}
+                            />
+                        </Source>
+                    )}
+                    {explore && nearby && (
+                        <Source
+                            id="nearby"
+                            type="geojson"
+                            data={nearbyFeatures(
+                                nearby.points,
+                                markers.map((m) => m.id),
+                            )}
+                            cluster
+                            clusterMaxZoom={16}
+                            clusterRadius={44}>
+                            <Layer
+                                id="nearby-clusters"
+                                type="circle"
+                                filter={["has", "point_count"]}
+                                paint={{
+                                    "circle-color": CLUSTER_COLOR,
+                                    "circle-radius": ["step", ["get", "point_count"], 15, 20, 19, 100, 23],
+                                    "circle-stroke-color": "#ffffff",
+                                    "circle-stroke-width": 2,
+                                }}
+                            />
+                            <Layer
+                                id="nearby-count"
+                                type="symbol"
+                                filter={["has", "point_count"]}
+                                layout={{
+                                    "text-field": ["get", "point_count_abbreviated"],
+                                    "text-font": ["Noto Sans Bold"],
+                                    "text-size": 13,
+                                    "text-allow-overlap": true,
+                                }}
+                                paint={{ "text-color": "#ffffff" }}
+                            />
+                            <Layer
+                                id="nearby-points"
+                                type="symbol"
+                                filter={["!", ["has", "point_count"]]}
+                                layout={{
+                                    "icon-image": ["get", "icon"],
+                                    "icon-anchor": "bottom",
+                                    "icon-allow-overlap": true,
+                                }}
                             />
                         </Source>
                     )}
@@ -143,6 +247,11 @@ export default function MapCanvas(props: MapViewProps) {
                 <button type="button" aria-label="Acercar mapa" onClick={() => mapRef.current?.zoomIn()} disabled={!padding}>+</button>
                 <button type="button" aria-label="Alejar mapa" onClick={() => mapRef.current?.zoomOut()} disabled={!padding}>−</button>
             </div>
+            {explore && (
+                <p className={`map-point-info${info ? "" : " map-point-info--empty"}`} role="status">
+                    {info}
+                </p>
+            )}
             <p className="map-view__attribution">{MAP_ATTRIBUTION}</p>
         </div>
     );

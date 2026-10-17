@@ -391,6 +391,7 @@ export default function Results() {
 
                 <MapView
                     className="map-demo"
+                    explore
                     origin={origin.coordinate}
                     selectedId={selectedId}
                     onSelect={focusCard}

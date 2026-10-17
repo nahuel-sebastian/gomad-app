@@ -1,7 +1,7 @@
 import { lineCoordinates, type LonLat } from "../lib/geometry";
 import type { MapPoint, MapPointKind } from "../api/types";
 import type { Bbox } from "../data/mapPoints";
-import { DESTINATION_KINDS, POI_KINDS } from "./mapIcons";
+import { DESTINATION_KINDS, KIND_STYLES, POI_KINDS } from "./mapIcons";
 import type { MapViewProps } from "./MapView";
 
 // Funciones del mapa sin React (aparte para que MapView y MapCanvas solo exporten componentes)
@@ -153,4 +153,10 @@ export function nearbyFeatures(points: MapPoint[], excludeIds: string[]): Nearby
                 },
             })),
     };
+}
+
+// Texto del punto pulsado: «Tipo: nombre» y si una fuente esta fuera de servicio
+export function pointInfo(p: Partial<NearbyProperties>): string {
+    const label = p.kind && p.kind in KIND_STYLES ? KIND_STYLES[p.kind].label : "Lugar";
+    return `${label}${p.name ? `: ${p.name}` : ""}${p.working === false ? " (fuera de servicio)" : ""}`;
 }

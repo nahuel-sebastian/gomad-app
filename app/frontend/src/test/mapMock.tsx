@@ -72,10 +72,12 @@ export function mapLibreModule() {
             {children}
         </div>
     );
-    const Source = ({ id, data, children }: Props) => (
+    const Source = ({ id, data, cluster, children }: Props) => (
         <div
             data-source={String(id)}
-            data-coords={JSON.stringify((data as { coordinates?: unknown }).coordinates)}>
+            data-coords={JSON.stringify((data as { coordinates?: unknown }).coordinates)}
+            data-count={String((data as { features?: unknown[] }).features?.length ?? "")}
+            data-cluster={String(Boolean(cluster))}>
             {children}
         </div>
     );

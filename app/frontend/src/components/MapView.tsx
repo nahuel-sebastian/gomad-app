@@ -24,6 +24,8 @@ export interface MapViewProps {
     className?: string;
     // se llama al pulsar un marcador, con su id
     onSelect?: (id: string) => void;
+    // mapa explorable (C2): al mover o ampliar, pide y muestra los lugares de la zona visible
+    explore?: boolean;
 }
 
 const SIZE = 100;

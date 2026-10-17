@@ -125,6 +125,7 @@ export default function RouteView() {
                         <div className="route-map">
                             <MapView
                                 className="map-view--block"
+                                explore
                                 origin={origin.coordinate}
                                 route={variant.geometry}
                                 secondaryRoute={other?.geometry}
