@@ -28,7 +28,9 @@ function KindIcon({ color, path }: { color: string; path: string }) {
 export default function MapLegend({ markerKinds, points, zoom, truncated, live = false }: MapLegendProps) {
     const counts = new Map<MapPointKind, number>();
     for (const kind of [...markerKinds, ...points.map((p) => p.kind)]) counts.set(kind, (counts.get(kind) ?? 0) + 1);
-    const outOfService = points.filter((p) => p.working === false).length;
+    // fuera de servicio por tipo (hoy solo fuentes; el mobiliario de OSM puede traer mas)
+    const outOfService = new Map<MapPointKind, number>();
+    for (const p of points) if (p.working === false) outOfService.set(p.kind, (outOfService.get(p.kind) ?? 0) + 1);
     const kinds = KIND_ORDER.filter((k) => counts.has(k));
 
     // el mobiliario solo esta donde la fuente tiene datos (CLAUDE.md §7.4: aviso de cobertura)
@@ -55,12 +57,12 @@ export default function MapLegend({ markerKinds, points, zoom, truncated, live =
                         {`${KIND_STYLES[kind].label}: ${counts.get(kind)}`}
                     </li>
                 ))}
-                {outOfService > 0 && (
-                    <li>
-                        <KindIcon color={OUT_OF_SERVICE_COLOR} path={KIND_STYLES.fountain.path} />
-                        {`Fuente fuera de servicio: ${outOfService}`}
+                {KIND_ORDER.filter((k) => outOfService.has(k)).map((kind) => (
+                    <li key={`off-${kind}`}>
+                        <KindIcon color={OUT_OF_SERVICE_COLOR} path={KIND_STYLES[kind].path} />
+                        {`${KIND_STYLES[kind].label} fuera de servicio: ${outOfService.get(kind)}`}
                     </li>
-                )}
+                ))}
                 {points.length > 0 && (
                     <li>
                         <span className="map-legend__icon map-legend__icon--cluster" aria-hidden="true" />

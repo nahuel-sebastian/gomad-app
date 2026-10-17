@@ -238,6 +238,15 @@ describe("leyenda del mapa", () => {
         expect(container.querySelectorAll(".map-legend__icon svg[aria-hidden='true']").length).toBe(4);
     });
 
+    it("fuera de servicio con la etiqueta y el icono de su tipo", () => {
+        const { container } = render(
+            <MapLegend markerKinds={[]} points={[point("b", "bench", false)]} zoom={null} truncated={false} />,
+        );
+        const item = screen.getByText("Banco fuera de servicio: 1");
+        expect(item.querySelector("path")).toHaveAttribute("d", KIND_STYLES.bench.path);
+        expect(container.textContent).not.toContain("Fuente fuera de servicio");
+    });
+
     it("pide acercar el mapa a poco zoom y avisa si hay mas lugares", () => {
         const { rerender } = render(<MapLegend markerKinds={["park"]} points={[]} zoom={NEARBY_MIN_ZOOM - 1} truncated={false} />);
         expect(screen.getByText("Acerca el mapa para ver más lugares de la zona.")).toBeInTheDocument();
@@ -295,7 +304,7 @@ describe("leyenda del mapa", () => {
     });
 });
 
-// --- Task 149: «Estás aquí» en tiempo real ---
+// --- Task 149: «Estas aqui» en tiempo real ---
 describe("Estas aqui en el mapa", () => {
     afterEach(() => {
         vi.restoreAllMocks();
