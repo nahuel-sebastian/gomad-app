@@ -174,6 +174,13 @@ class Geocoder:
         finally:
             con.close()
 
+    def _street_rows(self, keys):
+        """Portales de los viales pedidos, filtrando por ine_code y street_code (keys: {(ine_code, street_code)})."""
+        codes, ines = sorted({k[1] for k in keys}), sorted({k[0] for k in keys})
+        marks = ", ".join("?" for _ in codes), ", ".join("?" for _ in ines)
+        rows = self._rows(f"street_code IN ({marks[0]}) AND ine_code IN ({marks[1]})", [*codes, *ines])
+        return [r for r in rows if (r[0], r[2]) in keys]
+
     @staticmethod
     def _resolve_street(rows, number):
         """De las filas de un vial: el portal pedido (precision address) o un punto del vial (precision street)."""
@@ -235,9 +242,8 @@ class Geocoder:
         best = [st for _, st in sorted(found, key=lambda f: f[0])[:self.max_candidates]]
         if not best:
             return []
-        codes = sorted({st[2] for st in best})
         by_street = {}
-        for r in self._rows(f"street_code IN ({', '.join('?' for _ in codes)})", codes):
+        for r in self._street_rows({(st[0], st[2]) for st in best}):
             by_street.setdefault((r[0], r[2]), []).append(r)
         return [self._resolve_street(by_street[(st[0], st[2])], number) for st in best if (st[0], st[2]) in by_street]
 
@@ -273,8 +279,7 @@ class Geocoder:
             wanted.append((ine, item["cdVial"], int(m.group(1)) if item["tipo"] == "app" and m else None))
         if not wanted:
             return []
-        codes = sorted({w[1] for w in wanted})
-        rows = self._rows(f"street_code IN ({', '.join('?' for _ in codes)})", codes)
+        rows = self._street_rows({(w[0], w[1]) for w in wanted})
         by_street = {}
         for r in rows:
             by_street.setdefault((r[0], r[2]), []).append(r)

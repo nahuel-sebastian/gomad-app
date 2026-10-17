@@ -277,3 +277,12 @@ def test_location_without_population_keeps_order(data):
     (data / "clean" / "population.parquet").unlink()
     out = Geocoder(data).search("calle toledo")
     assert [c["label"] for c in out] == ["Calle Toledo, Leganés", "Calle de Toledo, Madrid"]
+
+
+def test_location_same_street_code_other_municipality_not_mixed(data):
+    path = data / "clean" / "addresses.parquet"
+    df = pd.read_parquet(path)
+    clash = df[df.street_code == "065A0460"].assign(ine_code="28079", municipality="Madrid", lon=-3.70, lat=40.42)
+    pd.concat([df, clash], ignore_index=True).to_parquet(path, index=False)
+    out = Geocoder(data).search("calle madrid 10 getafe")
+    assert out[0]["label"] == "Calle Madrid 10, Getafe" and out[0]["coordinate"]["lon"] == pytest.approx(-3.7314934)
