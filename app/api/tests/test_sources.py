@@ -128,3 +128,12 @@ def test_nomecalles_license_is_comunidad_reuse_notice():
     assert "aviso legal de la comunidad de madrid" in entry["license"].lower()
     assert "© Nomecalles" in entry["license"]
     assert "sin licencia" not in entry["license"].lower()
+
+
+def test_cams_air_listed(tmp_path):
+    """Fila 2: el aire previsto de CAMS se atribuye en /sources (Open-Meteo CC BY 4.0 y aviso de Copernicus)."""
+    got = get_sources(build_mini_data(tmp_path / "data"))["cams_air"]
+    assert "prevista" in got["name"]
+    assert got["license"].startswith("CC BY 4.0")
+    assert "Copernicus" in got["license"] and "Open-Meteo" in got["license"]
+    assert got["url"] == "https://open-meteo.com/en/docs/air-quality-api"

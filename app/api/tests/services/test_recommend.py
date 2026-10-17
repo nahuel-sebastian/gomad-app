@@ -118,7 +118,19 @@ def test_hour_without_air_data_does_not_win(tmp_path):
     assert air.value == 8.0 and air.weight > 0                     # la nota del sitio si usa el aire medido
     weighted = sum(f.value * f.weight for f in rec.factors if f.value is not None)
     assert rec.score == pytest.approx(weighted, abs=0.01)
-    assert "Aire: solo hay medición para parte de la ventana; se usa la última para la nota, no para elegir la hora." in res.warnings
+    assert PARTIAL_AIR in res.warnings
+
+
+PARTIAL_AIR = ("Aire: solo hay dato, medido o previsto, para parte de la ventana; se usa el último para la nota, "
+               "no para elegir la hora.")
+
+
+def test_partial_air_warning_with_forecast_wording(tmp_path, monkeypatch):
+    # dato previsto solo para las dos primeras horas y sin medicion: el aviso no puede hablar solo de «medición»
+    with_air_forecast(monkeypatch, lambda h: "fair" if h <= NOW + timedelta(hours=1) else None)
+    res = run(tmp_path, request(limit=1, window_end=NOW + timedelta(hours=5)), air=False)
+    assert [h.aqi_category for h in res.results[0].hours] == ["fair", "fair", None, None, None]
+    assert PARTIAL_AIR in res.warnings
 
 
 def test_all_weight_on_air_with_partial_air_is_not_silent_zero(tmp_path):
@@ -219,3 +231,76 @@ def test_window_across_days_uses_each_day_max(tmp_path):
     rec = carmen(tmp_path, 38.0, days={16: 38.0, 17: 30.0}, start=22, end=17).results[0]
     by_hour = {h.hour: h for h in rec.hours}
     assert by_hour[datetime(2026, 10, 17, 15)].outdoor_ok is True         # el 17 no es dia de calor
+
+
+# --- fila 2 (Task 92): aire previsto de CAMS en las horas futuras ------------------------------------------------------
+class FakeAirForecast:
+    """Feed falso: categoria prevista por hora solo para Getafe (28065), descargada a las 10:00."""
+
+    def __init__(self, by_hour):
+        self.by_hour = by_hour
+
+    def get(self, ine):
+        return (dict(self.by_hour), NOW) if ine == "28065" else None
+
+
+def with_air_forecast(monkeypatch, category_of):
+    hours = [NOW - timedelta(hours=2) + timedelta(hours=i) for i in range(48)]
+    feed = FakeAirForecast({h: category_of(h) for h in hours})
+    monkeypatch.setattr("services.recommend.air_forecast_feed", lambda repo: feed)
+
+
+def test_future_hours_use_air_forecast(tmp_path, monkeypatch):
+    with_air_forecast(monkeypatch, lambda h: "poor" if h > NOW else "good")
+    res = run(tmp_path, request(window_end=NOW + timedelta(hours=5), profile="sensitive"))
+    rec = next(r for r in res.results if r.destination.id == "eiel_parques:1")
+    assert rec.hours[0].aqi_category == "good"                             # hora en curso: medicion real
+    assert [h.aqi_category for h in rec.hours[1:]] == ["poor"] * 4         # horas futuras: previsto
+    assert rec.best_hour == NOW
+    future_air = [r for h in rec.hours[1:] for r in h.reasons if r.startswith("Calidad del aire")]
+    assert future_air and all(r.endswith(" (prevista)") for r in future_air)
+    assert not any(r.endswith(" (prevista)") for r in rec.hours[0].reasons)
+    cams = [d for d in rec.sources if d.source == "cams_air"]
+    assert len(cams) == 1 and "prevista" in cams[0].label and cams[0].date == NOW
+    assert "Calidad del aire prevista" in rec.explanation
+
+
+def test_current_hour_without_measurement_uses_forecast(tmp_path, monkeypatch):
+    with_air_forecast(monkeypatch, lambda h: "fair")
+    res = run(tmp_path, request(limit=1), air=False)      # solo Getafe: Madrid no tiene prevision falsa
+    rec = res.results[0]
+    assert rec.destination.id == "eiel_parques:1"
+    assert [h.aqi_category for h in rec.hours] == ["fair", "fair", "fair"]
+    assert not any(w.startswith("Aire: sin medición reciente") for w in res.warnings)
+    assert any(d.source == "cams_air" for d in rec.sources)
+
+
+def test_window_tomorrow_uses_forecast(tmp_path, monkeypatch):
+    with_air_forecast(monkeypatch, lambda h: "moderate")
+    base = build_mini_data(tmp_path / "data")
+    rt = duckdb.connect(str(base / "realtime.duckdb"))
+    for h in (8, 9, 10):
+        rt.execute("INSERT INTO forecast VALUES ('28065', ?, 18, 18, 0, 0, 5, 'Despejado', '2026-10-16T08:00:00')",
+                   [datetime(2026, 10, 17, h)])
+    rt.close()
+    req = request(window_start=datetime(2026, 10, 17, 8), window_end=datetime(2026, 10, 17, 10))
+    rec = next(r for r in recommend(req, Repository(base), GraphStore(), now=NOW).results
+               if r.destination.id == "eiel_parques:1")
+    assert [h.aqi_category for h in rec.hours] == ["moderate", "moderate"]
+
+
+def test_without_air_forecast_behaves_as_before(tmp_path, monkeypatch):
+    monkeypatch.setattr("services.recommend.air_forecast_feed", lambda repo: None)
+    rec = run(tmp_path, request(window_end=NOW + timedelta(hours=5))).results[0]
+    assert rec.hours[0].aqi_category == "good" and rec.hours[-1].aqi_category is None
+    assert not any(d.source == "cams_air" for d in rec.sources)
+
+
+def test_covered_site_cites_cams_when_it_shows_forecast(tmp_path, monkeypatch):
+    # RF-19: un cubierto tambien muestra hours[].aqi_category; si viene de CAMS, la fuente debe figurar
+    with_air_forecast(monkeypatch, lambda h: "good")
+    res = run(tmp_path, request(activity="gym", limit=10, window_end=NOW + timedelta(hours=3)))
+    rec = next(r for r in res.results if r.destination.id == "eiel_deporte:1")
+    assert [h.aqi_category for h in rec.hours][1:] == ["good", "good"]
+    cams = [d for d in rec.sources if d.source == "cams_air"]
+    assert len(cams) == 1 and cams[0].date == NOW
