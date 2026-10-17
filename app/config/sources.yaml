@@ -28,7 +28,7 @@ labels:
   ay_aire: "Calidad del aire (Ayuntamiento de Madrid)"
   open_meteo: "Previsión horaria (Open-Meteo)"
   cams_air: "Calidad del aire prevista (CAMS, Open-Meteo)"
-  osm: "Red peatonal y mobiliario (© colaboradores de OpenStreetMap)"
+  osm: "Red peatonal, mobiliario y zonas verdes (© colaboradores de OpenStreetMap)"
   ay_fuentes: "Fuentes de agua (Ayuntamiento de Madrid)"
   ay_bancos: "Bancos (Ayuntamiento de Madrid)"
   ay_areas_caninas: "Áreas caninas (Ayuntamiento de Madrid)"

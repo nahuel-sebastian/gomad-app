@@ -285,8 +285,12 @@ class _Run:
     def _sources(self, x):
         c = x.cand
         out = [data_source(c.source, self.labels, self.dates.get(c.source))]
-        if c.green is not None and c.source != "vpla_redes":     # el verde sale de VPLA: no repetir la fuente
-            out.append(data_source("vpla_redes", self.labels, self.dates.get("vpla_redes")))
+        if c.green is not None:
+            # el verde sale de VPLA o, en los municipios sin VPLA, de las areas verdes de OSM (verde-osm Task 112)
+            vpla = getattr(self.repo, "vpla_codes", None)
+            green_src = "vpla_redes" if vpla is None or c.ine_code in vpla() else "osm"
+            if green_src != c.source:                                # no repetir la fuente del destino
+                out.append(data_source(green_src, self.labels, self.dates.get(green_src)))
         if c.ine_code in self.issued:
             out.append(data_source("open_meteo", self.labels, self.issued[c.ine_code]))
         station = self.station_of.get(c.id)

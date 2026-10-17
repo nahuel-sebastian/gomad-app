@@ -86,7 +86,7 @@ def test_recommend_getafe(real):
 
 
 @pytest.mark.slow
-def test_recommend_capital_without_vpla(real):
+def test_recommend_capital_green_from_osm(real):
     t0 = time.perf_counter()
     r = real.post("/recommend", json=body(SOL))
     elapsed = time.perf_counter() - t0
@@ -96,8 +96,11 @@ def test_recommend_capital_without_vpla(real):
     assert elapsed < 3.0
     assert data["results"]
     capital = [x for x in data["results"] if x["destination"]["ine_code"] == "28079"]
-    assert capital and all(next(f for f in x["factors"] if f["factor"] == "green")["value"] is None for x in capital)
-    assert any(w.startswith("Verde: sin datos en") and "Madrid" in w for w in data["warnings"])
+    # verde-osm (Tasks 111-112): Madrid no esta en VPLA; su verde sale de las areas verdes de OSM y se cita OSM
+    assert capital and all(next(f for f in x["factors"] if f["factor"] == "green")["value"] is not None
+                           for x in capital)
+    assert all("osm" in [d["source"] for d in x["sources"]] for x in capital)
+    assert not any(w.startswith("Verde: sin datos en") and "Madrid" in w for w in data["warnings"])
 
 
 @pytest.mark.slow

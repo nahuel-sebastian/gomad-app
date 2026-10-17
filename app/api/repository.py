@@ -222,6 +222,12 @@ class Repository:
                                          WHERE working IS NOT FALSE AND lon BETWEEN ? AND ? AND lat BETWEEN ? AND ?""",
                            [min_lon, max_lon, min_lat, max_lat], required=True, numpy=True)
 
+    def vpla_codes(self):
+        """Municipios con zonas verdes de VPLA (verde-osm Task 112): en el resto, el verde de los destinos es de OSM."""
+        if getattr(self, "_vpla_codes", None) is None:
+            self._vpla_codes = {c for (c,) in self._query(self.main, "SELECT ine_code FROM municipality WHERE in_vpla")}
+        return self._vpla_codes
+
     def municipality(self, ine_code):
         """(nombre de la tabla, poblacion) o None si el codigo no es de los 179."""
         rows = self._query(self.main, "SELECT name, population FROM municipality WHERE ine_code = ?", [ine_code],
