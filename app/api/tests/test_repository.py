@@ -82,3 +82,59 @@ def test_missing_realtime_is_empty_and_missing_main_raises(tmp_path):
     (base / "gomad.duckdb").unlink()
     with pytest.raises(DataUnavailable):
         repo.candidates(ORIGIN["lon"], ORIGIN["lat"], 1000, ["walk"], "any", 400)
+
+
+# --- Mapa explorable (C2, Task 141) ---
+GETAFE_BOX = (-3.735, 40.300, -3.720, 40.312)
+DEST_KINDS = ["facility", "pool", "park", "recreation_area", "trail", "bathing_area"]
+POI_KINDS = ["fountain", "bench", "aed", "dog_area", "playground"]
+
+
+@pytest.fixture
+def map_repo(tmp_path):
+    import duckdb
+    base = build_mini_data(tmp_path / "data")
+    con = duckdb.connect(str(base / "gomad.duckdb"))
+    con.execute("""INSERT INTO destination VALUES ('eiel_deporte:9', 'eiel_deporte', 'Piscina Municipal', 'facility',
+                   false, NULL, NULL, NULL, NULL, NULL, '28065', -3.7260, 40.3060, 0.2, NULL)""")
+    con.execute("INSERT INTO destination_activity VALUES ('eiel_deporte:9', 'swim', 1.0), ('eiel_deporte:9', 'gym', 0.5)")
+    con.close()
+    return Repository(base)
+
+
+def test_map_points_filters_by_box_and_kind(map_repo):
+    rows = map_repo.map_points(GETAFE_BOX, ["park"], [], 100, "swim")
+    assert {r[0] for r in rows} == {"eiel_parques:1", "nmc_parques:1", "nmc_parques:2", "ay_parques:1", "vpla_redes:1"}
+    assert {r[1] for r in rows} == {"park"}
+    pois = map_repo.map_points(GETAFE_BOX, [], ["bench"], 100, "swim")
+    assert [(r[0], r[1], r[2], r[3]) for r in pois] == [("osm:node/1", "bench", None, "osm")]
+
+
+def test_map_points_marks_pools(map_repo):
+    rows = {r[0]: r for r in map_repo.map_points(GETAFE_BOX, DEST_KINDS, [], 100, "swim")}
+    assert rows["eiel_deporte:9"][1] == "pool"
+    assert rows["eiel_deporte:1"][1] == "facility"
+    assert rows["eiel_deporte:9"][2] == "Piscina Municipal"
+    only_pools = map_repo.map_points(GETAFE_BOX, ["pool"], [], 100, "swim")
+    assert [r[0] for r in only_pools] == ["eiel_deporte:9"]
+
+
+def test_map_points_includes_out_of_service_fountains(map_repo):
+    rows = {r[0]: r for r in map_repo.map_points(GETAFE_BOX, [], ["fountain"], 100, "swim")}
+    assert rows["ay_fuentes:1"][4] is True
+    assert rows["ay_fuentes:2"][4] is False
+
+
+def test_map_points_orders_by_centre_and_limits(map_repo):
+    box = (-3.7400, 40.2950, -3.7200, 40.3150)        # centro -3.73, 40.305 = nodo 0 del grafo mini
+    rows = map_repo.map_points(box, DEST_KINDS, POI_KINDS, 3, "swim")
+    assert len(rows) == 3
+    lon, lat = -3.73, 40.305
+    d = [((r[5] - lon) * 0.7627) ** 2 + (r[6] - lat) ** 2 for r in rows]
+    assert d == sorted(d)
+    assert rows[0][0] == "ay_fuentes:1"                # a 39 m del centro
+
+
+def test_map_points_without_db_is_unavailable(tmp_path):
+    with pytest.raises(DataUnavailable):
+        Repository(tmp_path).map_points(GETAFE_BOX, ["park"], [], 10, "swim")
