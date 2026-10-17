@@ -246,8 +246,8 @@ def test_future_hours_use_air_forecast(tmp_path, monkeypatch):
     assert [h.aqi_category for h in rec.hours[1:]] == ["poor"] * 4         # horas futuras: previsto
     assert rec.best_hour == NOW
     future_air = [r for h in rec.hours[1:] for r in h.reasons if r.startswith("Calidad del aire")]
-    assert future_air and all(r.endswith(" (previsto)") for r in future_air)
-    assert not any(r.endswith(" (previsto)") for r in rec.hours[0].reasons)
+    assert future_air and all(r.endswith(" (prevista)") for r in future_air)
+    assert not any(r.endswith(" (prevista)") for r in rec.hours[0].reasons)
     cams = [d for d in rec.sources if d.source == "cams_air"]
     assert len(cams) == 1 and "prevista" in cams[0].label and cams[0].date == NOW
     assert "Calidad del aire prevista" in rec.explanation

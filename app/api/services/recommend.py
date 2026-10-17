@@ -24,7 +24,7 @@ CONFIG = ("activities", "weights", "rules", "ica_thresholds", "recommend", "rout
 
 
 # fila 2: marca de las razones de aire que salen de la prevision de CAMS (sin cambio de contrato)
-PREDICTED = " (previsto)"
+PREDICTED = " (prevista)"     # «Calidad del aire regular (prevista)»
 
 
 class UnknownActivity(ValueError):
