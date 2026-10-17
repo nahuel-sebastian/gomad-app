@@ -21,11 +21,11 @@ def read_furniture(pbf, out_of_service):
     """Elementos de mobiliario del extracto (nodos y vias) con su estado.
 
     Devuelve osm_type, osm_id, key, value, coords (como graph.read_osm) y status: "clave=valor" de la
-    primera etiqueta de out_of_service ({clave: [valores]}) que tenga el elemento, o None.
+    primera etiqueta de out_of_service ({tipo: {clave: [valores]}}) del tipo del elemento que tenga, o None.
     """
     import osmium
 
-    pairs = [(k, v) for k, values in (out_of_service or {}).items() for v in values]
+    pairs = {kind: [(k, v) for k, values in tags.items() for v in values] for kind, tags in (out_of_service or {}).items()}
 
     def kind(tags):
         for key, value in OSM_POI:
@@ -33,8 +33,8 @@ def read_furniture(pbf, out_of_service):
                 return key, value
         return None
 
-    def status(tags):
-        return next((f"{k}={v}" for k, v in pairs if tags.get(k) == v), None)
+    def status(tag, tags):
+        return next((f"{k}={v}" for k, v in pairs.get(OSM_POI[tag], []) if tags.get(k) == v), None)
 
     rows = []
 
@@ -42,14 +42,14 @@ def read_furniture(pbf, out_of_service):
         def node(self, n):
             tag = kind(n.tags)
             if tag and n.location.valid():
-                rows.append(("node", n.id, *tag, [(n.location.lon, n.location.lat)], status(n.tags)))
+                rows.append(("node", n.id, *tag, [(n.location.lon, n.location.lat)], status(tag, n.tags)))
 
         def way(self, w):
             tag = kind(w.tags)
             if tag:
                 coords = [(n.location.lon, n.location.lat) for n in w.nodes if n.location.valid()]
                 if coords:
-                    rows.append(("way", w.id, *tag, coords, status(w.tags)))
+                    rows.append(("way", w.id, *tag, coords, status(tag, w.tags)))
 
     Reader().apply_file(str(pbf), locations=True)
     return pd.DataFrame(rows, columns=["osm_type", "osm_id", "key", "value", "coords", "status"])

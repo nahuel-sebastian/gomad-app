@@ -7,7 +7,7 @@ import osm_poi
 from graph import osm_pois, read_osm
 from osm_poi import furniture_frame, read_furniture
 
-OUT = {"drinking_water": ["no"], "operational_status": ["closed"]}
+OUT = {"fountain": {"drinking_water": ["no"], "operational_status": ["closed"]}}
 
 
 def _mini_osm(tmp_path, extra_nodes=""):
@@ -55,8 +55,19 @@ def test_read_furniture_matches_graph_reader(tmp_path):
 
 def test_out_of_service_config_strings(root):
     cfg = yaml.safe_load((root.parent / "config" / "routing.yaml").read_text(encoding="utf-8"))
-    values = [v for vs in cfg["osm_poi"]["out_of_service"].values() for v in vs]
+    out = cfg["osm_poi"]["out_of_service"]
+    assert set(out) == {"fountain"}                               # solo las fuentes tienen estado de servicio
+    values = [v for tags in out.values() for vs in tags.values() for v in vs]
     assert values and all(isinstance(v, str) for v in values)   # "no" sin comillas seria False en YAML
+
+
+def test_out_of_service_only_its_type(tmp_path):
+    # un parque infantil con drinking_water=no no esta fuera de servicio
+    play = ('<node id="6" version="1" lat="40.303" lon="-3.733"><tag k="leisure" v="playground"/>'
+            '<tag k="drinking_water" v="no"/></node>')
+    p = furniture_frame(read_furniture(_mini_osm(tmp_path, play), OUT)).set_index("id")
+    assert p.loc["osm:node/6", "status"] is None and pd.isna(p.loc["osm:node/6", "working"])
+    assert bool(p.loc["osm:node/2", "working"]) is False
 
 
 @pytest.mark.slow
