@@ -420,11 +420,14 @@ export default function Results() {
                     live={live}
                     overlay={
                         <>
-                            {/* anuncio aparte del boton y presente desde el principio (region viva) */}
-                            <p className="sr-only map-live-status" role="status">
-                                {problem ??
-                                    (offerHere ? `Te has alejado ${formatDistance(movedM)} del punto de búsqueda.` : "")}
-                            </p>
+                            {/* anuncio aparte del boton; la region nace con la primera posicion (vacia
+                                si sigue cerca del origen), antes de que haya nada que anunciar */}
+                            {live && (
+                                <p className="sr-only map-live-status" role="status">
+                                    {problem ??
+                                        (offerHere ? `Te has alejado ${formatDistance(movedM)} del punto de búsqueda.` : "")}
+                                </p>
+                            )}
                             {offerHere && (
                                 <div className="map-live-offer">
                                     {problem && <p className="map-live-offer__problem">{problem}</p>}

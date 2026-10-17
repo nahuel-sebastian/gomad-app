@@ -133,10 +133,13 @@ describe("Resultados: ubicacion en tiempo real (C2)", () => {
         const spy = vi.spyOn(recommendModule, "recommend");
         const { container } = renderAt("/resultados", { origin: GPS_ORIGIN, search: { activity: "walk", label: "Caminar" } });
         await cardLinks();
+        expect(container.querySelector(".map-live-status")).toBeNull();
+        act(() => emit(GPS_ORIGIN.coordinate.lat, GPS_ORIGIN.coordinate.lon));
         const status = container.querySelector(".map-live-status")!;
         expect(status).toHaveAttribute("role", "status");
         expect(status).toHaveTextContent("");
-        act(() => emit(41.39, 2.17));      // Barcelona: primera posicion, sin limite de tiempo
+        vi.spyOn(Date, "now").mockReturnValue(Date.now() + 10_000);
+        act(() => emit(41.39, 2.17));      // Barcelona, pasado el intervalo
         const offer = await screen.findByRole("button", { name: /buscar desde aquí/ });
         expect(status.querySelector("button")).toBeNull();
         expect(offer.closest("[role='status']")).toBeNull();
