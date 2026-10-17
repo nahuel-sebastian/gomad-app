@@ -123,3 +123,40 @@ describe("useLivePosition", () => {
         expect(LIVE_MIN_MOVE_M).toBeGreaterThan(5);
     });
 });
+
+describe("useLivePosition con cola (verificador)", () => {
+    it("acepta la ultima posicion pendiente al vencer el intervalo", () => {
+        vi.useFakeTimers();
+        try {
+            const g = fakeGeo();
+            const { result, unmount } = renderHook(() => useLivePosition(true, { geo: g.geo, secure: true }));
+            g.emit(A.lat, A.lon);
+            act(() => vi.advanceTimersByTime(1000));
+            g.emit(A.lat + 0.001, A.lon);
+            act(() => vi.advanceTimersByTime(1000));
+            g.emit(A.lat + 0.002, A.lon);
+            expect(result.current).toEqual(A);
+            act(() => vi.advanceTimersByTime(LIVE_MIN_INTERVAL_MS));
+            expect(result.current).toEqual({ lat: A.lat + 0.002, lon: A.lon });
+            unmount();
+            expect(vi.getTimerCount()).toBe(0);
+        } finally {
+            vi.useRealTimers();
+        }
+    });
+
+    it("si vuelve cerca de la posicion mostrada, descarta la pendiente", () => {
+        vi.useFakeTimers();
+        try {
+            const g = fakeGeo();
+            const { result } = renderHook(() => useLivePosition(true, { geo: g.geo, secure: true }));
+            g.emit(A.lat, A.lon);
+            g.emit(A.lat + 0.001, A.lon);
+            g.emit(A.lat + 0.00002, A.lon);
+            act(() => vi.advanceTimersByTime(LIVE_MIN_INTERVAL_MS * 2));
+            expect(result.current).toEqual(A);
+        } finally {
+            vi.useRealTimers();
+        }
+    });
+});

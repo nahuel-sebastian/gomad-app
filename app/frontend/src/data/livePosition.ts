@@ -5,7 +5,8 @@ import type { Coordinate } from "../api/types";
 // La posicion se queda en el navegador: no se guarda ni se envia; solo se usa como origen de una
 // consulta si la persona pulsa «Buscar desde aqui». Criterio propio:
 // - como mucho una actualizacion cada LIVE_MIN_INTERVAL_MS y solo si se ha movido LIVE_MIN_MOVE_M
-//   (el GPS del movil oscila unos metros aunque no te muevas);
+//   (el GPS del movil oscila unos metros aunque no te muevas); la ultima posicion que llega antes de
+//   tiempo queda pendiente y se aplica al vencer el intervalo, para que el punto no se quede atras;
 // - a partir de LIVE_OFFER_DISTANCE_M del origen de la busqueda se ofrece buscar desde aqui
 //   (no se recalcula solo).
 export const LIVE_MIN_INTERVAL_MS = 5_000;
@@ -54,19 +55,44 @@ export function useLivePosition(fromBrowser: boolean, deps?: LiveDeps): Coordina
         let watchId: number | null = null;
         let cancelled = false;
         let last: { at: number; coordinate: Coordinate } | null = null;
+        let pending: Coordinate | null = null;
+        let timer: ReturnType<typeof setTimeout> | undefined;
 
+        const apply = (coordinate: Coordinate) => {
+            last = { at: d.now(), coordinate };
+            pending = null;
+            setPosition(coordinate);
+        };
         const stop = () => {
             if (watchId !== null) geo.clearWatch(watchId);
             watchId = null;
+            clearTimeout(timer);
+            timer = undefined;
+            pending = null;
         };
         const onPosition = (p: GeolocationPosition) => {
             const coordinate = { lat: p.coords.latitude, lon: p.coords.longitude };
-            const at = d.now();
-            if (last && (at - last.at < LIVE_MIN_INTERVAL_MS || distanceM(last.coordinate, coordinate) < LIVE_MIN_MOVE_M)) {
+            if (!last) {
+                apply(coordinate);
                 return;
             }
-            last = { at, coordinate };
-            setPosition(coordinate);
+            if (distanceM(last.coordinate, coordinate) < LIVE_MIN_MOVE_M) {
+                // ha vuelto cerca de lo que se ve: lo pendiente ya no vale
+                pending = null;
+                return;
+            }
+            const wait = LIVE_MIN_INTERVAL_MS - (d.now() - last.at);
+            if (wait <= 0) {
+                apply(coordinate);
+                return;
+            }
+            pending = coordinate;
+            if (timer === undefined) {
+                timer = setTimeout(() => {
+                    timer = undefined;
+                    if (pending) apply(pending);
+                }, wait);
+            }
         };
         const onError = (e: GeolocationPositionError) => {
             // permiso retirado: se deja de seguir; un fallo pasajero (sin senal, tiempo) no para nada

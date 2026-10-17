@@ -130,6 +130,17 @@
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
 }
 
+.map-live-offer__problem {
+    margin: 0;
+    padding: 0.5rem 0.75rem;
+    border: 1px solid var(--border);
+    border-radius: 0.5rem;
+    background: var(--surface);
+    color: var(--navy);
+    font-size: 0.875rem;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
 /* Pines por tipo (C2): color e icono del tipo (mapIcons.ts) y el numero de la lista en una chapa */
 .map-marker--pin {
     position: relative;

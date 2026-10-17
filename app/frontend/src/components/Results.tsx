@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Link, Navigate, useNavigate } from "react-router";
 import type { Recommendation } from "../api/types";
 import { ApiError } from "../data/errors";
-import { BROWSER_LOCATION_LABEL, municipalityAt } from "../data/geolocation";
+import { BROWSER_LOCATION_LABEL, LOCATION_MESSAGES, municipalityAt } from "../data/geolocation";
 import { distanceM, LIVE_OFFER_DISTANCE_M, useLivePosition } from "../data/livePosition";
 import { recommend } from "../data/recommend";
 import { useAsync } from "../data/useAsync";
@@ -94,14 +94,22 @@ export default function Results() {
     // «Estas aqui» en tiempo real (C2): solo si la ubicacion vino del GPS o el permiso ya estaba dado
     const live = useLivePosition(origin?.label === BROWSER_LOCATION_LABEL);
     const movedM = live && origin ? distanceM(live, origin.coordinate) : 0;
+    const offerHere = movedM >= LIVE_OFFER_DISTANCE_M;
+    // aviso de «Buscar desde aqui» que no se pudo hacer (fuera de la Comunidad); vale para esa posicion
+    const [liveProblem, setLiveProblem] = useState<{ at: typeof live; text: string } | null>(null);
+    const problem = liveProblem && liveProblem.at === live ? liveProblem.text : null;
     // no se recalcula solo: se ofrece buscar desde la nueva posicion
     const searchFromHere = async () => {
         if (!live || !origin) return;
         const place = await municipalityAt(live.lat, live.lon);
+        if (!place) {
+            setLiveProblem({ at: live, text: LOCATION_MESSAGES.outside });
+            return;
+        }
         setOrigin({
             label: BROWSER_LOCATION_LABEL,
-            municipality: place?.name ?? origin.municipality,
-            ine_code: place?.ine_code ?? origin.ine_code,
+            municipality: place.name,
+            ine_code: place.ine_code,
             coordinate: live,
             precision: "address",
         });
@@ -411,13 +419,23 @@ export default function Results() {
                     explore
                     live={live}
                     overlay={
-                        movedM >= LIVE_OFFER_DISTANCE_M && (
-                            <div className="map-live-offer" role="status">
-                                <button type="button" className="button button--primary" onClick={searchFromHere}>
-                                    {`Te has alejado ${formatDistance(movedM)}: buscar desde aquí`}
-                                </button>
-                            </div>
-                        )
+                        <>
+                            {/* anuncio aparte del boton y presente desde el principio (region viva) */}
+                            <p className="sr-only map-live-status" role="status">
+                                {problem ??
+                                    (offerHere ? `Te has alejado ${formatDistance(movedM)} del punto de búsqueda.` : "")}
+                            </p>
+                            {offerHere && (
+                                <div className="map-live-offer">
+                                    {problem && <p className="map-live-offer__problem">{problem}</p>}
+                                    {!problem && (
+                                        <button type="button" className="button button--primary" onClick={searchFromHere}>
+                                            {`Te has alejado ${formatDistance(movedM)}: buscar desde aquí`}
+                                        </button>
+                                    )}
+                                </div>
+                            )}
+                        </>
                     }
                     origin={origin.coordinate}
                     selectedId={selectedId}

@@ -1,5 +1,6 @@
 import { act, fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+import { LOCATION_MESSAGES } from "../data/geolocation";
 import * as recommendModule from "../data/recommend";
 import { withWebGL } from "./mapMock";
 import { expectNoAxeViolations, renderAt, SAMPLE_ORIGIN } from "./render";
@@ -125,6 +126,24 @@ describe("Resultados: ubicacion en tiempo real (C2)", () => {
         await waitFor(() => expect(screen.queryByRole("button", { name: /buscar desde aquí/ })).toBeNull());
         unmount();
         expect(clearWatch).toHaveBeenCalledWith(7);
+    });
+
+    it("el anuncio va aparte del boton y fuera de la Comunidad lo dice sin recalcular", async () => {
+        withWebGL();
+        const spy = vi.spyOn(recommendModule, "recommend");
+        const { container } = renderAt("/resultados", { origin: GPS_ORIGIN, search: { activity: "walk", label: "Caminar" } });
+        await cardLinks();
+        const status = container.querySelector(".map-live-status")!;
+        expect(status).toHaveAttribute("role", "status");
+        expect(status).toHaveTextContent("");
+        act(() => emit(41.39, 2.17));      // Barcelona: primera posicion, sin limite de tiempo
+        const offer = await screen.findByRole("button", { name: /buscar desde aquí/ });
+        expect(status.querySelector("button")).toBeNull();
+        expect(offer.closest("[role='status']")).toBeNull();
+        expect(status).toHaveTextContent(/Te has alejado/);
+        fireEvent.click(offer);
+        await waitFor(() => expect(status).toHaveTextContent(LOCATION_MESSAGES.outside));
+        expect(spy).toHaveBeenCalledTimes(1);
     });
 
     it("con una ubicacion escrita no sigue la posicion ni pide permiso", async () => {
