@@ -19,7 +19,7 @@ export default function Chip({ tone, icon, children }: ChipProps) {
     );
 }
 
-// Pastilla del ICA con el color oficial y el texto del BOE
+// Pastilla del ICA con un tono legible por categoría y el texto del BOE
 export function AqiChip({ category }: { category: AqiCategory | null }) {
     return (
         <span className={`chip chip--aqi-${category ?? "nodata"} gomad-component gomad-aqi-chip`}>

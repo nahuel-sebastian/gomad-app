@@ -44,7 +44,8 @@ describe("Inicio", () => {
         ).toBeInTheDocument();
         expect(container.querySelector(".icon-random")).toBeInTheDocument();
         expect(container.querySelector(".icon-settings")).toBeInTheDocument();
-        expect(container.querySelectorAll(".activity__tile")).toHaveLength(0);
+        expect(container.querySelectorAll(".activity__icon")).toHaveLength(8);
+        expect(within(list).getByRole("button", { name: "Caminar" }).querySelector(".activity__icon")).toHaveAttribute("data-icon", "directions_walk");
         const nav = screen.getByRole("navigation", { name: "Principal" });
         expect(nav.querySelector(".icon-navigation")).toBeInTheDocument();
         expect(nav.querySelector(".icon-location_on")).toBeInTheDocument();

@@ -130,11 +130,9 @@ export default function Home() {
                                 {activities.data.activities.map((a: Activity) => (
                                     <li key={a.id}>
                                         <button type="button" className="activity gomad-action gomad-action-select-activity" onClick={() => go(a.id, a.label)}>
-                                            {hasIcon(a.icon) && (
-                                                <span className="activity__tile" aria-hidden="true">
-                                                    <Icon name={a.icon} />
-                                                </span>
-                                            )}
+                                            <span className="activity__icon" aria-hidden="true" data-icon={a.icon}>
+                                                {hasIcon(a.icon) && <Icon name={a.icon} />}
+                                            </span>
                                             <span>{a.label}</span>
                                         </button>
                                     </li>

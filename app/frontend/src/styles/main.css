@@ -123,15 +123,22 @@
   --bad-fg: #9b1c28;
   --nodata-bg: #eceff2;
 
-  --aqi-text-dark: #000000;
-  --aqi-text-light: #ffffff;
-  --aqi-good: rgb(56, 162, 206);
-  --aqi-fair: rgb(50, 161, 94);
-  --aqi-moderate: rgb(241, 229, 73);
-  --aqi-poor: rgb(200, 52, 65);
-  --aqi-very-poor: rgb(110, 22, 29);
-  --aqi-extremely-poor: rgb(162, 91, 164);
-  --aqi-nodata: rgb(85, 89, 93);
+  --chip-info-bg: #e7f2fb;
+  --chip-info-fg: #12395b;
+  --chip-nodata-bg: #e9eef2;
+  --chip-nodata-fg: #40566a;
+  --chip-aqi-good-bg: #c8edf8;
+  --chip-aqi-good-fg: #12395b;
+  --chip-aqi-fair-bg: #d7f0e0;
+  --chip-aqi-fair-fg: #125936;
+  --chip-aqi-moderate-bg: #fff3c4;
+  --chip-aqi-moderate-fg: #6d4a00;
+  --chip-aqi-poor-bg: #fbe0de;
+  --chip-aqi-poor-fg: #8c2025;
+  --chip-aqi-very-poor-bg: #f3d9df;
+  --chip-aqi-very-poor-fg: #6e1630;
+  --chip-aqi-extremely-poor-bg: #efdef2;
+  --chip-aqi-extremely-poor-fg: #632271;
 }
 
 @layer base, responsive;
@@ -918,7 +925,8 @@
   }
 
   .chip--info {
-    background: var(--blue-tint);
+    background: var(--chip-info-bg);
+    color: var(--chip-info-fg);
   }
 
   .chip--good {
@@ -932,43 +940,43 @@
   }
 
   .chip--nodata {
-    background: var(--nodata-bg);
-    color: var(--muted);
+    background: var(--chip-nodata-bg);
+    color: var(--chip-nodata-fg);
   }
 
   .chip--aqi-good {
-    background: var(--aqi-good);
-    color: var(--aqi-text-dark);
+    background: var(--chip-aqi-good-bg);
+    color: var(--chip-aqi-good-fg);
   }
 
   .chip--aqi-fair {
-    background: var(--aqi-fair);
-    color: var(--aqi-text-dark);
+    background: var(--chip-aqi-fair-bg);
+    color: var(--chip-aqi-fair-fg);
   }
 
   .chip--aqi-moderate {
-    background: var(--aqi-moderate);
-    color: var(--navy);
+    background: var(--chip-aqi-moderate-bg);
+    color: var(--chip-aqi-moderate-fg);
   }
 
   .chip--aqi-poor {
-    background: var(--aqi-poor);
-    color: var(--aqi-text-light);
+    background: var(--chip-aqi-poor-bg);
+    color: var(--chip-aqi-poor-fg);
   }
 
   .chip--aqi-very_poor {
-    background: var(--aqi-very-poor);
-    color: var(--aqi-text-light);
+    background: var(--chip-aqi-very-poor-bg);
+    color: var(--chip-aqi-very-poor-fg);
   }
 
   .chip--aqi-extremely_poor {
-    background: var(--aqi-extremely-poor);
-    color: var(--aqi-text-light);
+    background: var(--chip-aqi-extremely-poor-bg);
+    color: var(--chip-aqi-extremely-poor-fg);
   }
 
   .chip--aqi-nodata {
-    background: var(--aqi-nodata);
-    color: var(--aqi-text-light);
+    background: var(--chip-nodata-bg);
+    color: var(--chip-nodata-fg);
   }
 
   .gomad-home {
@@ -1022,42 +1030,61 @@
 
   .activities {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(4.75rem, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 5.5rem), 1fr));
     gap: 0.75rem;
+  }
+
+  .activities > li {
+    width: 100%;
+    max-width: 7.5rem;
+    aspect-ratio: 1;
+    min-height: 0;
+    justify-self: center;
+    align-self: start;
   }
 
   .activity {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 0.375rem;
+    justify-content: center;
+    gap: 0.25rem;
     width: 100%;
-    font-size: 0.875rem;
+    height: 100%;
+    padding: 0.375rem;
+    border: 1.5px solid var(--navy);
+    border-radius: 10px;
+    background: var(--surface);
+    color: var(--navy);
+    font-size: 0.8125rem;
     font-weight: 600;
+    line-height: 1.2;
+    text-align: center;
+    transition: background var(--transition), border-color var(--transition);
   }
 
-  .activity__tile {
+  .activity__icon {
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 100%;
-    max-width: 5.5rem;
-    aspect-ratio: 1 / 1;
-    border-radius: 16px;
+    width: 1.5rem;
+    height: 1.5rem;
+    flex: 0 0 auto;
+    color: var(--muted);
+  }
+
+  .activity__icon .icon {
+    --icon-size: 1.5rem;
+  }
+
+  .activity:hover {
     background: var(--green-tint);
-    color: var(--green-dark);
-    transition:
-      background var(--transition),
-      transform var(--transition);
+    border-color: var(--green-dark);
   }
 
-  .activity__tile .icon {
-    --icon-size: 1.75rem;
-  }
-
-  .activity:hover .activity__tile {
-    background: var(--green-tint-active);
-    transform: translateY(-0.125rem);
+  .activity:focus-visible {
+    outline: 3px solid var(--focus);
+    outline-offset: 2px;
   }
 
   .surprise {
@@ -1884,7 +1911,7 @@
   }
 
   .button--primary {
-    border-color: var(--green-dark);
+    border: none;
     background: var(--green-dark);
     color: #fff;
   }
@@ -2068,6 +2095,7 @@
     font-weight: 700;
     border-top-right-radius: 10px;
     border-bottom-right-radius: 10px;
+    font-weight: 500;
   }
 
   .location__search-button:hover {

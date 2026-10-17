@@ -31,13 +31,20 @@ function rule(selector: string): string {
 }
 
 describe("estilos", () => {
-    it("las pastillas del ICA usan tokens para el texto, no colores a mano", () => {
-        const aqi = ["good", "fair", "moderate", "poor", "very_poor", "extremely_poor", "nodata"];
-        for (const category of aqi) {
-            expect(rule(`.chip--aqi-${category}`)).not.toMatch(/color:\s*#/);
+    it("las chips usan fondos suaves y texto con contraste de al menos 4,5:1", () => {
+        for (const type of ["info", "nodata"]) {
+            const style = rule(`.chip--${type}`);
+            expect(style).toContain(`var(--chip-${type}-bg)`);
+            expect(style).toContain(`var(--chip-${type}-fg)`);
+            expect(contrast(token(`--chip-${type}-fg`), token(`--chip-${type}-bg`))).toBeGreaterThanOrEqual(4.5);
         }
-        expect(token("--aqi-text-dark")).toBe("#000000");
-        expect(token("--aqi-text-light")).toBe("#ffffff");
+        for (const category of ["good", "fair", "moderate", "poor", "very_poor", "extremely_poor", "nodata"]) {
+            const palette = category === "nodata" ? "nodata" : `aqi-${category.replaceAll("_", "-")}`;
+            const style = rule(`.chip--aqi-${category}`);
+            expect(style).toContain(`var(--chip-${palette}-bg)`);
+            expect(style).toContain(`var(--chip-${palette}-fg)`);
+            expect(contrast(token(`--chip-${palette}-fg`), token(`--chip-${palette}-bg`))).toBeGreaterThanOrEqual(4.5);
+        }
     });
 
     it("--border-strong tiene al menos 3:1 sobre la superficie y el fondo (WCAG 1.4.11)", () => {
