@@ -1,5 +1,5 @@
 import type { MapPoint, MapPointKind } from "../api/types";
-import { KIND_ORDER, KIND_STYLES, OUT_OF_SERVICE_COLOR } from "./mapIcons";
+import { KIND_ORDER, KIND_STYLES, OUT_OF_SERVICE_COLOR, POI_KINDS } from "./mapIcons";
 import { NEARBY_MIN_ZOOM, POI_MIN_ZOOM } from "./mapUtils";
 
 interface MapLegendProps {
@@ -31,13 +31,19 @@ export default function MapLegend({ markerKinds, points, zoom, truncated, live =
     const outOfService = points.filter((p) => p.working === false).length;
     const kinds = KIND_ORDER.filter((k) => counts.has(k));
 
-    let hint: string | null = null;
-    if (zoom !== null && zoom < NEARBY_MIN_ZOOM) hint = "Acerca el mapa para ver más lugares de la zona.";
+    // el mobiliario solo esta donde la fuente tiene datos (CLAUDE.md §7.4: aviso de cobertura)
+    const hints: string[] = [];
+    if (zoom !== null && zoom < NEARBY_MIN_ZOOM) hints.push("Acerca el mapa para ver más lugares de la zona.");
     else if (zoom !== null && zoom < POI_MIN_ZOOM)
-        hint = "Acerca más para ver fuentes, bancos, desfibriladores y áreas caninas.";
-    else if (truncated) hint = "Hay más lugares de los que se ven: acerca el mapa.";
+        hints.push("Acerca más para ver fuentes, bancos, juegos, desfibriladores y áreas caninas (solo donde hay datos).");
+    else if (zoom !== null) {
+        hints.push("Fuentes, bancos, juegos, desfibriladores y áreas caninas: solo donde hay datos.");
+        const missing = POI_KINDS.filter((k) => !counts.has(k)).map((k) => KIND_STYLES[k].label);
+        if (missing.length > 0) hints.push(`Sin datos en esta zona: ${missing.join(", ")}.`);
+    }
+    if (truncated) hints.push("Hay más lugares de los que se ven: acerca el mapa.");
 
-    if (kinds.length === 0 && !live && !hint) return null;
+    if (kinds.length === 0 && !live && hints.length === 0) return null;
 
     return (
         <details className="map-legend">
@@ -68,7 +74,11 @@ export default function MapLegend({ markerKinds, points, zoom, truncated, live =
                     </li>
                 )}
             </ul>
-            {hint && <p className="map-legend__hint">{hint}</p>}
+            {hints.map((hint) => (
+                <p key={hint} className="map-legend__hint">
+                    {hint}
+                </p>
+            ))}
         </details>
     );
 }

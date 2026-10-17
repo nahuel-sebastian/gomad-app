@@ -242,9 +242,30 @@ describe("leyenda del mapa", () => {
         const { rerender } = render(<MapLegend markerKinds={["park"]} points={[]} zoom={NEARBY_MIN_ZOOM - 1} truncated={false} />);
         expect(screen.getByText("Acerca el mapa para ver más lugares de la zona.")).toBeInTheDocument();
         rerender(<MapLegend markerKinds={["park"]} points={[]} zoom={NEARBY_MIN_ZOOM} truncated={false} />);
-        expect(screen.getByText("Acerca más para ver fuentes, bancos, desfibriladores y áreas caninas.")).toBeInTheDocument();
+        expect(
+            screen.getByText(
+                "Acerca más para ver fuentes, bancos, juegos, desfibriladores y áreas caninas (solo donde hay datos).",
+            ),
+        ).toBeInTheDocument();
         rerender(<MapLegend markerKinds={[]} points={[point("a", "park")]} zoom={POI_MIN_ZOOM} truncated />);
         expect(screen.getByText("Hay más lugares de los que se ven: acerca el mapa.")).toBeInTheDocument();
+    });
+
+    it("de cerca avisa de la cobertura y de los tipos sin datos en la zona", () => {
+        render(
+            <MapLegend
+                markerKinds={[]}
+                points={[point("a", "park"), point("b", "fountain"), point("c", "bench")]}
+                zoom={POI_MIN_ZOOM}
+                truncated={false}
+            />,
+        );
+        expect(
+            screen.getByText("Fuentes, bancos, juegos, desfibriladores y áreas caninas: solo donde hay datos."),
+        ).toBeInTheDocument();
+        expect(
+            screen.getByText("Sin datos en esta zona: Desfibrilador, Área canina, Juegos infantiles."),
+        ).toBeInTheDocument();
     });
 
     it("incluye Estas aqui cuando hay posicion en tiempo real", () => {
