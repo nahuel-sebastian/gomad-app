@@ -154,6 +154,39 @@ def per_1000(counts, pop):
     return counts / pop.reindex(counts.index) * 1000
 
 
+# instalaciones deportivas (CLAUDE.md §7.3): Nomecalles es la principal; el resto suma lo que no repite (Task 171)
+SPORT_SOURCES = ("nmc_deporte", "eiel_deporte", "ay_polideportivos", "ay_piscinas", "ay_idb", "osm_sport")
+DOWNLOAD_ID = {"osm_sport": "osm"}   # fuente de destino -> id de download_sources.py (RF-19)
+
+
+def sport_union(facilities, radius_m):
+    """N.º de instalaciones por municipio uniendo SPORT_SOURCES en ese orden, sin contar dos veces la misma.
+
+    Dentro de cada municipio, un punto se descarta si esta a <= radius_m de uno ya contado de una fuente anterior;
+    los de una misma fuente no se descartan entre si (en origen son instalaciones distintas). Devuelve un
+    DataFrame indexado por ine_code con value y source (ids que aportan, separados por comas, en orden)."""
+    f = facilities[facilities["source"].isin(SPORT_SOURCES)]
+    g = gpd.GeoDataFrame(f[["source", "ine_code"]].reset_index(drop=True),
+                         geometry=gpd.points_from_xy(f["lon"], f["lat"]), crs=4326).to_crs(25830)
+    kept = []
+    for source in SPORT_SOURCES:
+        sub = g[g["source"] == source]
+        if kept and len(sub):
+            prev = pd.concat(kept)
+            near = gpd.sjoin(sub, prev[["ine_code", "geometry"]], predicate="dwithin", distance=radius_m,
+                             how="inner", lsuffix="new", rsuffix="old")
+            dup = near.index[near["ine_code_new"] == near["ine_code_old"]].unique()   # solo en su municipio
+            sub = sub.drop(index=dup)
+        kept.append(sub)
+    k = pd.concat(kept) if kept else g.iloc[0:0]
+    order = {s: i for i, s in enumerate(SPORT_SOURCES)}
+    out = k.groupby("ine_code").agg(value=("source", "size"), source=("source", lambda xs: ",".join(
+        DOWNLOAD_ID.get(x, x) for x in sorted(set(xs), key=order.get))))
+    out["value"] = out["value"].astype(float)
+    out["year"] = None
+    return out
+
+
 def indicator_values(con, config):
     """Valor de cada indicador de DEC-09, solo en los municipios con filas en su fuente."""
     codes = {c for (c,) in con.execute("SELECT ine_code FROM municipality").fetchall()}
@@ -162,7 +195,9 @@ def indicator_values(con, config):
     if pop.empty:
         raise ValueError(f"population.parquet no tiene el año {config['population_year']} (population_year)")
 
-    sport = _count(_shp("nmc_deporte")["CMUN"].map(ine_code))
+    radius = yaml.safe_load((CONFIG_DIR / "recommend.yaml").read_text(encoding="utf-8"))["dedupe_radius_m"]
+    sport = sport_union(con.execute("SELECT id, source, ine_code, lon, lat FROM destination "
+                                    "WHERE type = 'facility'").df(), radius)
     catalog = con.execute("SELECT d.ine_code, count(DISTINCT a.activity) AS n FROM destination_activity a "
                           "JOIN destination d ON d.id = a.destination_id GROUP BY 1").df().set_index("ine_code")["n"]
     # DEC-09: NULL solo fuera de VPLA; un municipio de VPLA sin zonas verdes tiene 0 m2
@@ -185,7 +220,7 @@ def indicator_values(con, config):
     by = lambda cat: _count(svc.loc[svc["category"] == cat, "ine_code"])
     return {
         "sport_facilities": sport,
-        "sport_facilities_per_1000": per_1000(sport, pop),
+        "sport_facilities_per_1000": sport.assign(value=per_1000(sport["value"], pop)),
         "catalog_activities": catalog,
         "green_m2_per_inhabitant": green / pop.reindex(green.index),
         "drove_roads_km": drove,

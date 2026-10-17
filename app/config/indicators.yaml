@@ -12,12 +12,16 @@
 population_year: 2025   # padron (clean/population.parquet) para las tasas por 1.000 hab.
 
 indicators:
-  # n.º de filas por CMUN
+  # complement (C3, 17/10): fuentes que solo se usan donde aportan; la fila cita las que de verdad usa.
+  # n.º de destinos «facility» por municipio: Nomecalles + EIEL + Ayto. + OSM (CLAUDE.md §7.3), sin contar dos
+  # veces un punto a <= dedupe_radius_m (recommend.yaml) de otro de una fuente anterior (build_db.sport_union)
   - {key: sport_facilities, category: sport, label: "Instalaciones deportivas",
-     source: [nmc_deporte], unit: "instalaciones", unit_one: "instalación", no_rows: "null", year: null}
-  # n.º de filas por CMUN / poblacion x 1000
+     source: [nmc_deporte], complement: [eiel_deporte, ay_polideportivos, ay_piscinas, ay_idb, osm],
+     unit: "instalaciones", unit_one: "instalación", no_rows: "null", year: null}
+  # lo mismo / poblacion x 1000
   - {key: sport_facilities_per_1000, category: sport, label: "Instalaciones deportivas por 1.000 hab.",
-     source: [nmc_deporte, padron], unit: "por 1.000 hab.", no_rows: "null", year: null}
+     source: [nmc_deporte, padron], complement: [eiel_deporte, ay_polideportivos, ay_piscinas, ay_idb, osm],
+     unit: "por 1.000 hab.", no_rows: "null", year: null}
   # n.º de las actividades de activities.yaml con al menos un destino en el municipio; «de 8» debe ser el
   # n.º de actividades de activities.yaml (indicators.load lo comprueba)
   - {key: catalog_activities, category: sport, label: "Actividades del catálogo disponibles",

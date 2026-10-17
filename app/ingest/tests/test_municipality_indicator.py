@@ -38,6 +38,31 @@ def test_frame_values_carry_row_source_and_year():
     assert pd.isna(rows["28107"].value) and rows["28107"].source == "nmc_deporte" and rows["28107"].year == 2023
 
 
+def _facilities(rows):
+    """rows: (source, ine_code, dx_m, dy_m) desde un punto de Getafe; lon/lat aproximados (1 m ~ 1e-5 grados)."""
+    return pd.DataFrame([{"id": f"{s}:{i}", "source": s, "ine_code": c, "lon": -3.73 + dx * 1.18e-5,
+                          "lat": 40.30 + dy * 0.9e-5} for i, (s, c, dx, dy) in enumerate(rows)])
+
+
+def test_sport_union_dedupes_across_sources():
+    near = build_db.sport_union(_facilities([("nmc_deporte", "28065", 0, 0), ("osm_sport", "28065", 10, 0)]), 50)
+    assert near.loc["28065", "value"] == 1 and near.loc["28065", "source"] == "nmc_deporte"
+    far = build_db.sport_union(_facilities([("nmc_deporte", "28065", 0, 0), ("osm_sport", "28065", 500, 0)]), 50)
+    assert far.loc["28065", "value"] == 2 and far.loc["28065", "source"] == "nmc_deporte,osm"   # osm_sport -> osm
+
+
+def test_sport_union_keeps_same_source_neighbours():
+    u = build_db.sport_union(_facilities([("eiel_deporte", "28065", 0, 0), ("eiel_deporte", "28065", 5, 0)]), 50)
+    assert u.loc["28065", "value"] == 2 and u.loc["28065", "source"] == "eiel_deporte"
+
+
+def test_sport_union_dedupes_only_within_municipality():
+    # Nomecalles con CMUN de Parla junto a la EIEL de Patones: no se come la de Patones
+    u = build_db.sport_union(_facilities([("nmc_deporte", "28106", 0, 0), ("eiel_deporte", "28107", 10, 0)]), 50)
+    assert u.loc["28107", "value"] == 1 and u.loc["28107", "source"] == "eiel_deporte"
+    assert u.loc["28106", "value"] == 1
+
+
 def test_indicator_without_calculation_fails_readably():
     with pytest.raises(ValueError, match=r"«b».*no se sabe calcular"):
         build_db.indicator_table(MINI, ["28065"], {"a_per_1000": pd.Series(dtype=float)})
