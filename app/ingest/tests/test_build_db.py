@@ -78,6 +78,12 @@ def test_build_main_real(tmp_path):
                                          "USING (ine_code) WHERE NOT m.in_vpla AND d.green IS NOT NULL").fetchall()}
         assert got <= covered and "28079" in got
     assert con.execute("SELECT count(*) FROM destination_activity WHERE activity='swim'").fetchone()[0] > 0
+    if (build_db.CLEAN / "osm_poi.parquet").exists():
+        # C2b: mobiliario de OSM fuera de la capital; en la capital, sin los tipos que da el Ayuntamiento
+        assert con.execute("SELECT count(*) FROM route_poi WHERE source='osm' AND ine_code='28065'").fetchone()[0] > 0
+        assert con.execute("SELECT count(*) FROM route_poi WHERE source='osm' AND ine_code='28079' "
+                           "AND type IN ('bench', 'fountain', 'dog_area')").fetchone()[0] == 0
+        assert con.execute("SELECT count(*) - count(DISTINCT id) FROM route_poi").fetchone()[0] == 0
 
 
 # Task 111: municipios de juguete de 2 km (EPSG:25830): A con VPLA, B y C sin VPLA; un destino en el centro de cada uno
@@ -134,3 +140,51 @@ def test_apply_activities_rule_source_without_rows():
         {"source": "eiel_deporte", "field": "facility_type", "in": ["PISCINAS CUBIERTAS"], "suitability": 1.0}]}]}
     r = build_db.apply_activities(sample_destinations(), rules)
     assert set(zip(r.destination_id, r.activity)) == {("eiel_deporte:1", "swim")}
+
+
+# C2b (Task 162): route_poi = fuentes oficiales + mobiliario de OSM, sin duplicados
+SKIP = {"28079": ["bench", "fountain", "dog_area"]}
+
+
+def pois(*rows):
+    """rows: (id, type, source, ine_code)."""
+    g = gpd.GeoDataFrame(pd.DataFrame(rows, columns=["id", "type", "source", "ine_code"]).assign(
+        status=None, working=pd.array([pd.NA] * len(rows), dtype="boolean")),
+        geometry=[Point(-3.7, 40.3)] * len(rows), crs=4326)
+    return g[["id", "type", "source", "ine_code", "status", "working", "geometry"]]
+
+
+def test_route_poi_frame_adds_osm():
+    poi = pois(("ay_bancos:1", "bench", "ay_bancos", "28079"))
+    osm = pois(("osm:node/1", "bench", "osm", "28065"), ("osm:node/2", "playground", "osm", "28079"))
+    out = build_db.route_poi_frame(poi, osm, SKIP)
+    assert sorted(out["id"]) == ["ay_bancos:1", "osm:node/1", "osm:node/2"]
+    assert set(out["source"]) == {"ay_bancos", "osm"} and out.crs.to_epsg() == 4326
+    assert str(out["working"].dtype) == "boolean"
+
+
+def test_route_poi_frame_skips_official_types():
+    osm = pois(("osm:node/1", "bench", "osm", "28079"), ("osm:node/2", "fountain", "osm", "28079"),
+               ("osm:node/3", "dog_area", "osm", "28079"), ("osm:node/4", "bin", "osm", "28079"),
+               ("osm:node/5", "fountain", "osm", "28065"))
+    out = build_db.route_poi_frame(pois(), osm, SKIP)
+    assert sorted(out["id"]) == ["osm:node/4", "osm:node/5"]
+
+
+def test_route_poi_frame_no_double_osm():
+    # graph.py tambien copia el mobiliario de OSM en poi.parquet: solo cuenta una vez
+    poi = pois(("osm:node/1", "bench", "osm", "28065"), ("desfibriladores:9", "aed", "desfibriladores", "28065"))
+    osm = pois(("osm:node/1", "bench", "osm", "28065"))
+    out = build_db.route_poi_frame(poi, osm, SKIP)
+    assert sorted(out["id"]) == ["desfibriladores:9", "osm:node/1"]
+
+
+def test_route_poi_frame_without_osm_poi():
+    poi = pois(("osm:node/1", "bench", "osm", "28065"), ("osm:node/2", "bench", "osm", "28079"),
+               ("ay_fuentes:1", "fountain", "ay_fuentes", "28079"))
+    out = build_db.route_poi_frame(poi, None, SKIP)
+    assert sorted(out["id"]) == ["ay_fuentes:1", "osm:node/1"]
+
+
+def test_load_osm_poi_missing_is_none(tmp_path):
+    assert build_db.load_osm_poi(tmp_path / "no.parquet") is None
