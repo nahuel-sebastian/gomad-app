@@ -190,12 +190,21 @@
 }
 
 /* Leyenda del mapa (C2): plegada por defecto; icono + color + texto por tipo */
-.map-legend {
+/* columna arriba a la izquierda: leyenda y «Lugares a la vista» */
+.map-panels {
     position: absolute;
     z-index: 2;
     top: 0.75rem;
     left: 0.75rem;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
     max-width: min(17rem, calc(100% - 5rem));
+}
+
+.map-legend {
+    max-width: 100%;
     border: 1px solid var(--border);
     border-radius: 0.5rem;
     background: var(--surface);
@@ -265,6 +274,47 @@
     color: var(--muted);
 }
 
+/* «Lugares a la vista» (verificador): botones a 44 px con icono + tipo + nombre */
+.map-nearby ul {
+    gap: 0;
+}
+
+.map-nearby button {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    width: 100%;
+    min-height: 2.75rem;
+    padding: 0.25rem 0;
+    border: 0;
+    background: transparent;
+    color: var(--navy);
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+}
+
+.map-nearby button:focus-visible {
+    outline: 2px solid var(--focus);
+    outline-offset: 2px;
+}
+
+/* lugar elegido en la lista, resaltado en el mapa */
+.map-marker--highlight {
+    width: 2.5rem;
+    height: 2.5rem;
+    background: var(--pin-color, var(--navy));
+    outline: 3px solid var(--focus);
+    outline-offset: 2px;
+    cursor: default;
+}
+
+.map-marker--highlight svg {
+    width: 1.5rem;
+    height: 1.5rem;
+    fill: #ffffff;
+}
+
 /* Punto cercano pulsado (C2): nombre y tipo, abajo a la izquierda */
 .map-point-info {
     position: absolute;
@@ -324,7 +374,7 @@
     }
 
     /* debajo de la barra «Volver/Ajustar» */
-    .map-demo .map-legend {
+    .map-demo .map-panels {
         top: 7.25rem;
     }
 }

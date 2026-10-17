@@ -1,7 +1,8 @@
 import { setWorkerUrl } from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 import workerUrl from "maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url";
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties } from "react";
+import type { MapPoint } from "../api/types";
 import Map, {
     Layer,
     Marker,
@@ -14,15 +15,19 @@ import "../styles/map.css";
 import { lineCoordinates } from "../lib/geometry";
 import MapLegend from "./MapLegend";
 import MapPin from "./MapPin";
+import { KIND_STYLES, OUT_OF_SERVICE_COLOR } from "./mapIcons";
+import NearbyList from "./NearbyList";
 import { pinImage, PIN_PIXEL_RATIO } from "./mapPinImage";
 import type { MapViewProps } from "./MapView";
 import {
     boundsOf,
+    closestPoints,
     FALLBACK_STYLE,
     FIT_MAX_ZOOM,
     fitPadding,
     MAP_ATTRIBUTION,
     mapPoints,
+    NEARBY_LIST_SIZE,
     nearbyFeatures,
     pointInfo,
     TILE_STYLE_URL,
@@ -62,7 +67,7 @@ function registerPinImages(map: StyleImageMap) {
 
 export default function MapCanvas(props: MapViewProps) {
     const { markers, selectedId, origin, route, secondaryRoute, onSelect, explore = false, live } = props;
-    const { nearby, zoom, refresh } = useNearbyPoints(explore);
+    const { nearby, zoom, center, refresh } = useNearbyPoints(explore);
     // los destinos que ya tienen pin numerado no se repiten como punto cercano
     const markerKey = markers.map((m) => m.id).join("|");
     const nearbyPoints = useMemo(() => {
@@ -72,6 +77,17 @@ export default function MapCanvas(props: MapViewProps) {
     // mismo objeto mientras no cambien los puntos: MapLibre no recalcula los grupos en cada render
     const nearbyData = useMemo(() => nearbyFeatures(nearbyPoints, []), [nearbyPoints]);
     const [info, setInfo] = useState("");
+    const listed = useMemo(
+        () => (center ? closestPoints(nearbyPoints, center, NEARBY_LIST_SIZE) : []),
+        [nearbyPoints, center],
+    );
+    // lugar elegido en «Lugares a la vista»: se resalta en el mapa y se anuncia
+    const [highlight, setHighlight] = useState<MapPoint | null>(null);
+    const highlighted = highlight && nearbyPoints.some((p) => p.id === highlight.id) ? highlight : null;
+    const pick = (p: MapPoint) => {
+        setHighlight(p);
+        setInfo(`${pointInfo(p)}. Resaltado en el mapa.`);
+    };
     const imagesFor = useRef<unknown>(null);
     const bounds = boundsOf(mapPoints(props));
     const mapRef = useRef<MapRef>(null);
@@ -228,6 +244,29 @@ export default function MapCanvas(props: MapViewProps) {
                             <span className="map-marker map-marker--origin" />
                         </Marker>
                     )}
+                    {highlighted && (
+                        <Marker
+                            longitude={highlighted.coordinate.lon}
+                            latitude={highlighted.coordinate.lat}
+                            anchor="bottom">
+                            <span
+                                className="map-marker map-marker--highlight"
+                                style={
+                                    {
+                                        "--pin-color":
+                                            highlighted.working === false
+                                                ? OUT_OF_SERVICE_COLOR
+                                                : KIND_STYLES[highlighted.kind].color,
+                                    } as CSSProperties
+                                }
+                                role="img"
+                                aria-label={`${pointInfo(highlighted)}, resaltado en el mapa`}>
+                                <svg viewBox="0 0 960 960" aria-hidden="true" focusable="false">
+                                    <path d={KIND_STYLES[highlighted.kind].path} />
+                                </svg>
+                            </span>
+                        </Marker>
+                    )}
                     {live && (
                         <Marker longitude={live.lon} latitude={live.lat}>
                             <span
@@ -262,13 +301,16 @@ export default function MapCanvas(props: MapViewProps) {
                 <button type="button" aria-label="Acercar mapa" onClick={() => mapRef.current?.zoomIn()} disabled={!padding}>+</button>
                 <button type="button" aria-label="Alejar mapa" onClick={() => mapRef.current?.zoomOut()} disabled={!padding}>−</button>
             </div>
-            <MapLegend
-                markerKinds={markers.flatMap((m) => (m.kind ? [m.kind] : []))}
-                points={nearbyPoints}
-                zoom={explore ? zoom : null}
-                truncated={explore && (nearby?.truncated ?? false)}
-                live={Boolean(live)}
-            />
+            <div className="map-panels">
+                <MapLegend
+                    markerKinds={markers.flatMap((m) => (m.kind ? [m.kind] : []))}
+                    points={nearbyPoints}
+                    zoom={explore ? zoom : null}
+                    truncated={explore && (nearby?.truncated ?? false)}
+                    live={Boolean(live)}
+                />
+                {explore && <NearbyList points={listed} onPick={pick} />}
+            </div>
             {explore && (
                 <p className={`map-point-info${info ? "" : " map-point-info--empty"}`} role="status">
                     {info}

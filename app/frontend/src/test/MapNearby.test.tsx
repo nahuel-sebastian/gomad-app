@@ -1,11 +1,14 @@
 import { act, render, screen, waitFor, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { MapPoint, MapPointsResponse } from "../api/types";
 import { KIND_STYLES, OUT_OF_SERVICE_COLOR } from "../components/mapIcons";
 import MapLegend from "../components/MapLegend";
 import { pinImage, pinImageSpec } from "../components/mapPinImage";
 import {
+    closestPoints,
     nearbyFeatures,
+    NEARBY_LIST_SIZE,
     nearbyRequest,
     NEARBY_DEBOUNCE_MS,
     NEARBY_MIN_ZOOM,
@@ -292,5 +295,64 @@ describe("Estas aqui en el mapa", () => {
     it("sin WebGL el esquema tambien marca Estas aqui", () => {
         const { container } = render(<MapView markers={MARKERS} live={{ lat: 40.306, lon: -3.733 }} />);
         expect(container.querySelector(".map-view__live")).not.toBeNull();
+    });
+});
+
+// --- Task 150: lugares a la vista con teclado (verificador) ---
+describe("lugares a la vista", () => {
+    afterEach(() => {
+        vi.restoreAllMocks();
+    });
+
+    async function showNearby() {
+        withWebGL();
+        const spy = vi.spyOn(mapPointsModule, "getMapPoints");
+        const view = render(<MapView markers={MARKERS} explore />);
+        await screen.findByTestId("maplibre");
+        await act(async () => {
+            (lastMapProps().onMoveEnd as (e: unknown) => void)({
+                target: {
+                    getZoom: () => POI_MIN_ZOOM,
+                    getBounds: () => ({
+                        getWest: () => BOUNDS.west,
+                        getSouth: () => BOUNDS.south,
+                        getEast: () => BOUNDS.east,
+                        getNorth: () => BOUNDS.north,
+                    }),
+                },
+            });
+        });
+        await screen.findByText(`Lugares a la vista (${NEARBY_LIST_SIZE})`);
+        return { spy, ...view };
+    }
+
+    it("closestPoints ordena por cercania al centro y corta en N", () => {
+        const near = { ...point("near", "park"), coordinate: { lat: 40.3001, lon: -3.73 } };
+        const far = { ...point("far", "bench"), coordinate: { lat: 40.31, lon: -3.73 } };
+        const mid = { ...point("mid", "aed"), coordinate: { lat: 40.303, lon: -3.73 } };
+        expect(closestPoints([far, near, mid], { lat: 40.3, lon: -3.73 }, 2).map((p) => p.id)).toEqual(["near", "mid"]);
+    });
+
+    it("se activa con teclado, resalta el lugar en el mapa y lo anuncia, sin peticiones extra", async () => {
+        const user = userEvent.setup();
+        const { spy } = await showNearby();
+        const list = screen.getByRole("list", { name: "Lugares a la vista" });
+        const buttons = within(list).getAllByRole("button");
+        expect(buttons).toHaveLength(NEARBY_LIST_SIZE);
+        // el mas cercano al centro de la vista (-3.7325, 40.3055) es el banco de ejemplo
+        expect(buttons[0]).toHaveTextContent("Banco");
+        const off = buttons.find((b) => b.textContent?.includes("fuera de servicio"));
+        expect(off).toHaveTextContent("Fuente (fuera de servicio)");
+        buttons[0].focus();
+        await user.keyboard("{Enter}");
+        expect(screen.getByRole("status")).toHaveTextContent("Banco");
+        expect(screen.getByRole("img", { name: "Banco, resaltado en el mapa" })).toHaveClass("map-marker--highlight");
+        expect(spy).toHaveBeenCalledTimes(1);
+    });
+
+    it("axe sin violaciones con la lista de lugares abierta", async () => {
+        const { container } = await showNearby();
+        container.querySelectorAll("details").forEach((d) => d.setAttribute("open", ""));
+        await expectNoAxeViolations(container);
     });
 });
