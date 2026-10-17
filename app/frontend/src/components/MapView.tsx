@@ -1,6 +1,8 @@
 import { Component, lazy, Suspense, useState, type ReactNode } from "react";
 import type { Coordinate, MapPointKind, RouteVariant } from "../api/types";
 import { lineCoordinates } from "../lib/geometry";
+// estilos del mapa tambien para el esquema sin WebGL (zoom, «Buscar desde aqui»)
+import "../styles/map.css";
 import { hasWebGL } from "./mapUtils";
 
 export interface MapMarker {
@@ -26,13 +28,17 @@ export interface MapViewProps {
     onSelect?: (id: string) => void;
     // mapa explorable (C2): al mover o ampliar, pide y muestra los lugares de la zona visible
     explore?: boolean;
+    // posicion en tiempo real (C2); no entra en el encuadre: moverse no reencuadra el mapa
+    live?: Coordinate | null;
+    // contenido superpuesto al mapa (p. ej. «Buscar desde aqui»), fuera del lienzo
+    overlay?: ReactNode;
 }
 
 const SIZE = 100;
 
 // Esquema SVG sin teselas: respaldo cuando no hay WebGL, mientras carga MapLibre
 // o si MapLibre falla
-function Schematic({ markers, selectedId, origin, route, secondaryRoute }: MapViewProps) {
+function Schematic({ markers, selectedId, origin, route, secondaryRoute, live }: MapViewProps) {
     const [zoom, setZoom] = useState(1);
     const main = lineCoordinates(route);
     const secondary = lineCoordinates(secondaryRoute);
@@ -70,6 +76,14 @@ function Schematic({ markers, selectedId, origin, route, secondaryRoute }: MapVi
                             cx={project([origin.lon, origin.lat])[0]}
                             cy={project([origin.lon, origin.lat])[1]}
                             r="2.2"
+                        />
+                    )}
+                    {live && (
+                        <circle
+                            className="map-view__live"
+                            cx={project([live.lon, live.lat])[0]}
+                            cy={project([live.lon, live.lat])[1]}
+                            r="1.8"
                         />
                     )}
                     {markers.map((m) => {
@@ -130,6 +144,7 @@ export default function MapView(props: MapViewProps) {
             ) : (
                 schematic
             )}
+            {props.overlay}
         </div>
     );
 }

@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { Link, Navigate, useParams } from "react-router";
 import type { PoiType, RouteVariant } from "../api/types";
+import { BROWSER_LOCATION_LABEL } from "../data/geolocation";
+import { useLivePosition } from "../data/livePosition";
 import { getRoute } from "../data/route";
 import { useAsync } from "../data/useAsync";
 import { formatDistance, formatMinutes } from "../lib/format";
@@ -31,6 +33,8 @@ function poiSummary(variant: RouteVariant): string[] {
 export default function RouteView() {
     const { id = "" } = useParams();
     const { origin, results, preferences, search } = useAppState();
+    // «Estas aqui» en tiempo real mientras se ve la ruta (C2); no recalcula la ruta
+    const live = useLivePosition(origin?.label === BROWSER_LOCATION_LABEL);
     const item = results.find((r) => r.destination.id === id);
     const [kind, setKind] = useState<"healthy" | "direct">("healthy");
     const [announcement, setAnnouncement] = useState("");
@@ -126,6 +130,7 @@ export default function RouteView() {
                             <MapView
                                 className="map-view--block"
                                 explore
+                                live={live}
                                 origin={origin.coordinate}
                                 route={variant.geometry}
                                 secondaryRoute={other?.geometry}

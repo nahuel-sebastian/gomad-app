@@ -1,5 +1,6 @@
-import { fireEvent, screen, waitFor, within } from "@testing-library/react";
-import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
+import { act, fireEvent, screen, waitFor, within } from "@testing-library/react";
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+import * as recommendModule from "../data/recommend";
 import { withWebGL } from "./mapMock";
 import { expectNoAxeViolations, renderAt, SAMPLE_ORIGIN } from "./render";
 
@@ -74,5 +75,63 @@ describe("Resultados: lista y mapa sincronizados", () => {
         const { container } = renderAt("/resultados", WITH_SEARCH);
         await cardLinks();
         await expectNoAxeViolations(container);
+    });
+});
+
+describe("Resultados: ubicacion en tiempo real (C2)", () => {
+    const GPS_ORIGIN = { ...SAMPLE_ORIGIN, label: "Tu ubicación" };
+    let emit: (lat: number, lon: number) => void = () => {};
+    const clearWatch = vi.fn();
+
+    beforeEach(() => {
+        vi.stubGlobal("isSecureContext", true);
+        Object.defineProperty(navigator, "geolocation", {
+            configurable: true,
+            value: {
+                watchPosition: (ok: PositionCallback) => {
+                    emit = (lat, lon) => ok({ coords: { latitude: lat, longitude: lon } } as GeolocationPosition);
+                    return 7;
+                },
+                clearWatch,
+                getCurrentPosition: vi.fn(),
+            },
+        });
+    });
+
+    afterEach(() => {
+        vi.unstubAllGlobals();
+        Reflect.deleteProperty(navigator, "geolocation");
+        clearWatch.mockClear();
+    });
+
+    it("ofrece buscar desde aqui al alejarse, no recalcula solo y al pulsarlo cambia el origen", async () => {
+        withWebGL();
+        const spy = vi.spyOn(recommendModule, "recommend");
+        const { unmount } = renderAt("/resultados", { origin: GPS_ORIGIN, search: { activity: "walk", label: "Caminar" } });
+        await cardLinks();
+        expect(spy).toHaveBeenCalledTimes(1);
+        act(() => emit(GPS_ORIGIN.coordinate.lat + 0.0005, GPS_ORIGIN.coordinate.lon));   // ~55 m
+        expect(screen.queryByRole("button", { name: /Buscar desde aquí/ })).toBeNull();
+        expect(screen.getByRole("img", { name: "Estás aquí (en tiempo real)" })).toBeInTheDocument();
+        await new Promise((r) => setTimeout(r, 0));
+        // 5 s despues y a ~550 m
+        vi.spyOn(Date, "now").mockReturnValue(Date.now() + 10_000);
+        act(() => emit(GPS_ORIGIN.coordinate.lat + 0.005, GPS_ORIGIN.coordinate.lon));
+        const offer = await screen.findByRole("button", { name: "Te has alejado 560 m: buscar desde aquí" });
+        expect(spy).toHaveBeenCalledTimes(1);
+        fireEvent.click(offer);
+        await waitFor(() => expect(spy).toHaveBeenCalledTimes(2));
+        expect(spy.mock.calls[1][0].origin).toEqual({ lat: GPS_ORIGIN.coordinate.lat + 0.005, lon: GPS_ORIGIN.coordinate.lon });
+        await waitFor(() => expect(screen.queryByRole("button", { name: /buscar desde aquí/ })).toBeNull());
+        unmount();
+        expect(clearWatch).toHaveBeenCalledWith(7);
+    });
+
+    it("con una ubicacion escrita no sigue la posicion ni pide permiso", async () => {
+        withWebGL();
+        const watch = vi.spyOn(navigator.geolocation, "watchPosition");
+        renderAt("/resultados", WITH_SEARCH);
+        await cardLinks();
+        expect(watch).not.toHaveBeenCalled();
     });
 });

@@ -13,7 +13,7 @@ import {
 } from "../components/mapUtils";
 import MapView, { type MapMarker } from "../components/MapView";
 import * as mapPointsModule from "../data/mapPoints";
-import { lastMapProps, withWebGL } from "./mapMock";
+import { fitBoundsMock, lastMapProps, withWebGL } from "./mapMock";
 import { expectNoAxeViolations } from "./render";
 
 vi.mock("react-map-gl/maplibre", async () => (await import("./mapMock")).mapLibreModule());
@@ -268,5 +268,29 @@ describe("leyenda del mapa", () => {
         });
         await waitFor(() => expect(screen.getByText("Banco: 1")).toBeInTheDocument());
         await expectNoAxeViolations(container);
+    });
+});
+
+// --- Task 149: «Estás aquí» en tiempo real ---
+describe("Estas aqui en el mapa", () => {
+    afterEach(() => {
+        vi.restoreAllMocks();
+    });
+
+    it("dibuja Estas aqui sin reencuadrar al moverse", async () => {
+        withWebGL();
+        const live = { lat: 40.306, lon: -3.733 };
+        const { rerender } = render(<MapView markers={MARKERS} live={live} />);
+        await screen.findByTestId("maplibre");
+        expect(screen.getByRole("img", { name: "Estás aquí (en tiempo real)" })).toHaveClass("map-marker--live");
+        fitBoundsMock.mockClear();
+        rerender(<MapView markers={MARKERS} live={{ lat: 40.31, lon: -3.74 }} />);
+        expect(fitBoundsMock).not.toHaveBeenCalled();
+        expect(screen.getByText("Estás aquí (en tiempo real)", { selector: "li" })).toBeInTheDocument();
+    });
+
+    it("sin WebGL el esquema tambien marca Estas aqui", () => {
+        const { container } = render(<MapView markers={MARKERS} live={{ lat: 40.306, lon: -3.733 }} />);
+        expect(container.querySelector(".map-view__live")).not.toBeNull();
     });
 });

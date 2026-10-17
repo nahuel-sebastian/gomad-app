@@ -2,6 +2,8 @@ import { useEffect, useRef, useState } from "react";
 import { Link, Navigate, useNavigate } from "react-router";
 import type { Recommendation } from "../api/types";
 import { ApiError } from "../data/errors";
+import { BROWSER_LOCATION_LABEL, municipalityAt } from "../data/geolocation";
+import { distanceM, LIVE_OFFER_DISTANCE_M, useLivePosition } from "../data/livePosition";
 import { recommend } from "../data/recommend";
 import { useAsync } from "../data/useAsync";
 import { formatDistance, formatHour, formatMinutes, formatScore } from "../lib/format";
@@ -88,7 +90,22 @@ function ResultCard({ item, index }: { item: Recommendation; index: number }) {
 
 export default function Results() {
     const navigate = useNavigate();
-    const { origin, search, preferences, setResults, setMedicalDisclaimer } = useAppState();
+    const { origin, search, preferences, setResults, setMedicalDisclaimer, setOrigin } = useAppState();
+    // «Estas aqui» en tiempo real (C2): solo si la ubicacion vino del GPS o el permiso ya estaba dado
+    const live = useLivePosition(origin?.label === BROWSER_LOCATION_LABEL);
+    const movedM = live && origin ? distanceM(live, origin.coordinate) : 0;
+    // no se recalcula solo: se ofrece buscar desde la nueva posicion
+    const searchFromHere = async () => {
+        if (!live || !origin) return;
+        const place = await municipalityAt(live.lat, live.lon);
+        setOrigin({
+            label: BROWSER_LOCATION_LABEL,
+            municipality: place?.name ?? origin.municipality,
+            ine_code: place?.ine_code ?? origin.ine_code,
+            coordinate: live,
+            precision: "address",
+        });
+    };
     const [isSheetExpanded, setIsSheetExpanded] = useState(false);
     const [isAdjusting, setIsAdjusting] = useState(false);
     const sheetRef = useRef<HTMLDivElement>(null);
@@ -392,6 +409,16 @@ export default function Results() {
                 <MapView
                     className="map-demo"
                     explore
+                    live={live}
+                    overlay={
+                        movedM >= LIVE_OFFER_DISTANCE_M && (
+                            <div className="map-live-offer" role="status">
+                                <button type="button" className="button button--primary" onClick={searchFromHere}>
+                                    {`Te has alejado ${formatDistance(movedM)}: buscar desde aquí`}
+                                </button>
+                            </div>
+                        )
+                    }
                     origin={origin.coordinate}
                     selectedId={selectedId}
                     onSelect={focusCard}
