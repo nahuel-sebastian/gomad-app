@@ -1,4 +1,7 @@
 import { lineCoordinates, type LonLat } from "../lib/geometry";
+import type { MapPoint, MapPointKind } from "../api/types";
+import type { Bbox } from "../data/mapPoints";
+import { DESTINATION_KINDS, KIND_STYLES, POI_KINDS } from "./mapIcons";
 import type { MapViewProps } from "./MapView";
 
 // Funciones del mapa sin React (aparte para que MapView y MapCanvas solo exporten componentes)
@@ -83,4 +86,87 @@ export function hasWebGL(): boolean {
     } catch {
         return false;
     }
+}
+
+// --- Mapa explorable (C2) ---
+// Criterio propio. A zoom 13 un movil ve unos 3 km de ancho: por debajo no se pide nada (solo los
+// resultados numerados). Desde el 15 (~800 m) se piden tambien los puntos utiles, que son muchos
+// (en el centro de Madrid, mas de mil bancos). La API recorta la caja y limita los puntos (config/map.yaml).
+export const NEARBY_MIN_ZOOM = 13;
+export const POI_MIN_ZOOM = 15;
+// espera tras dejar de mover el mapa antes de pedir los puntos
+export const NEARBY_DEBOUNCE_MS = 300;
+
+export interface ViewBounds {
+    west: number;
+    south: number;
+    east: number;
+    north: number;
+}
+
+export interface NearbyRequest {
+    bbox: Bbox;
+    kinds: MapPointKind[];
+}
+
+// Que pedir a /map/points para esta vista; null si hay poco zoom
+export function nearbyRequest(zoom: number, bounds: ViewBounds): NearbyRequest | null {
+    if (zoom < NEARBY_MIN_ZOOM) return null;
+    const kinds = zoom >= POI_MIN_ZOOM ? [...DESTINATION_KINDS, ...POI_KINDS] : [...DESTINATION_KINDS];
+    return { bbox: [bounds.west, bounds.south, bounds.east, bounds.north], kinds };
+}
+
+export interface NearbyProperties {
+    id: string;
+    kind: MapPointKind;
+    name: string | null;
+    working: boolean | null;
+    // imagen del pin en MapLibre: pin-<tipo> o pin-off-<tipo> (fuera de servicio)
+    icon: string;
+}
+
+export interface NearbyFeatureCollection {
+    type: "FeatureCollection";
+    features: {
+        type: "Feature";
+        geometry: { type: "Point"; coordinates: [number, number] };
+        properties: NearbyProperties;
+    }[];
+}
+
+// GeoJSON para la fuente agrupada de MapLibre, sin los destinos que ya tienen pin numerado
+export function nearbyFeatures(points: MapPoint[], excludeIds: string[]): NearbyFeatureCollection {
+    const skip = new Set(excludeIds);
+    return {
+        type: "FeatureCollection",
+        features: points
+            .filter((p) => !skip.has(p.id))
+            .map((p) => ({
+                type: "Feature" as const,
+                geometry: { type: "Point" as const, coordinates: [p.coordinate.lon, p.coordinate.lat] as [number, number] },
+                properties: {
+                    id: p.id,
+                    kind: p.kind,
+                    name: p.name,
+                    working: p.working,
+                    icon: `${p.working === false ? "pin-off-" : "pin-"}${p.kind}`,
+                },
+            })),
+    };
+}
+
+// Texto del punto pulsado: «Tipo: nombre» y si una fuente esta fuera de servicio
+export function pointInfo(p: Partial<NearbyProperties>): string {
+    const label = p.kind && p.kind in KIND_STYLES ? KIND_STYLES[p.kind].label : "Lugar";
+    return `${label}${p.name ? `: ${p.name}` : ""}${p.working === false ? " (fuera de servicio)" : ""}`;
+}
+
+// «Lugares a la vista» (equivalente con teclado de los puntos del mapa): los N mas cercanos al
+// centro de la vista pedida. Criterio propio: 8 caben en la pantalla de un movil sin desplazarse.
+export const NEARBY_LIST_SIZE = 8;
+
+export function closestPoints(points: MapPoint[], center: { lat: number; lon: number }, n: number): MapPoint[] {
+    const k = Math.cos((center.lat * Math.PI) / 180);
+    const d = (p: MapPoint) => ((p.coordinate.lon - center.lon) * k) ** 2 + (p.coordinate.lat - center.lat) ** 2;
+    return [...points].sort((a, b) => d(a) - d(b) || a.id.localeCompare(b.id)).slice(0, n);
 }

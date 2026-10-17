@@ -17,6 +17,7 @@ from live import build_live
 from live.store import validate_realtime
 from repository import DataUnavailable, Repository
 from routing.store import GraphStore
+from services import map_points as map_points_service
 from services import municipality as municipality_service
 from services import recommend as recommend_service
 from services import route as route_service
@@ -38,6 +39,7 @@ async def lifespan(app: FastAPI):
     validate_weights(settings.load("weights")["defaults"])
     municipality_service.validate_fit(settings.load("indicators"),
                                       [a["id"] for a in settings.load("activities")["activities"]])
+    map_points_service.validate_map_config(settings.load("map"))
     realtime = settings.load("realtime")
     validate_realtime(realtime)
     t0 = time.perf_counter()
@@ -161,3 +163,21 @@ def assistant_route(request: s.AssistantRouteRequest):
 @app.get("/sources", response_model=s.SourcesResponse)
 def sources(repo: Repository = Depends(get_repo)):
     return sources_service.sources(repo, repo.main.parent)
+
+
+def get_map_config() -> dict:
+    return settings.load("map")
+
+
+@app.get("/map/points", response_model=s.MapPointsResponse)
+def map_points(bbox: str = Query(max_length=200, description="Caja visible del mapa: oeste,sur,este,norte (EPSG:4326)"),
+               kinds: list[s.MapPointKind] = Query(default=list(get_args(s.MapDestinationKind)),
+                                                   description="Tipos de punto; por defecto, los de destino"),
+               repo: Repository = Depends(get_repo), cfg: dict = Depends(get_map_config)):
+    # la caja es la de la vista del mapa, no la ubicacion de la persona; aun asi no se escribe en los logs
+    try:
+        return map_points_service.map_points(bbox, kinds, repo, cfg)
+    except map_points_service.InvalidBbox as e:
+        raise HTTPException(status_code=422, detail=str(e))
+    except DataUnavailable as e:
+        raise HTTPException(status_code=503, detail=str(e))

@@ -1,0 +1,9 @@
+# Puntos del mapa explorable (GET /map/points, correccion C2 del 17/10). Criterio propio: sin fuente oficial.
+own_criterion: true
+# lado maximo de la caja pedida, en grados (0,3 grados ~ 25 km de este a oeste en Madrid); una caja mayor se
+# recorta alrededor de su centro. A zoom 13 un movil ve ~0,03 grados y un portatil ~0,2
+max_span_deg: 0.3
+# tope de puntos por respuesta (los mas cercanos al centro de la caja); el front los agrupa en clusters
+max_points: 1500
+# actividad del catalogo (activities.yaml) que convierte una instalacion en «piscina» para el icono del mapa
+pool_activity: swim

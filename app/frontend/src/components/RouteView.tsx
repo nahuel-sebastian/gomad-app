@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { Link, Navigate, useParams } from "react-router";
 import type { PoiType, RouteVariant } from "../api/types";
+import { BROWSER_LOCATION_LABEL } from "../data/geolocation";
+import { useLivePosition } from "../data/livePosition";
 import { getRoute } from "../data/route";
 import { useAsync } from "../data/useAsync";
 import { formatDistance, formatMinutes } from "../lib/format";
@@ -9,6 +11,7 @@ import { NO_SEARCH_NOTICE } from "../lib/texts";
 import { useAppState } from "../state/context";
 import ErrorMessage from "./ErrorMessage";
 import Icon from "./Icon";
+import { destinationKind } from "./mapIcons";
 import MapView from "./MapView";
 import PageHeading from "./PageHeading";
 import SourceList from "./SourceList";
@@ -30,6 +33,8 @@ function poiSummary(variant: RouteVariant): string[] {
 export default function RouteView() {
     const { id = "" } = useParams();
     const { origin, results, preferences } = useAppState();
+    // «Estas aqui» en tiempo real mientras se ve la ruta (C2); no recalcula la ruta
+    const live = useLivePosition(origin?.label === BROWSER_LOCATION_LABEL);
     const item = results.find((r) => r.destination.id === id);
     const [kind, setKind] = useState<"healthy" | "direct">("healthy");
     const [announcement, setAnnouncement] = useState("");
@@ -124,6 +129,8 @@ export default function RouteView() {
                         <div className="route-map">
                             <MapView
                                 className="map-view--block"
+                                explore
+                                live={live}
                                 origin={origin.coordinate}
                                 route={variant.geometry}
                                 secondaryRoute={other?.geometry}
@@ -133,6 +140,7 @@ export default function RouteView() {
                                         number: 1,
                                         name: item.destination.name,
                                         coordinate: item.destination.coordinate,
+                                        kind: destinationKind(item.destination.type),
                                     },
                                 ]}
                                 selectedId={item.destination.id}
