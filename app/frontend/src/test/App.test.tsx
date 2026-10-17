@@ -12,7 +12,7 @@ describe("diseno comun", () => {
             screen.getByRole("link", { name: "Saltar al contenido" }),
         ).toHaveAttribute("href", "#contenido");
         expect(screen.getByRole("main")).toHaveAttribute("id", "contenido");
-        await screen.findAllByRole("button", { name: /Caminar/ });
+        expect(screen.getByRole("heading", { name: "¿Desde dónde sales?" })).toBeInTheDocument();
         await expectNoAxeViolations(container);
     });
 

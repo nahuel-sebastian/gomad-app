@@ -106,7 +106,7 @@ describe("Perfil", () => {
     });
 
     it("el resumen de Inicio refleja los cambios", async () => {
-        const { user } = renderAt("/perfil");
+        const { user } = renderAt("/perfil", { origin: SAMPLE_ORIGIN });
         await user.click(screen.getByRole("radio", { name: "Interior" }));
         const nav = screen.getByRole("navigation", { name: "Principal" });
         await user.click(within(nav).getByRole("link", { name: "Mi entorno" }));
@@ -150,7 +150,7 @@ describe("Ajustar como dialogo", () => {
     });
 
     it("«Tus preferencias» en Inicio lleva al perfil", async () => {
-        const { user } = renderAt("/");
+        const { user } = renderAt("/", { origin: SAMPLE_ORIGIN });
         await user.click(screen.getByRole("link", { name: /^Tus preferencias/ }));
         expect(await screen.findByRole("heading", { level: 1, name: "Tus preferencias" })).toBeInTheDocument();
     });

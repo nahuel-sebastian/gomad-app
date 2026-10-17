@@ -19,7 +19,7 @@ describe("Inicio", () => {
         render(
             <StrictMode>
                 <MemoryRouter initialEntries={["/"]}>
-                    <AppStateProvider><AppRoutes /></AppStateProvider>
+                    <AppStateProvider init={{ origin: SAMPLE_ORIGIN }}><AppRoutes /></AppStateProvider>
                 </MemoryRouter>
             </StrictMode>,
         );
@@ -36,7 +36,7 @@ describe("Inicio", () => {
     });
 
     it("pinta las 8 actividades del catalogo como botones en una lista", async () => {
-        const { container } = renderAt("/");
+        const { container } = renderAt("/", { origin: SAMPLE_ORIGIN });
         const list = await screen.findByRole("list", { name: "Actividades" });
         expect(within(list).getAllByRole("button")).toHaveLength(8);
         expect(
@@ -56,7 +56,7 @@ describe("Inicio", () => {
         const spy = vi
             .spyOn(activitiesApi, "getActivities")
             .mockRejectedValueOnce(new Error("caida"));
-        const { user } = renderAt("/");
+        const { user } = renderAt("/", { origin: SAMPLE_ORIGIN });
         expect(
             await screen.findByText("No se pudieron cargar las actividades."),
         ).toBeInTheDocument();
@@ -67,21 +67,19 @@ describe("Inicio", () => {
         expect(spy).toHaveBeenCalledTimes(2);
     });
 
-    it("sin ubicacion, pide la ubicacion y despues va a resultados", async () => {
+    it("sin ubicacion muestra el buscador y preferencias; al activarla aparecen las demás opciones", async () => {
         const { user } = renderAt("/");
-        await user.click(await screen.findByRole("button", { name: "Correr" }));
-        expect(
-            screen.getByText(/Antes, dinos dónde estás/),
-        ).toBeInTheDocument();
+        expect(screen.getByRole("heading", { name: "¿Desde dónde sales?" })).toBeInTheDocument();
+        expect(screen.queryByRole("heading", { name: "Elige una actividad" })).not.toBeInTheDocument();
+        expect(screen.queryByRole("button", { name: /Sorpréndeme/ })).not.toBeInTheDocument();
+        expect(screen.queryByRole("link", { name: /Asistente de rutas/ })).not.toBeInTheDocument();
+        expect(screen.getByRole("link", { name: /Tus preferencias/ })).toHaveAttribute("href", "/perfil");
         await user.click(
             screen.getByRole("button", { name: "Usar mi ubicación" }),
         );
-        expect(
-            await screen.findByRole("heading", {
-                level: 1,
-                name: "Correr cerca de ti",
-            }),
-        ).toBeInTheDocument();
+        expect(await screen.findByRole("button", { name: "Correr" })).toBeInTheDocument();
+        expect(screen.getByRole("button", { name: /Sorpréndeme/ })).toBeInTheDocument();
+        expect(screen.getByRole("link", { name: /Asistente de rutas/ })).toBeInTheDocument();
     });
 
     it("con ubicacion, una actividad lleva directo a resultados", async () => {
@@ -150,6 +148,7 @@ describe("Inicio", () => {
         expect(
             await screen.findByText("Usaremos el centro de Getafe."),
         ).toBeInTheDocument();
+        expect(await screen.findByRole("heading", { name: "Elige una actividad" })).toBeInTheDocument();
         await expectNoAxeViolations(container);
     });
 
@@ -177,7 +176,7 @@ describe("Inicio", () => {
     });
 
     it("hace que toda la tarjeta de preferencias enlace al perfil y la compone como Sorpréndeme", () => {
-        renderAt("/");
+        renderAt("/", { origin: SAMPLE_ORIGIN });
         expect(
             screen.getByText("45 min · hasta 3 km · interior o exterior"),
         ).toBeInTheDocument();
@@ -194,7 +193,7 @@ describe("Inicio", () => {
     });
 
     it("enlaza con el asistente de rutas", () => {
-        renderAt("/");
+        renderAt("/", { origin: SAMPLE_ORIGIN });
         const assistantCard = screen.getByRole("link", { name: /Asistente de rutas/ });
         expect(assistantCard).toHaveAttribute("href", "/asistente");
         expect(assistantCard).toHaveClass("surprise", "assistant-link");

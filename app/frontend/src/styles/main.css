@@ -194,6 +194,10 @@
     .home__secondary {
       grid-template-columns: repeat(3, minmax(0, 1fr));
     }
+
+    .home__secondary--single {
+      grid-template-columns: 1fr;
+    }
   }
 }
 
