@@ -203,3 +203,32 @@ def test_location_municipality_name_as_street_with_type_or_number(data):
     out = Geocoder(data).search("calle getafe 2")
     assert out[0] == {"label": "Calle Getafe 2, Madrid", "municipality": "Madrid", "ine_code": "28079",
                       "coordinate": {"lat": 40.39, "lon": -3.71}, "precision": "address"}
+
+
+@pytest.mark.slow
+def test_location_real_partial_and_order():
+    if not (DATA_DIR / "clean" / "addresses.parquet").exists():
+        pytest.skip("sin clean/addresses.parquet (python -m normalize addresses en ingest)")
+    import time
+    g = Geocoder(DATA_DIR)
+    g.search("getafe")                                                   # carga los indices una vez
+    slowest = 0.0
+
+    def timed(text):
+        nonlocal slowest
+        t0 = time.perf_counter()
+        out = g.search(text)
+        slowest = max(slowest, time.perf_counter() - t0)
+        return out
+    out = timed("geta")
+    assert out[0]["label"] == "Getafe" and out[0]["precision"] == "municipality" and len(out) > 1
+    out = timed("getafe")
+    assert out[0]["precision"] == "municipality" and any(c["precision"] == "street" for c in out)
+    out = timed("mayor getafe")
+    assert out[0]["ine_code"] == "28065" and out[0]["precision"] == "street" and "Mayor" in out[0]["label"]
+    out = timed("calle toledo")
+    assert out[0]["label"] == "Calle de Toledo, Madrid" and len({c["ine_code"] for c in out}) >= 3
+    out = timed("san")
+    assert out[0]["label"].startswith("San ") and any(c["precision"] == "street" for c in out)
+    assert timed("calle madrid 10 getafe")[0]["label"] == "Calle Madrid 10, Getafe"
+    assert slowest < 1.0
