@@ -178,9 +178,12 @@ def test_municipality_179_respond(real):
         data = r.json()
         assert [i["key"] for i in data["indicators"]] == KEYS and data["population"] > 0
         values[code] = {i["key"]: i["value"] for i in data["indicators"]}
-    assert values["28079"]["green_m2_per_inhabitant"] is None      # Madrid fuera de VPLA
-    assert values["28107"]["sport_facilities"] is None             # Patones sin Nomecalles deporte
-    assert values["28065"]["sport_facilities"] == 19
+    # C3: Madrid fuera de VPLA con verde de OSM; Patones con EIEL; Getafe Nomecalles + OSM
+    assert values["28079"]["green_m2_per_inhabitant"] > 0
+    assert values["28107"]["sport_facilities"] == 4
+    assert values["28065"]["sport_facilities"] >= 19
+    nulls = {k for v in values.values() for k, x in v.items() if x is None}
+    assert nulls == {"good_3g_pct"}                                # solo la conectividad fuera de EIEL
 
 
 def fit(client, code="28065", **params):

@@ -1078,6 +1078,23 @@
     "l": []
    },
    {
+    "n": "Nomecalles: instalaciones deportivas (principal de deporte; se suman EIEL, Ayuntamiento y OSM sin duplicados a ≤ 50 m)",
+    "i": "Nomecalles · deporte",
+    "o": "NMC",
+    "l": []
+   },
+   {
+    "n": "OpenStreetMap: instalaciones deportivas (sport) y zonas verdes fuera del planeamiento (12 municipios, Madrid incluido)",
+    "i": "osm (Geofabrik madrid-latest)",
+    "o": "OSM",
+    "l": [
+     [
+      "Descarga",
+      "https://download.geofabrik.de/europe/spain/madrid.html"
+     ]
+    ]
+   },
+   {
     "n": "EIEL: núcleos (conectividad)",
     "i": "UnidadesAdministrativas:IDEM_EIEL_NUCLEOS_23",
     "o": "IDEM",
@@ -1153,7 +1170,7 @@
     ]
    }
   ],
-  "cov": "Comunidad. Movilidad: paradas de autobús en todos los municipios; metro, cercanías y bici pública donde existen. Conectividad solo en los 155 municipios de la EIEL",
+  "cov": "Comunidad. Movilidad: paradas de autobús en todos los municipios; metro, cercanías y bici pública donde existen. Conectividad solo en los 155 municipios de la EIEL. Deporte y zonas verdes por habitante en los 179 (C3, 17/10: zonas verdes del planeamiento en 167 y de OSM en los 12 sin planeamiento)",
   "cap": [
    {
     "n": "Panel de indicadores de distritos y barrios",

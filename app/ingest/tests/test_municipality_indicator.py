@@ -123,7 +123,12 @@ def test_179_by_14_in_yaml_order(db):
     for ind in cfg["indicators"]:
         rows = db.execute("SELECT DISTINCT category, unit, year, source FROM municipality_indicator WHERE key=?",
                           [ind["key"]]).fetchall()
-        assert rows == [(ind["category"], ind["unit"], ind["year"], ind["source"][0])]
+        if "complement" in ind:      # C3: fuente por municipio (principal o complementaria primero)
+            allowed = set(ind["source"]) | set(ind["complement"])
+            assert {r[:2] for r in rows} == {(ind["category"], ind["unit"])}
+            assert all(set(r[3].split(",")) <= allowed for r in rows), rows
+        else:
+            assert rows == [(ind["category"], ind["unit"], ind["year"], ind["source"][0])]
     zero_keys = [i["key"] for i in cfg["indicators"] if i["no_rows"] == "zero"]
     nulls = db.execute(f"SELECT count(*) FROM municipality_indicator WHERE value IS NULL AND key IN "
                        f"({', '.join('?' * len(zero_keys))})", zero_keys).fetchone()[0]
@@ -131,20 +136,24 @@ def test_179_by_14_in_yaml_order(db):
 
 
 @pytest.mark.slow
-def test_patones_without_nomecalles_is_null(db):
-    assert value(db, "28107", "sport_facilities") is None          # Patones: NULL, no 0
-    assert value(db, "28107", "sport_facilities_per_1000") is None
-    assert value(db, "28065", "sport_facilities") > 0
+def test_patones_sport_from_eiel(db):
+    # C3: Patones no tiene filas de Nomecalles con su CMUN, pero si 4 instalaciones en EIEL
+    assert value(db, "28107", "sport_facilities") == 4
+    assert db.execute("SELECT source FROM municipality_indicator WHERE ine_code='28107' AND key='sport_facilities'"
+                      ).fetchone() == ("eiel_deporte",)
+    assert value(db, "28065", "sport_facilities") >= 19             # Getafe: al menos lo de Nomecalles
+    assert value(db, "28079", "sport_facilities") > 596             # Madrid: Nomecalles + Ayuntamiento + OSM
 
 
 @pytest.mark.slow
-def test_green_null_outside_vpla(db):
-    assert value(db, "28079", "green_m2_per_inhabitant") is None   # Madrid, sin VPLA
-    assert value(db, "28065", "green_m2_per_inhabitant") > 0       # Getafe
+def test_green_vpla_unchanged_osm_outside(db):
+    assert value(db, "28065", "green_m2_per_inhabitant") == pytest.approx(172.788, abs=0.01)   # Getafe, VPLA
     assert value(db, "28016", "green_m2_per_inhabitant") == 0      # en VPLA sin zonas verdes: 0, no «sin datos»
-    leaked = db.execute("SELECT count(*) FROM municipality_indicator i JOIN municipality m USING (ine_code) "
-                        "WHERE i.key='green_m2_per_inhabitant' AND NOT m.in_vpla AND i.value IS NOT NULL").fetchone()[0]
-    assert leaked == 0
+    assert value(db, "28079", "green_m2_per_inhabitant") > 0       # Madrid, sin VPLA: OSM (C3)
+    by_vpla = db.execute("SELECT m.in_vpla, i.source, i.year, count(*) FROM municipality_indicator i "
+                         "JOIN municipality m USING (ine_code) WHERE i.key='green_m2_per_inhabitant' "
+                         "AND i.value IS NOT NULL GROUP BY ALL ORDER BY 1").fetchall()
+    assert by_vpla == [(False, "osm", None, 12), (True, "vpla_redes", 2025, 167)]
 
 
 @pytest.mark.slow
@@ -155,8 +164,8 @@ def test_health_centres_total(db):
 
 @pytest.mark.slow
 @pytest.mark.parametrize("key, covered", [
-    ("sport_facilities", 178), ("sport_facilities_per_1000", 178), ("catalog_activities", 179),
-    ("green_m2_per_inhabitant", 167),   # ficha: 162; hoy in_vpla = 167 (Ruling)
+    ("sport_facilities", 179), ("sport_facilities_per_1000", 179), ("catalog_activities", 179),   # C3: + EIEL
+    ("green_m2_per_inhabitant", 179),   # C3: 167 de VPLA + 12 de OSM
     ("drove_roads_km", 171),            # ficha: 169 (Ruling: 28077 y 289xx por cruce espacial)
     ("recreation_areas", 55), ("bus_stops_per_1000", 179),
     ("rail_stations", 39),              # ficha: metro 15, cercanias 33 (hoy 34); union 39
