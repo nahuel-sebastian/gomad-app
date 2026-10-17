@@ -11,20 +11,38 @@
 
 population_year: 2025   # padron (clean/population.parquet) para las tasas por 1.000 hab.
 
+# Zonas verdes por habitante fuera de VPLA (Task 175, verificador C3): solo parques de OSM, sin bosque ni pradera
+# (el verde de destinos y rutas usa routing.yaml osm_green, que si los incluye). osm_green.py escribe
+# clean/osm_parks.parquet con estas etiquetas; cambiarlas exige volver a ejecutarlo.
+osm_parks:
+  own_criterion: true
+  source: "Criterio propio del equipo (17/10): parques urbanos comparables con las zonas verdes del planeamiento"
+  tags:
+    leisure: [park, garden, playground]
+    landuse: [recreation_ground, village_green]
+
 indicators:
-  # n.º de filas por CMUN
+  # complement (C3, 17/10): fuentes que solo se usan donde aportan; la fila cita las que de verdad usa.
+  # n.º de destinos «facility» por municipio: Nomecalles + EIEL + Ayto. + OSM (CLAUDE.md §7.3), sin contar dos
+  # veces un punto a <= dedupe_radius_m de otro de una fuente anterior, ni a <= same_name_radius_m de uno con el
+  # mismo nombre (build_db.sport_union). Ojo: los dos radios son de recommend.yaml; tocarlos alli cambia tambien
+  # este indicador
   - {key: sport_facilities, category: sport, label: "Instalaciones deportivas",
-     source: [nmc_deporte], unit: "instalaciones", unit_one: "instalación", no_rows: "null", year: null}
-  # n.º de filas por CMUN / poblacion x 1000
+     source: [nmc_deporte], complement: [eiel_deporte, ay_polideportivos, ay_piscinas, ay_idb, osm],
+     unit: "instalaciones", unit_one: "instalación", no_rows: "null", year: null}
+  # lo mismo / poblacion x 1000
   - {key: sport_facilities_per_1000, category: sport, label: "Instalaciones deportivas por 1.000 hab.",
-     source: [nmc_deporte, padron], unit: "por 1.000 hab.", no_rows: "null", year: null}
+     source: [nmc_deporte, padron], complement: [eiel_deporte, ay_polideportivos, ay_piscinas, ay_idb, osm],
+     unit: "por 1.000 hab.", no_rows: "null", year: null}
   # n.º de las actividades de activities.yaml con al menos un destino en el municipio; «de 8» debe ser el
   # n.º de actividades de activities.yaml (indicators.load lo comprueba)
   - {key: catalog_activities, category: sport, label: "Actividades del catálogo disponibles",
      source: [destination_activity], unit: "de 8", no_rows: "zero", year: null}
-  # suma de area_m2 de clean/green.parquet / poblacion; NULL fuera de VPLA
+  # suma de area_m2 de clean/green.parquet / poblacion en los municipios de VPLA (year 2025); fuera de VPLA, area
+  # de la union de los parques de clean/osm_parks.parquet (osm_parks, arriba) dentro del municipio (fuente osm,
+  # year null). NULL solo si no hay ninguno de los dos
   - {key: green_m2_per_inhabitant, category: nature, label: "Zonas verdes por habitante",
-     source: [vpla_redes, padron], unit: "m²/hab.", no_rows: "null", year: 2025}
+     source: [vpla_redes, padron], complement: [osm], unit: "m²/hab.", no_rows: "null", year: 2025}
   # suma de NM_LONG / 1000 (metros) por CD_MUNI; los CD_MUNI que no son de los 179 (28077 y 28906-28912)
   # por cruce espacial (Task 35)
   - {key: drove_roads_km, category: nature, label: "Vías pecuarias",

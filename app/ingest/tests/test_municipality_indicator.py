@@ -1,4 +1,5 @@
 import duckdb
+import geopandas as gpd
 import pandas as pd
 import pytest
 import yaml
@@ -27,6 +28,72 @@ def test_zero_rule_versus_null_rule():
     assert con.execute("SELECT count(*) FROM municipality_indicator WHERE value IS NULL").fetchone()[0] == 1
     assert con.execute("SELECT year FROM municipality_indicator WHERE key='b' AND ine_code='28065'").fetchone() == (2023,)
     assert con.execute("SELECT year FROM municipality_indicator WHERE key='a_per_1000' LIMIT 1").fetchone() == (None,)
+
+
+def test_frame_values_carry_row_source_and_year():
+    # Task 170: un DataFrame da fuente (ids separados por comas) y año por municipio; los ausentes, regla no_rows
+    frame = pd.DataFrame({"value": [7.0], "source": ["nmc_deporte,osm"], "year": [None]}, index=["28065"])
+    t = build_db.indicator_table(MINI, ["28065", "28107"], {"a_per_1000": pd.Series(dtype=float), "b": frame})
+    rows = {r.ine_code: r for r in t[t.key == "b"].itertuples()}
+    assert rows["28065"].value == 7.0 and rows["28065"].source == "nmc_deporte,osm" and pd.isna(rows["28065"].year)
+    assert pd.isna(rows["28107"].value) and rows["28107"].source == "nmc_deporte" and rows["28107"].year == 2023
+
+
+def _facilities(rows):
+    """rows: (source, ine_code, dx_m, dy_m) desde un punto de Getafe; lon/lat aproximados (1 m ~ 1e-5 grados)."""
+    return pd.DataFrame([{"id": f"{r[0]}:{i}", "source": r[0], "ine_code": r[1], "lon": -3.73 + r[2] * 1.18e-5,
+                          "lat": 40.30 + r[3] * 0.9e-5, "name": r[4] if len(r) > 4 else f"sitio {i}"}
+                         for i, r in enumerate(rows)])
+
+
+def test_sport_union_dedupes_across_sources():
+    near = build_db.sport_union(_facilities([("nmc_deporte", "28065", 0, 0), ("osm_sport", "28065", 10, 0)]), 50)
+    assert near.loc["28065", "value"] == 1 and near.loc["28065", "source"] == "nmc_deporte"
+    far = build_db.sport_union(_facilities([("nmc_deporte", "28065", 0, 0), ("osm_sport", "28065", 500, 0)]), 50)
+    assert far.loc["28065", "value"] == 2 and far.loc["28065", "source"] == "nmc_deporte,osm"   # osm_sport -> osm
+
+
+def test_sport_union_keeps_same_source_neighbours():
+    u = build_db.sport_union(_facilities([("eiel_deporte", "28065", 0, 0), ("eiel_deporte", "28065", 5, 0)]), 50)
+    assert u.loc["28065", "value"] == 2 and u.loc["28065", "source"] == "eiel_deporte"
+
+
+def test_sport_union_dedupes_only_within_municipality():
+    # Nomecalles con CMUN de Parla junto a la EIEL de Patones: no se come la de Patones
+    u = build_db.sport_union(_facilities([("nmc_deporte", "28106", 0, 0), ("eiel_deporte", "28107", 10, 0)]), 50)
+    assert u.loc["28107", "value"] == 1 and u.loc["28107", "source"] == "eiel_deporte"
+    assert u.loc["28106", "value"] == 1
+
+
+def test_osm_green_area_counts_overlap_once_and_clips():
+    from shapely.geometry import box
+    muni = gpd.GeoDataFrame({"ine_code": ["28079"]}, geometry=[box(0, 0, 1000, 1000)], crs=25830)
+    green = gpd.GeoDataFrame(geometry=[box(100, 100, 200, 200), box(150, 100, 250, 200),   # solapados al 50 %
+                                       box(950, 500, 1050, 600)], crs=25830)            # mitad fuera
+    area = build_db.osm_green_area(muni.to_crs(4326), green.to_crs(4326))
+    assert area["28079"] == pytest.approx(15_000 + 5_000, rel=1e-3)
+
+
+def test_osm_green_area_none_is_empty():
+    from shapely.geometry import box
+    muni = gpd.GeoDataFrame({"ine_code": ["28079"]}, geometry=[box(-3.8, 40.3, -3.6, 40.5)], crs=4326)
+    assert build_db.osm_green_area(muni, None).empty
+    far = gpd.GeoDataFrame(geometry=[box(2.0, 41.0, 2.1, 41.1)], crs=4326)       # no toca el municipio
+    assert build_db.osm_green_area(muni, far).empty
+
+
+def test_load_osm_parks_missing_is_none(tmp_path):
+    assert build_db.load_osm_parks(tmp_path / "osm_parks.parquet") is None
+
+
+def test_sport_union_same_name_within_300m():
+    # Task 176: mismo nombre (sin tildes ni mayusculas) de otra fuente a <= 300 m = misma instalacion
+    same = [("ay_idb", "28079", 0, 0, "IDB Luis Buitrago"), ("osm_sport", "28079", 120, 0, "idb  luis buitrágo")]
+    assert build_db.sport_union(_facilities(same), 50, 300).loc["28079", "value"] == 1
+    other = [("ay_idb", "28079", 0, 0, "IDB Luis Buitrago"), ("osm_sport", "28079", 120, 0, "Pista Norte")]
+    assert build_db.sport_union(_facilities(other), 50, 300).loc["28079", "value"] == 2
+    far = [("ay_idb", "28079", 0, 0, "IDB Luis Buitrago"), ("osm_sport", "28079", 400, 0, "IDB Luis Buitrago")]
+    assert build_db.sport_union(_facilities(far), 50, 300).loc["28079", "value"] == 2
 
 
 def test_indicator_without_calculation_fails_readably():
@@ -71,7 +138,12 @@ def test_179_by_14_in_yaml_order(db):
     for ind in cfg["indicators"]:
         rows = db.execute("SELECT DISTINCT category, unit, year, source FROM municipality_indicator WHERE key=?",
                           [ind["key"]]).fetchall()
-        assert rows == [(ind["category"], ind["unit"], ind["year"], ind["source"][0])]
+        if "complement" in ind:      # C3: fuente por municipio (principal o complementaria primero)
+            allowed = set(ind["source"]) | set(ind["complement"])
+            assert {r[:2] for r in rows} == {(ind["category"], ind["unit"])}
+            assert all(set(r[3].split(",")) <= allowed for r in rows), rows
+        else:
+            assert rows == [(ind["category"], ind["unit"], ind["year"], ind["source"][0])]
     zero_keys = [i["key"] for i in cfg["indicators"] if i["no_rows"] == "zero"]
     nulls = db.execute(f"SELECT count(*) FROM municipality_indicator WHERE value IS NULL AND key IN "
                        f"({', '.join('?' * len(zero_keys))})", zero_keys).fetchone()[0]
@@ -79,20 +151,28 @@ def test_179_by_14_in_yaml_order(db):
 
 
 @pytest.mark.slow
-def test_patones_without_nomecalles_is_null(db):
-    assert value(db, "28107", "sport_facilities") is None          # Patones: NULL, no 0
-    assert value(db, "28107", "sport_facilities_per_1000") is None
-    assert value(db, "28065", "sport_facilities") > 0
+def test_patones_sport_from_eiel(db):
+    # C3: Patones no tiene filas de Nomecalles con su CMUN, pero si 4 instalaciones en EIEL
+    assert value(db, "28107", "sport_facilities") == 4
+    assert db.execute("SELECT source FROM municipality_indicator WHERE ine_code='28107' AND key='sport_facilities'"
+                      ).fetchone() == ("eiel_deporte",)
+    assert value(db, "28065", "sport_facilities") >= 19             # Getafe: al menos lo de Nomecalles
+    assert value(db, "28079", "sport_facilities") > 596             # Madrid: Nomecalles + Ayuntamiento + OSM
 
 
 @pytest.mark.slow
-def test_green_null_outside_vpla(db):
-    assert value(db, "28079", "green_m2_per_inhabitant") is None   # Madrid, sin VPLA
-    assert value(db, "28065", "green_m2_per_inhabitant") > 0       # Getafe
+def test_green_vpla_unchanged_osm_outside(db):
+    assert value(db, "28065", "green_m2_per_inhabitant") == pytest.approx(172.788, abs=0.01)   # Getafe, VPLA
     assert value(db, "28016", "green_m2_per_inhabitant") == 0      # en VPLA sin zonas verdes: 0, no «sin datos»
-    leaked = db.execute("SELECT count(*) FROM municipality_indicator i JOIN municipality m USING (ine_code) "
-                        "WHERE i.key='green_m2_per_inhabitant' AND NOT m.in_vpla AND i.value IS NOT NULL").fetchone()[0]
-    assert leaked == 0
+    assert value(db, "28079", "green_m2_per_inhabitant") > 0       # Madrid, sin VPLA: OSM (C3)
+    by_vpla = db.execute("SELECT m.in_vpla, i.source, i.year, count(*) FROM municipality_indicator i "
+                         "JOIN municipality m USING (ine_code) WHERE i.key='green_m2_per_inhabitant' "
+                         "AND i.value IS NOT NULL GROUP BY ALL ORDER BY 1").fetchall()
+    assert by_vpla == [(False, "osm", None, 12), (True, "vpla_redes", 2025, 167)]
+    # Task 175: fuera de VPLA solo parques de OSM (sin bosque ni pradera)
+    assert 30 < value(db, "28068", "green_m2_per_inhabitant") < 70      # Guadarrama ~46,7 (con bosque 1.516)
+    assert value(db, "28040", "green_m2_per_inhabitant") < 10           # Ciempozuelos ~3,8 (con bosque 1.343)
+    assert 10 < value(db, "28079", "green_m2_per_inhabitant") < 20      # Madrid ~13,7
 
 
 @pytest.mark.slow
@@ -103,8 +183,8 @@ def test_health_centres_total(db):
 
 @pytest.mark.slow
 @pytest.mark.parametrize("key, covered", [
-    ("sport_facilities", 178), ("sport_facilities_per_1000", 178), ("catalog_activities", 179),
-    ("green_m2_per_inhabitant", 167),   # ficha: 162; hoy in_vpla = 167 (Ruling)
+    ("sport_facilities", 179), ("sport_facilities_per_1000", 179), ("catalog_activities", 179),   # C3: + EIEL
+    ("green_m2_per_inhabitant", 179),   # C3: 167 de VPLA + 12 de OSM
     ("drove_roads_km", 171),            # ficha: 169 (Ruling: 28077 y 289xx por cruce espacial)
     ("recreation_areas", 55), ("bus_stops_per_1000", 179),
     ("rail_stations", 39),              # ficha: metro 15, cercanias 33 (hoy 34); union 39

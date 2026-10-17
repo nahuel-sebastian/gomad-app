@@ -43,6 +43,9 @@ def _check_indicator(ind, n, activities_count):
         _fail(f"el indicador «{name}» tiene no_rows «{ind['no_rows']}»; debe ser {' o '.join(NO_ROWS)}")
     if not isinstance(ind["source"], list) or not ind["source"]:
         _fail(f"el indicador «{name}» necesita «source» como lista de ids de fuente")
+    if "complement" in ind and (not isinstance(ind["complement"], list) or not ind["complement"]
+                                or not all(isinstance(x, str) and x for x in ind["complement"])):
+        _fail(f"el indicador «{name}» tiene «complement» {ind['complement']!r}; debe ser una lista de ids de fuente")
     if ind["year"] is not None and (isinstance(ind["year"], bool) or not isinstance(ind["year"], int)):
         _fail(f"el indicador «{name}» tiene «year» {ind['year']!r}; debe ser un año o null")
     if "unit_one" in ind and (not isinstance(ind["unit_one"], str) or not ind["unit_one"].strip()):
@@ -95,6 +98,14 @@ def validate(config, activities_count=None):
         seen.add(ind["key"])
     if not seen:
         _fail("no hay indicadores")
+    parks = config.get("osm_parks")
+    if parks is not None:
+        if not isinstance(parks, dict) or parks.get("own_criterion") is not True:
+            _fail("osm_parks: es criterio propio y debe llevar «own_criterion: true»")
+        tags = parks.get("tags")
+        if not isinstance(tags, dict) or not tags or not all(
+                isinstance(v, list) and v and all(isinstance(x, str) for x in v) for v in tags.values()):
+            _fail("osm_parks: «tags» debe ser un mapa clave de OSM -> lista de valores no vacía")
     fit = config.get("fit") or _fail("falta la sección «fit» (encaje RF-18)")
     threshold = fit.get("met_if_above")
     if isinstance(threshold, bool) or not isinstance(threshold, (int, float)):

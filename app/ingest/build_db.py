@@ -78,6 +78,12 @@ def load_osm_green(path=None):
     return gpd.read_parquet(path) if path.exists() else None
 
 
+def load_osm_parks(path=None):
+    """Parques de OSM de osm_green.py (Task 175: indicador de zonas verdes fuera de VPLA); sin fichero -> None."""
+    path = path or CLEAN / "osm_parks.parquet"
+    return gpd.read_parquet(path) if path.exists() else None
+
+
 def load_osm_poi(path=None):
     """Mobiliario de OSM de osm_poi.py (C2b); sin fichero -> None (route_poi usa las filas osm de poi.parquet)."""
     path = path or CLEAN / "osm_poi.parquet"
@@ -178,6 +184,61 @@ def per_1000(counts, pop):
     return counts / pop.reindex(counts.index) * 1000
 
 
+# instalaciones deportivas (CLAUDE.md §7.3): Nomecalles es la principal; el resto suma lo que no repite (Task 171)
+SPORT_SOURCES = ("nmc_deporte", "eiel_deporte", "ay_polideportivos", "ay_piscinas", "ay_idb", "osm_sport")
+DOWNLOAD_ID = {"osm_sport": "osm"}   # fuente de destino -> id de download_sources.py (RF-19)
+
+
+def sport_union(facilities, radius_m, same_name_radius_m=None):
+    """N.º de instalaciones por municipio uniendo SPORT_SOURCES en ese orden, sin contar dos veces la misma.
+
+    Dentro de cada municipio, un punto se descarta si esta a <= radius_m de uno ya contado de una fuente anterior,
+    o a <= same_name_radius_m de uno con el mismo nombre (sin tildes, mayusculas ni espacios de mas; Task 176);
+    los de una misma fuente no se descartan entre si (en origen son instalaciones distintas). Devuelve un
+    DataFrame indexado por ine_code con value y source (ids que aportan, separados por comas, en orden)."""
+    f = facilities[facilities["source"].isin(SPORT_SOURCES)]
+    names = f["name"] if "name" in f else pd.Series("", index=f.index)
+    g = gpd.GeoDataFrame({"source": f["source"].to_numpy(), "ine_code": f["ine_code"].to_numpy(),
+                          "p": [" ".join(_plain(n).split()) for n in names]},
+                         geometry=gpd.points_from_xy(f["lon"], f["lat"]), crs=4326).to_crs(25830)
+    reach = max(radius_m, same_name_radius_m or 0)
+    kept = []
+    for source in SPORT_SOURCES:
+        sub = g[g["source"] == source]
+        if kept and len(sub):
+            prev = pd.concat(kept)
+            near = gpd.sjoin(sub, prev[["ine_code", "p", "geometry"]], predicate="dwithin", distance=reach,
+                             how="inner", lsuffix="new", rsuffix="old")
+            d = sub.geometry.loc[near.index].distance(prev.geometry.loc[near["index_old"]], align=False)
+            same_name = (near["p_new"] == near["p_old"]) & (near["p_new"] != "") & (d.to_numpy() <= reach)
+            dup = near.index[(near["ine_code_new"] == near["ine_code_old"])          # solo en su municipio
+                             & ((d.to_numpy() <= radius_m) | (same_name & bool(same_name_radius_m)))].unique()
+            sub = sub.drop(index=dup)
+        kept.append(sub)
+    k = pd.concat(kept) if kept else g.iloc[0:0]
+    order = {s: i for i, s in enumerate(SPORT_SOURCES)}
+    out = k.groupby("ine_code").agg(value=("source", "size"), source=("source", lambda xs: ",".join(
+        DOWNLOAD_ID.get(x, x) for x in sorted(set(xs), key=order.get))))
+    out["value"] = out["value"].astype(float)
+    out["year"] = None
+    return out
+
+
+def osm_green_area(municipalities, osm_green):
+    """m2 de zona verde de OSM (union de poligonos, recortada a cada municipio, EPSG:25830); solo los municipios
+    que tocan algun poligono. Sin poligonos -> Series vacia (Task 172)."""
+    if osm_green is None or osm_green.empty:
+        return pd.Series(dtype=float)
+    m = municipalities[["ine_code", "geometry"]].to_crs(25830)
+    zones = osm_green[["geometry"]].to_crs(25830)
+    hit = gpd.sjoin(zones, m, predicate="intersects")
+    area = {}
+    for code, idx in hit.groupby("ine_code").groups.items():
+        poly = m.loc[m["ine_code"] == code, "geometry"].iloc[0]
+        area[code] = zones.loc[idx.unique(), "geometry"].union_all().intersection(poly).area
+    return pd.Series(area, dtype=float)
+
+
 def indicator_values(con, config):
     """Valor de cada indicador de DEC-09, solo en los municipios con filas en su fuente."""
     codes = {c for (c,) in con.execute("SELECT ine_code FROM municipality").fetchall()}
@@ -186,13 +247,24 @@ def indicator_values(con, config):
     if pop.empty:
         raise ValueError(f"population.parquet no tiene el año {config['population_year']} (population_year)")
 
-    sport = _count(_shp("nmc_deporte")["CMUN"].map(ine_code))
+    rec = yaml.safe_load((CONFIG_DIR / "recommend.yaml").read_text(encoding="utf-8"))
+    sport = sport_union(con.execute("SELECT id, source, name, ine_code, lon, lat FROM destination "
+                                    "WHERE type = 'facility'").df(), rec["dedupe_radius_m"], rec["same_name_radius_m"])
     catalog = con.execute("SELECT d.ine_code, count(DISTINCT a.activity) AS n FROM destination_activity a "
                           "JOIN destination d ON d.id = a.destination_id GROUP BY 1").df().set_index("ine_code")["n"]
     # DEC-09: NULL solo fuera de VPLA; un municipio de VPLA sin zonas verdes tiene 0 m2
     in_vpla = [c for (c,) in con.execute("SELECT ine_code FROM municipality WHERE in_vpla").fetchall()]
     green = gpd.read_parquet(CLEAN / "green.parquet").groupby("ine_code")["area_m2"].sum()
     green = green.reindex(in_vpla, fill_value=0.0)
+    green_year = next(i["year"] for i in config["indicators"] if i["key"] == "green_m2_per_inhabitant")
+    green = pd.DataFrame({"value": green / pop.reindex(green.index), "source": "vpla_redes", "year": green_year})
+    # fuera de VPLA, los parques de OSM (CLAUDE.md §7.3; indicators.yaml osm_parks: sin bosque ni pradera, que el
+    # verde de destinos y rutas si cuenta)
+    munis = gpd.read_parquet(CLEAN / "municipality.parquet")
+    osm = osm_green_area(munis[~munis["ine_code"].isin(in_vpla)], load_osm_parks())
+    if len(osm):
+        green = pd.concat([green, pd.DataFrame({"value": osm / pop.reindex(osm.index), "source": "osm",
+                                                "year": None})])
     vp = gpd.read_file(RAW / "vias_pecuarias" / "vias_pecuarias.geojson").set_crs(25830, allow_override=True)
     vp_code = vp["CD_MUNI"].map(ine_code).where(lambda c: c.isin(codes))
     # 28077 (codigo antiguo de 28901) y 289xx (distritos de Madrid anexionados): por su punto representativo
@@ -209,9 +281,9 @@ def indicator_values(con, config):
     by = lambda cat: _count(svc.loc[svc["category"] == cat, "ine_code"])
     return {
         "sport_facilities": sport,
-        "sport_facilities_per_1000": per_1000(sport, pop),
+        "sport_facilities_per_1000": sport.assign(value=per_1000(sport["value"], pop)),
         "catalog_activities": catalog,
-        "green_m2_per_inhabitant": green / pop.reindex(green.index),
+        "green_m2_per_inhabitant": green,
         "drove_roads_km": drove,
         "recreation_areas": _count(areas),
         "bus_stops_per_1000": per_1000(_count(bus), pop),
@@ -226,16 +298,27 @@ def indicator_values(con, config):
 
 
 def indicator_table(config, ine_codes, values):
-    """Una fila por municipio e indicador; no_rows: zero -> sin filas = 0, null -> sin filas = NULL."""
+    """Una fila por municipio e indicador; no_rows: zero -> sin filas = 0, null -> sin filas = NULL.
+
+    values[key]: Series (fuente = primera del YAML, año del YAML) o DataFrame indexado por ine_code con value,
+    source (ids separados por comas, la principal primero) y year, para los indicadores con fuente
+    complementaria (Task 170). Los municipios que no estan en el DataFrame siguen la regla no_rows.
+    """
     rows = []
     for ind in config["indicators"]:
         if ind["key"] not in values:
             raise ValueError(f"indicators.yaml cita «{ind['key']}», pero no se sabe calcular en build_db")
-        series, fill = values[ind["key"]], (0.0 if ind["no_rows"] == "zero" else None)
+        data, fill = values[ind["key"]], (0.0 if ind["no_rows"] == "zero" else None)
+        frame = data if isinstance(data, pd.DataFrame) else None
+        series = frame["value"] if frame is not None else data
         for code in ine_codes:
             v = series.get(code)
+            source, year = ind["source"][0], ind["year"]
+            if frame is not None and code in frame.index:
+                source, year = frame.at[code, "source"], frame.at[code, "year"]
+                year = None if year is None or pd.isna(year) else int(year)
             rows.append((code, ind["category"], ind["key"], fill if v is None or pd.isna(v) else float(v),
-                         ind["unit"], ind["year"], ind["source"][0]))
+                         ind["unit"], year, source))
     t = pd.DataFrame(rows, columns=INDICATOR_COLUMNS)
     t["value"], t["year"] = t["value"].astype("Float64"), t["year"].astype("Int64")   # NULL, no NaN
     return t

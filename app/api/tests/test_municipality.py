@@ -90,6 +90,24 @@ def test_municipality_lists_every_source(mini):
     assert by["sport_facilities"]["extra_sources"] == []
 
 
+def test_municipality_row_sources_split(mini):
+    """C3: la fila guarda las fuentes que usa en ese municipio; la primera va a source, el resto a extra_sources,
+    y despues las fijas del YAML (padron) que no esten ya."""
+    by = {i["key"]: i for i in mini.get("/municipality/28127").json()["indicators"]}
+    green = by["green_m2_per_inhabitant"]
+    assert green["source"]["source"] == "osm" and green["year"] is None and green["value"] == pytest.approx(290.7)
+    assert [x["source"] for x in green["extra_sources"]] == ["padron"]          # no cita vpla_redes: no se usa
+    sport = by["sport_facilities_per_1000"]
+    assert sport["source"]["source"] == "nmc_deporte"
+    assert [x["source"] for x in sport["extra_sources"]] == ["osm", "padron"]
+
+
+def test_municipality_single_source_row_unchanged(mini):
+    by = {i["key"]: i for i in mini.get("/municipality/28065").json()["indicators"]}
+    assert by["green_m2_per_inhabitant"]["source"]["source"] == "vpla_redes"
+    assert [x["source"] for x in by["green_m2_per_inhabitant"]["extra_sources"]] == ["padron"]
+
+
 def test_fit_says_own_criterion(mini):
     assert mini.get("/municipality/28065").json()["fit_own_criterion"] is False      # sin encaje
     assert mini.get("/municipality/28065", params={"profile": "senior"}).json()["fit_own_criterion"] is True
@@ -160,9 +178,12 @@ def test_municipality_179_respond(real):
         data = r.json()
         assert [i["key"] for i in data["indicators"]] == KEYS and data["population"] > 0
         values[code] = {i["key"]: i["value"] for i in data["indicators"]}
-    assert values["28079"]["green_m2_per_inhabitant"] is None      # Madrid fuera de VPLA
-    assert values["28107"]["sport_facilities"] is None             # Patones sin Nomecalles deporte
-    assert values["28065"]["sport_facilities"] == 19
+    # C3: Madrid fuera de VPLA con verde de OSM; Patones con EIEL; Getafe Nomecalles + OSM
+    assert values["28079"]["green_m2_per_inhabitant"] > 0
+    assert values["28107"]["sport_facilities"] == 4
+    assert values["28065"]["sport_facilities"] >= 19
+    nulls = {k for v in values.values() for k, x in v.items() if x is None}
+    assert nulls == {"good_3g_pct"}                                # solo la conectividad fuera de EIEL
 
 
 def fit(client, code="28065", **params):
