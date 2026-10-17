@@ -4,8 +4,8 @@ import Icon from "./Icon";
 const LINKS = [
     { to: "/", label: "Mi entorno", icon: "near_me" },
     { to: "/municipios", label: "Municipios", icon: "location_city" },
-    { to: "/perfil", label: "Preferencias", icon: "menu" },
     { to: "/fuentes", label: "Fuentes", icon: "info" },
+    { to: "/perfil", label: "Preferencias", icon: "menu" },
 ];
 
 // Seccion de la barra a la que pertenece cada ruta: "page" en la ruta exacta, "true" en sus subpantallas

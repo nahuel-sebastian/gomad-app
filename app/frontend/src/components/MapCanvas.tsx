@@ -134,6 +134,10 @@ export default function MapCanvas(props: MapViewProps) {
                     ))}
                 </Map>
             )}
+            <div className="map-zoom" role="group" aria-label="Zoom del mapa">
+                <button type="button" aria-label="Acercar mapa" onClick={() => mapRef.current?.zoomIn()} disabled={!padding}>+</button>
+                <button type="button" aria-label="Alejar mapa" onClick={() => mapRef.current?.zoomOut()} disabled={!padding}>−</button>
+            </div>
             <p className="map-view__attribution">{MAP_ATTRIBUTION}</p>
         </div>
     );

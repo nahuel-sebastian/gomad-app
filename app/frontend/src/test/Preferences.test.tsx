@@ -127,16 +127,17 @@ describe("Perfil", () => {
     });
 });
 
-describe("Ajustar como dialogo", () => {
-    it("se abre desde Resultados, Esc cierra y el foco vuelve a Ajustar", async () => {
+describe("Ajustar en el panel de resultados", () => {
+    it("sustituye los resultados por los pesos y Listo vuelve a la lista", async () => {
         const { user } = renderAt("/resultados", WITH_SEARCH);
         const adjust = screen.getByRole("button", { name: "Ajustar preferencias" });
         await user.click(adjust);
-        const dialog = await screen.findByRole("dialog", { name: "Tus preferencias" });
-        expect(dialog).toBeInTheDocument();
-        await user.keyboard("{Escape}");
-        await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
-        expect(adjust).toHaveFocus();
+        expect(screen.getByRole("heading", { name: "Tus preferencias" })).toBeInTheDocument();
+        expect(screen.getByRole("group", { name: "Importancia de cercanía y rapidez" })).toBeInTheDocument();
+        expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+        expect(screen.queryByRole("button", { name: "Guardar preferencias" })).not.toBeInTheDocument();
+        await user.click(screen.getByRole("button", { name: "Listo" }));
+        expect(await screen.findByRole("list", { name: "Resultados" })).toBeInTheDocument();
     });
 
     it("subir la cercania al maximo recalcula y cambia el orden sin recargar", async () => {
@@ -145,12 +146,11 @@ describe("Ajustar como dialogo", () => {
         await waitFor(() => expect(within(list).getAllByRole("listitem")).toHaveLength(3));
         const before = within(list).getAllByRole("link")[0].textContent;
         await user.click(screen.getByRole("button", { name: "Ajustar preferencias" }));
-        const dialog = await screen.findByRole("dialog", { name: "Tus preferencias" });
         for (const name of ["Importancia de sombra y zona verde", "Importancia de aire limpio", "Importancia de adecuación a la actividad", "Importancia de meteorología"]) {
-            await user.click(within(within(dialog).getByRole("group", { name })).getByRole("radio", { name: "Nada" }));
+            await user.click(within(screen.getByRole("group", { name })).getByRole("radio", { name: "Nada" }));
         }
-        await user.click(within(within(dialog).getByRole("group", { name: "Importancia de cercanía y rapidez" })).getByRole("radio", { name: "Mucha" }));
-        await user.click(within(dialog).getByRole("button", { name: "Listo" }));
+        await user.click(within(screen.getByRole("group", { name: "Importancia de cercanía y rapidez" })).getByRole("radio", { name: "Mucha" }));
+        await user.click(screen.getByRole("button", { name: "Listo" }));
         await waitFor(() =>
             expect(screen.getByRole("status")).toHaveTextContent("3 resultados actualizados"),
         );

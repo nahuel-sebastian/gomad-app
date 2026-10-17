@@ -26,6 +26,8 @@ export const setStyleMock = vi.fn();
 
 // fitBounds del mapa simulado (lo que llama MapCanvas al reencuadrar)
 export const fitBoundsMock = vi.fn();
+export const zoomInMock = vi.fn();
+export const zoomOutMock = vi.fn();
 
 export function lastMapProps(): Props {
     return mapPropsMock.mock.lastCall?.[0] ?? {};
@@ -36,7 +38,7 @@ export function mapLibreModule() {
         mapPropsMock(props);
         // como MapLibre: el lienzo nace enfocable y onLoad no llega en jsdom
         const canvas = useRef<HTMLCanvasElement>(null);
-        useImperativeHandle(ref, () => ({ fitBounds: fitBoundsMock, getCanvas: () => canvas.current }));
+        useImperativeHandle(ref, () => ({ fitBounds: fitBoundsMock, zoomIn: zoomInMock, zoomOut: zoomOutMock, getCanvas: () => canvas.current }));
         useEffect(() => {
             const onError = props.onError as ((e: unknown) => void) | undefined;
             const onStyleData = props.onStyleData as ((e: unknown) => void) | undefined;

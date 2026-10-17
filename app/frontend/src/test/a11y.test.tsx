@@ -48,7 +48,7 @@ describe("navegacion global", () => {
         renderAt("/");
         const nav = screen.getByRole("navigation", { name: "Principal" });
         const links = within(nav).getAllByRole("link");
-        expect(links.map((l) => l.textContent)).toEqual(["Mi entorno", "Municipios", "Preferencias", "Fuentes"]);
+        expect(links.map((l) => l.textContent)).toEqual(["Mi entorno", "Municipios", "Fuentes", "Preferencias"]);
         expect(screen.queryByRole("button", { name: /menú/i })).not.toBeInTheDocument();
     });
 

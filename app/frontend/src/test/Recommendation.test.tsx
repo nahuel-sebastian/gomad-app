@@ -30,7 +30,7 @@ describe("Detalle", () => {
     it("sin resultados en memoria vuelve a Inicio con aviso (P-07)", async () => {
         renderAt("/resultados/ejemplo%3Aparque-arroyo");
         expect(
-            await screen.findByText(/Elige una actividad para ver recomendaciones/),
+            await screen.findByText(/Los resultados no se guardan al recargar la página/),
         ).toBeInTheDocument();
     });
 

@@ -115,7 +115,7 @@
   --max-width: 67.5rem;
   --tap-min: 2.75rem;
   --header-height: 4rem;
-  --bottom-nav-height: 4.5rem;
+  --bottom-nav-height: calc(var(--tap-min) + 0.75rem + 1px + env(safe-area-inset-bottom));
   --transition: 0.15s ease-out;
   --warn-bg: #fcebcb;
   --warn-fg: #7a4300;
@@ -129,8 +129,8 @@
   --chip-nodata-fg: #40566a;
   --chip-aqi-good-bg: #c8edf8;
   --chip-aqi-good-fg: #12395b;
-  --chip-aqi-fair-bg: #d7f0e0;
-  --chip-aqi-fair-fg: #125936;
+  --chip-aqi-fair-bg: #e7f2fb;
+  --chip-aqi-fair-fg: #12395b;
   --chip-aqi-moderate-bg: #fff3c4;
   --chip-aqi-moderate-fg: #6d4a00;
   --chip-aqi-poor-bg: #fbe0de;
@@ -214,23 +214,6 @@
   }
 }
 
-@media (max-width: 24.9375rem) {
-  @layer responsive {
-    .result-card {
-      flex-wrap: wrap;
-    }
-
-    .result-card__content {
-      flex: 1 1 calc(100% - 3.125rem);
-    }
-
-    .result-card__score-wrap {
-      flex-direction: row;
-      margin-left: 2.625rem;
-    }
-  }
-}
-
 @media (min-width: 48rem) {
   @layer responsive {
     .gomad-recommendation {
@@ -272,6 +255,50 @@
 
 @media (max-width: 47.9375rem) {
   @layer responsive {
+    .results-sheet__scroll > .view-header {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .results-heading-copy {
+      flex: 1 1 auto;
+      min-width: 0;
+    }
+
+    .results-mobile-adjust {
+      display: inline-flex;
+      flex: 0 0 auto;
+      width: var(--tap-min);
+      min-height: var(--tap-min);
+      margin: 0;
+      padding: 0;
+      border: 0;
+      border-radius: var(--radius-sm);
+      background: var(--navy);
+      color: var(--surface);
+      font-size: 1rem;
+    }
+
+    .results-mobile-adjust:hover {
+      background: var(--navy);
+      color: var(--surface);
+      filter: brightness(1.12);
+    }
+
+    .results-sheet__scroll > .results-body {
+      padding-right: calc(var(--gutter) + 0.75rem);
+    }
+
+    .gomad-results .back-button {
+      align-self: flex-start;
+      padding-inline: 0.875rem;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      background: var(--surface);
+      box-shadow: 0 2px 8px rgba(18, 57, 91, 0.12);
+    }
+
     .gomad-recommendation {
       min-height: calc(
         100dvh - var(--header-height) - var(--bottom-nav-height)
@@ -1284,6 +1311,10 @@
     overflow-y: auto;
   }
 
+  .results-sheet--adjusting .results-sheet__scroll {
+    padding-bottom: 0;
+  }
+
   .results-list {
     display: flex;
     flex-direction: column;
@@ -1326,14 +1357,47 @@
     color: var(--navy);
   }
 
-  .result-card {
+  .results-mobile-adjust {
+    display: none;
+  }
+
+  .results-preferences {
+    padding-top: 1.5rem;
+    padding-bottom: 0.75rem;
+  }
+
+  .results-preferences__header {
     display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 1rem;
+  }
+
+  .results-preferences .prefs-form,
+  .results-preferences .gomad-preferences-form {
+    gap: 0.875rem;
+  }
+
+  .results-preferences .prefs-form {
+    padding-bottom: 0;
+  }
+
+  .results-preferences .weight-options {
     gap: 0.75rem;
+  }
+
+  .result-card {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    grid-template-rows: auto auto;
+    column-gap: 0.75rem;
+    row-gap: 0.75rem;
     padding: 1rem;
     background: var(--surface);
     border: 1px solid var(--border);
     border-radius: var(--radius);
-    align-items: flex-start;
+    align-items: start;
     width: 100%;
     color: inherit;
     font: inherit;
@@ -1353,6 +1417,8 @@
   }
 
   .result-card__number {
+    grid-column: 1;
+    grid-row: 1;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -1367,7 +1433,8 @@
   }
 
   .result-card__content {
-    flex: 1 1 0%;
+    grid-column: 2 / -1;
+    grid-row: 1;
     min-width: 0px;
     display: flex;
     flex-direction: column;
@@ -1376,6 +1443,7 @@
 
   .result-card__title {
     display: block;
+    padding-right: 4.25rem;
     font-size: 1rem;
     font-weight: 700;
   }
@@ -1405,9 +1473,10 @@
   }
 
   .chips--small .chip {
-    padding: 0.25rem 0.5rem;
+    gap: 0.25rem;
+    padding: 0.1875rem 0.5rem;
+    border-radius: 0.75rem;
     font-size: 0.875rem;
-
     white-space: normal;
   }
 
@@ -1417,6 +1486,8 @@
   }
 
   .result-card__score-wrap {
+    grid-column: 3;
+    grid-row: 1;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -1442,10 +1513,13 @@
   }
 
   .score-verdict {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    margin-left: 2.5rem;
     font-size: 0.875rem;
     font-weight: 600;
-    text-align: center;
-    max-width: 5.25rem;
+    text-align: left;
+    white-space: nowrap;
     line-height: 1.2;
   }
 
@@ -2023,6 +2097,10 @@
   .location--highlight {
     border-color: var(--navy);
     box-shadow: 0px 0px 0px 3px var(--blue-tint);
+  }
+
+  .gomad-location-picker {
+    margin-bottom: 0;
   }
 
   .location__form {

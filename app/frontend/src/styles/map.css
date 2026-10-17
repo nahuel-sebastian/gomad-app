@@ -6,6 +6,50 @@
     inset: 0px;
 }
 
+.map-zoom {
+    position: absolute;
+    z-index: 2;
+    top: 0.75rem;
+    right: 0.75rem;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    border: 1px solid var(--border);
+    border-radius: 0.5rem;
+    background: var(--surface);
+    box-shadow: 0 1px 6px rgba(0, 0, 0, 0.2);
+}
+
+.map-demo .map-zoom {
+    top: 1rem;
+    right: 1.25rem;
+}
+
+.map-zoom button {
+    width: 2.75rem;
+    height: 2.75rem;
+    border: 0;
+    background: var(--surface);
+    color: var(--navy);
+    font: inherit;
+    font-size: 1.5rem;
+    cursor: pointer;
+}
+
+.map-zoom button + button {
+    border-top: 1px solid var(--border);
+}
+
+.map-zoom button:disabled {
+    opacity: 0.4;
+    cursor: default;
+}
+
+.map-zoom button:focus-visible {
+    outline: 2px solid var(--focus);
+    outline-offset: -3px;
+}
+
 .map-marker {
     display: grid;
     place-items: center;
