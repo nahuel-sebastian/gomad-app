@@ -1,4 +1,5 @@
 import duckdb
+import geopandas as gpd
 import pandas as pd
 import pytest
 import yaml
@@ -61,6 +62,23 @@ def test_sport_union_dedupes_only_within_municipality():
     u = build_db.sport_union(_facilities([("nmc_deporte", "28106", 0, 0), ("eiel_deporte", "28107", 10, 0)]), 50)
     assert u.loc["28107", "value"] == 1 and u.loc["28107", "source"] == "eiel_deporte"
     assert u.loc["28106", "value"] == 1
+
+
+def test_osm_green_area_counts_overlap_once_and_clips():
+    from shapely.geometry import box
+    muni = gpd.GeoDataFrame({"ine_code": ["28079"]}, geometry=[box(0, 0, 1000, 1000)], crs=25830)
+    green = gpd.GeoDataFrame(geometry=[box(100, 100, 200, 200), box(150, 100, 250, 200),   # solapados al 50 %
+                                       box(950, 500, 1050, 600)], crs=25830)            # mitad fuera
+    area = build_db.osm_green_area(muni.to_crs(4326), green.to_crs(4326))
+    assert area["28079"] == pytest.approx(15_000 + 5_000, rel=1e-3)
+
+
+def test_osm_green_area_none_is_empty():
+    from shapely.geometry import box
+    muni = gpd.GeoDataFrame({"ine_code": ["28079"]}, geometry=[box(-3.8, 40.3, -3.6, 40.5)], crs=4326)
+    assert build_db.osm_green_area(muni, None).empty
+    far = gpd.GeoDataFrame(geometry=[box(2.0, 41.0, 2.1, 41.1)], crs=4326)       # no toca el municipio
+    assert build_db.osm_green_area(muni, far).empty
 
 
 def test_indicator_without_calculation_fails_readably():

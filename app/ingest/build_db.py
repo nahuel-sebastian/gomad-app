@@ -187,6 +187,21 @@ def sport_union(facilities, radius_m):
     return out
 
 
+def osm_green_area(municipalities, osm_green):
+    """m2 de zona verde de OSM (union de poligonos, recortada a cada municipio, EPSG:25830); solo los municipios
+    que tocan algun poligono. Sin poligonos -> Series vacia (Task 172)."""
+    if osm_green is None or osm_green.empty:
+        return pd.Series(dtype=float)
+    m = municipalities[["ine_code", "geometry"]].to_crs(25830)
+    zones = osm_green[["geometry"]].to_crs(25830)
+    hit = gpd.sjoin(zones, m, predicate="intersects")
+    area = {}
+    for code, idx in hit.groupby("ine_code").groups.items():
+        poly = m.loc[m["ine_code"] == code, "geometry"].iloc[0]
+        area[code] = zones.loc[idx.unique(), "geometry"].union_all().intersection(poly).area
+    return pd.Series(area, dtype=float)
+
+
 def indicator_values(con, config):
     """Valor de cada indicador de DEC-09, solo en los municipios con filas en su fuente."""
     codes = {c for (c,) in con.execute("SELECT ine_code FROM municipality").fetchall()}
@@ -204,6 +219,14 @@ def indicator_values(con, config):
     in_vpla = [c for (c,) in con.execute("SELECT ine_code FROM municipality WHERE in_vpla").fetchall()]
     green = gpd.read_parquet(CLEAN / "green.parquet").groupby("ine_code")["area_m2"].sum()
     green = green.reindex(in_vpla, fill_value=0.0)
+    green_year = next(i["year"] for i in config["indicators"] if i["key"] == "green_m2_per_inhabitant")
+    green = pd.DataFrame({"value": green / pop.reindex(green.index), "source": "vpla_redes", "year": green_year})
+    # fuera de VPLA, los poligonos verdes de OSM (CLAUDE.md §7.3, mismo fichero que el verde de destinos y rutas)
+    munis = gpd.read_parquet(CLEAN / "municipality.parquet")
+    osm = osm_green_area(munis[~munis["ine_code"].isin(in_vpla)], load_osm_green())
+    if len(osm):
+        green = pd.concat([green, pd.DataFrame({"value": osm / pop.reindex(osm.index), "source": "osm",
+                                                "year": None})])
     vp = gpd.read_file(RAW / "vias_pecuarias" / "vias_pecuarias.geojson").set_crs(25830, allow_override=True)
     vp_code = vp["CD_MUNI"].map(ine_code).where(lambda c: c.isin(codes))
     # 28077 (codigo antiguo de 28901) y 289xx (distritos de Madrid anexionados): por su punto representativo
@@ -222,7 +245,7 @@ def indicator_values(con, config):
         "sport_facilities": sport,
         "sport_facilities_per_1000": sport.assign(value=per_1000(sport["value"], pop)),
         "catalog_activities": catalog,
-        "green_m2_per_inhabitant": green / pop.reindex(green.index),
+        "green_m2_per_inhabitant": green,
         "drove_roads_km": drove,
         "recreation_areas": _count(areas),
         "bus_stops_per_1000": per_1000(_count(bus), pop),

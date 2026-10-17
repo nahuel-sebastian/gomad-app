@@ -26,9 +26,11 @@ indicators:
   # n.º de actividades de activities.yaml (indicators.load lo comprueba)
   - {key: catalog_activities, category: sport, label: "Actividades del catálogo disponibles",
      source: [destination_activity], unit: "de 8", no_rows: "zero", year: null}
-  # suma de area_m2 de clean/green.parquet / poblacion; NULL fuera de VPLA
+  # suma de area_m2 de clean/green.parquet / poblacion en los municipios de VPLA (year 2025); fuera de VPLA, area
+  # de la union de los poligonos de clean/osm_green.parquet dentro del municipio (fuente osm, year null; incluye
+  # bosque y pradera: routing.yaml osm_green). NULL solo si no hay ninguno de los dos
   - {key: green_m2_per_inhabitant, category: nature, label: "Zonas verdes por habitante",
-     source: [vpla_redes, padron], unit: "m²/hab.", no_rows: "null", year: 2025}
+     source: [vpla_redes, padron], complement: [osm], unit: "m²/hab.", no_rows: "null", year: 2025}
   # suma de NM_LONG / 1000 (metros) por CD_MUNI; los CD_MUNI que no son de los 179 (28077 y 28906-28912)
   # por cruce espacial (Task 35)
   - {key: drove_roads_km, category: nature, label: "Vías pecuarias",
