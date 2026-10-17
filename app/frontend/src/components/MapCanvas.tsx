@@ -1,7 +1,7 @@
 import { setWorkerUrl } from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 import workerUrl from "maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url";
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import Map, {
     Layer,
     Marker,
@@ -64,8 +64,13 @@ export default function MapCanvas(props: MapViewProps) {
     const { markers, selectedId, origin, route, secondaryRoute, onSelect, explore = false, live } = props;
     const { nearby, zoom, refresh } = useNearbyPoints(explore);
     // los destinos que ya tienen pin numerado no se repiten como punto cercano
-    const markerIds = new Set(markers.map((m) => m.id));
-    const nearbyPoints = explore && nearby ? nearby.points.filter((p) => !markerIds.has(p.id)) : [];
+    const markerKey = markers.map((m) => m.id).join("|");
+    const nearbyPoints = useMemo(() => {
+        const ids = new Set(markerKey.split("|"));
+        return explore && nearby ? nearby.points.filter((p) => !ids.has(p.id)) : [];
+    }, [explore, nearby, markerKey]);
+    // mismo objeto mientras no cambien los puntos: MapLibre no recalcula los grupos en cada render
+    const nearbyData = useMemo(() => nearbyFeatures(nearbyPoints, []), [nearbyPoints]);
     const [info, setInfo] = useState("");
     const imagesFor = useRef<unknown>(null);
     const bounds = boundsOf(mapPoints(props));
@@ -179,7 +184,7 @@ export default function MapCanvas(props: MapViewProps) {
                         <Source
                             id="nearby"
                             type="geojson"
-                            data={nearbyFeatures(nearbyPoints, [])}
+                            data={nearbyData}
                             cluster
                             clusterMaxZoom={16}
                             clusterRadius={44}>
