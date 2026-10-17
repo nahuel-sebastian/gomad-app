@@ -1,6 +1,5 @@
 import { useEffect, useRef } from "react";
-import { Link, Outlet, useLocation } from "react-router";
-import { FOOTER_DISCLAIMER } from "../lib/texts";
+import { Outlet, useLocation } from "react-router";
 import Header from "./Header";
 
 export default function Layout() {
@@ -25,14 +24,6 @@ export default function Layout() {
             <main id="contenido" className="app-main gomad-component gomad-layout" tabIndex={-1}>
                 <Outlet />
             </main>
-            <footer className="footer">
-                <div className="container footer__inner">
-                    <p>{FOOTER_DISCLAIMER}</p>
-                    <Link to="/fuentes" className="footer__link gomad-action gomad-action-view-sources">
-                        Fuentes y aviso
-                    </Link>
-                </div>
-            </footer>
         </>
     );
 }

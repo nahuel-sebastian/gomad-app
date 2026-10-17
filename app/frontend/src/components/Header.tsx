@@ -5,12 +5,14 @@ const LINKS = [
     { to: "/", label: "Mi entorno", icon: "near_me" },
     { to: "/municipios", label: "Municipios", icon: "location_city" },
     { to: "/perfil", label: "Preferencias", icon: "menu" },
+    { to: "/fuentes", label: "Fuentes", icon: "info" },
 ];
 
 // Seccion de la barra a la que pertenece cada ruta: "page" en la ruta exacta, "true" en sus subpantallas
 function sectionOf(pathname: string): string {
     if (pathname.startsWith("/municipios")) return "/municipios";
     if (pathname.startsWith("/perfil")) return "/perfil";
+    if (pathname.startsWith("/fuentes")) return "/fuentes";
     if (
         pathname === "/" ||
         pathname.startsWith("/resultados") ||
@@ -50,11 +52,17 @@ export default function Header() {
                                 <Link
                                     to={link.to}
                                     className={`nav__link gomad-action gomad-action-navigate gomad-action-navigate-${link.to === "/" ? "home" : link.to.slice(1)}`}
+                                    aria-label={link.label}
                                     aria-current={
                                         pathname === link.to ? "page" : current === link.to ? "true" : undefined
                                     }>
-                                    <Icon name={link.icon} />
-                                    {link.label}
+                                    {link.icon === "info" ? (
+                                        <svg className="nav__icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                                            <circle cx="12" cy="12" r="9" />
+                                            <path d="M12 11v5M12 8h.01" />
+                                        </svg>
+                                    ) : <Icon name={link.icon} />}
+                                    <span className="nav__label" aria-hidden="true">{link.label}</span>
                                 </Link>
                             </li>
                         ))}

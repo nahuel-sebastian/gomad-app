@@ -16,13 +16,15 @@ describe("diseno comun", () => {
         await expectNoAxeViolations(container);
     });
 
-    it("tiene pie con aviso medico y enlace a Fuentes en cualquier pantalla", () => {
-        renderAt("/municipios");
-        const footer = screen.getByRole("contentinfo");
-        expect(footer).toHaveTextContent("No es consejo médico");
-        expect(
-            within(footer).getByRole("link", { name: /Fuentes y aviso/ }),
-        ).toHaveAttribute("href", "/fuentes");
+    it("abre Fuentes desde la navegacion principal sin mostrar el pie", async () => {
+        const { user } = renderAt("/municipios");
+        const nav = screen.getByRole("navigation", { name: "Principal" });
+        const link = within(nav).getByRole("link", { name: "Fuentes" });
+        expect(link).toHaveAttribute("href", "/fuentes");
+        expect(screen.queryByRole("contentinfo")).not.toBeInTheDocument();
+        await user.click(link);
+        expect(await screen.findByRole("heading", { level: 1, name: "Fuentes, licencias y aviso" })).toBeInTheDocument();
+        expect(link).toHaveAttribute("aria-current", "page");
     });
 
     it("marca en la navegacion principal la seccion actual", () => {
