@@ -5,6 +5,7 @@ import { aqiLabel, DESTINATION_TYPE_LABELS, FACTOR_LABELS, verdictFor } from "..
 import { FOOTER_DISCLAIMER, NO_SEARCH_NOTICE } from "../lib/texts";
 import { useAppState } from "../state/context";
 import { AqiChip } from "./Chip";
+import Hero, { heroVariantForDestination } from "./Hero";
 import PageHeading from "./PageHeading";
 import SourceList from "./SourceList";
 
@@ -31,12 +32,13 @@ function bestHourCallout(item: Rec): string {
 
 export default function Recommendation() {
     const { id = "" } = useParams();
-    const { results, medicalDisclaimer } = useAppState();
+    const { results, search, medicalDisclaimer } = useAppState();
     const index = results.findIndex((r) => r.destination.id === id);
     if (index === -1) {
         return <Navigate to="/" replace state={{ notice: NO_SEARCH_NOTICE }} />;
     }
     const item = results[index];
+    const heroVariant = heroVariantForDestination(item.destination, search?.activity);
     const verdict = verdictFor(item.score);
     const now = item.hours[0];
     const bestIndex = item.hours.findIndex((h) => h.hour === item.best_hour);
@@ -59,10 +61,9 @@ export default function Recommendation() {
                     <span />
                 </header>
 
-                <div className="detail-media" aria-hidden="true">
+                <Hero variant={heroVariant} className="detail-media">
                     <span className="detail-media__tag">{DESTINATION_TYPE_LABELS[item.destination.type]}</span>
-                    <span className="detail-media__credit">Imagen de ejemplo</span>
-                </div>
+                </Hero>
 
                 <div className="detail-content">
                     <div className="detail-intro">

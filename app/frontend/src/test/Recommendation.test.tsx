@@ -4,6 +4,7 @@ import type { Recommendation } from "../api/types";
 import { recommend } from "../data/recommend";
 import { selectScenario } from "../data/scenarios";
 import { buildRecommendRequest } from "../lib/request";
+import { heroVariantForDestination } from "../components/Hero";
 import { DEFAULT_PREFERENCES } from "../state/context";
 import { expectNoAxeViolations, renderAt, SAMPLE_ORIGIN } from "./render";
 
@@ -27,6 +28,88 @@ function pathFor(item: Recommendation) {
 afterEach(() => selectScenario("neutral"));
 
 describe("Detalle", () => {
+    it("elige la ilustración del hero según el tipo de destino", async () => {
+        const results = await sampleResults();
+        const park = results.find((result) => result.destination.type === "park")!;
+        const types = ["park", "trail", "recreation_area", "facility", "bathing_area"] as const;
+        const examples: Recommendation[] = types.map((type) => ({
+            ...park,
+            destination: { ...park.destination, id: `test:${type}`, name: `Destino ${type}`, type },
+        }));
+        for (const item of examples) {
+            const search = item.destination.type === "bathing_area" ? { activity: "swim", label: "Nadar" } : undefined;
+            const view = renderAt(pathFor(item), { origin: SAMPLE_ORIGIN, search, results: examples });
+            expect(view.container.querySelector(`.detail-media.hero--${item.destination.type} svg`)).toBeInTheDocument();
+            view.unmount();
+        }
+    });
+
+    it("usa palabras del título para variar el hero aunque el tipo sea genérico", async () => {
+        const results = await sampleResults();
+        const base = results[0];
+        const cases = [
+            { name: "Senda del Pinar", type: "park", variant: "trail" },
+            { name: "Jardín de la Plaza", type: "park", variant: "trail" },
+            { name: "Jardines del Retiro", type: "park", variant: "trail" },
+            { name: "Jardín del Lago", type: "park", variant: "trail" },
+            { name: "Área Recreativa del Lago", type: "park", variant: "recreation_area" },
+            { name: "Piscina Municipal", type: "facility", variant: "facility" },
+            { name: "Estadio Municipal", type: "park", variant: "facility" },
+        ] as const;
+
+        for (const { name, type, variant } of cases) {
+            const item: Recommendation = {
+                ...base,
+                destination: { ...base.destination, id: `test:${variant}`, name, type },
+            };
+            const view = renderAt(pathFor(item), { origin: SAMPLE_ORIGIN, results: [item] });
+            expect(view.container.querySelector(`.detail-media.hero--${variant} svg`)).toBeInTheDocument();
+            view.unmount();
+        }
+    });
+
+    it("usa el hero de baño para cualquier destino al elegir Nadar", async () => {
+        const results = await sampleResults();
+        const base = results[0];
+        for (const type of ["park", "facility", "trail"] as const) {
+            const item: Recommendation = {
+                ...base,
+                destination: { ...base.destination, id: `test:swim:${type}`, name: "Destino genérico", type },
+            };
+            const view = renderAt(pathFor(item), {
+                origin: SAMPLE_ORIGIN,
+                search: { activity: "swim", label: "Nadar" },
+                results: [item],
+            });
+            expect(view.container.querySelector(".detail-media.hero--bathing_area svg")).toBeInTheDocument();
+            view.unmount();
+        }
+    });
+
+    it("no usa el hero de Nadar al elegir Pádel, incluso en una piscina", async () => {
+        const results = await sampleResults();
+        const base = results[0];
+        for (const type of ["facility", "bathing_area"] as const) {
+            const item: Recommendation = {
+                ...base,
+                destination: { ...base.destination, id: `test:padel:${type}`, name: "Piscina Municipal", type },
+            };
+            const view = renderAt(pathFor(item), {
+                origin: SAMPLE_ORIGIN,
+                search: { activity: "padel", label: "Pádel" },
+                results: [item],
+            });
+            expect(view.container.querySelector(".detail-media.hero--facility svg")).toBeInTheDocument();
+            view.unmount();
+        }
+    });
+
+    it("usa área recreativa al correr y deja de alternar parques", () => {
+        expect(heroVariantForDestination({ name: "Jardín de la Plaza", type: "park" }, "run")).toBe("recreation_area");
+        expect(heroVariantForDestination({ name: "Parque del Arroyo", type: "park" }, "run")).toBe("recreation_area");
+        expect(heroVariantForDestination({ name: "Parque del Arroyo", type: "park" }, "walk")).toBe("park");
+    });
+
     it("sin resultados en memoria vuelve a Inicio con aviso (P-07)", async () => {
         renderAt("/resultados/ejemplo%3Aparque-arroyo");
         expect(
