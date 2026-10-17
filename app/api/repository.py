@@ -265,7 +265,8 @@ class Repository:
 
     def map_points(self, bbox, destination_kinds, poi_kinds, limit, pool_activity):
         """Mapa explorable (C2): [(id, kind, name, source, working, lon, lat)] de destination y route_poi en la caja,
-        de los tipos pedidos, los mas cercanos a su centro primero (distancia equirectangular) y como mucho limit.
+        de los tipos pedidos: primero los destinos y despues los puntos de ruta (con muchos bancos, los destinos no se
+        quedan fuera), cada grupo del mas cercano al centro al mas lejano (equirectangular), y como mucho limit.
         kind de un destino = su type, salvo «pool» si es una instalacion con la actividad pool_activity. Las fuentes
         fuera de servicio salen con working False (se muestran, no cuentan)."""
         w, s, e, n = bbox
@@ -278,17 +279,17 @@ class Repository:
                 SELECT d.id, CASE WHEN d.type = 'facility' AND EXISTS (
                          SELECT 1 FROM destination_activity a WHERE a.destination_id = d.id AND a.activity = ?)
                        THEN 'pool' ELSE d.type END AS kind,
-                       d.name, d.source, CAST(NULL AS BOOLEAN) AS working, d.lon, d.lat
+                       d.name, d.source, CAST(NULL AS BOOLEAN) AS working, d.lon, d.lat, 0 AS grp
                 FROM destination d WHERE d.lon BETWEEN ? AND ? AND d.lat BETWEEN ? AND ?)
                 WHERE kind IN ({marks})""")
             params += [pool_activity, w, e, s, n, *destination_kinds]
         if poi_kinds:
             marks = ", ".join("?" for _ in poi_kinds)
-            parts.append(f"""SELECT id, type AS kind, CAST(NULL AS VARCHAR) AS name, source, working, lon, lat
+            parts.append(f"""SELECT id, type AS kind, CAST(NULL AS VARCHAR) AS name, source, working, lon, lat, 1 AS grp
                 FROM route_poi WHERE lon BETWEEN ? AND ? AND lat BETWEEN ? AND ? AND type IN ({marks})""")
             params += [w, e, s, n, *poi_kinds]
         if not parts:
             return []
         sql = f"""SELECT id, kind, name, source, working, lon, lat FROM ({' UNION ALL '.join(parts)})
-                  ORDER BY pow((lon - ?) * ?, 2) + pow(lat - ?, 2), id LIMIT ?"""
+                  ORDER BY grp, pow((lon - ?) * ?, 2) + pow(lat - ?, 2), id LIMIT ?"""
         return self._query(self.main, sql, [*params, cx, k, cy, limit], required=True)

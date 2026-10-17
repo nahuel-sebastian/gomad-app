@@ -7,7 +7,7 @@ from main import app
 ROUTES = {
     ("get", "/activities"), ("get", "/location"), ("post", "/recommend"), ("post", "/route"),
     ("get", "/municipality/{ine_code}"), ("post", "/assistant/interpret"), ("post", "/assistant/route"),
-    ("get", "/sources"), ("get", "/health"),
+    ("get", "/sources"), ("get", "/health"), ("get", "/map/points"),
 }
 
 

@@ -127,12 +127,20 @@ def test_map_points_includes_out_of_service_fountains(map_repo):
 
 def test_map_points_orders_by_centre_and_limits(map_repo):
     box = (-3.7400, 40.2950, -3.7200, 40.3150)        # centro -3.73, 40.305 = nodo 0 del grafo mini
-    rows = map_repo.map_points(box, DEST_KINDS, POI_KINDS, 3, "swim")
+    rows = map_repo.map_points(box, DEST_KINDS, [], 3, "swim")
     assert len(rows) == 3
     lon, lat = -3.73, 40.305
     d = [((r[5] - lon) * 0.7627) ** 2 + (r[6] - lat) ** 2 for r in rows]
     assert d == sorted(d)
-    assert rows[0][0] == "ay_fuentes:1"                # a 39 m del centro
+    assert rows[0][0] == "eiel_parques:1"             # Parque Uno, a 93 m del centro
+
+
+def test_map_points_puts_destinations_before_pois(map_repo):
+    box = (-3.7400, 40.2950, -3.7200, 40.3150)
+    rows = map_repo.map_points(box, DEST_KINDS, POI_KINDS, 100, "swim")
+    groups = [r[1] in POI_KINDS for r in rows]
+    assert groups == sorted(groups) and groups[-1]     # destinos primero aunque la fuente este mas cerca
+    assert map_repo.map_points(box, DEST_KINDS, POI_KINDS, 1, "swim")[0][1] not in POI_KINDS
 
 
 def test_map_points_without_db_is_unavailable(tmp_path):

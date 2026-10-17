@@ -2,6 +2,9 @@
 
 La caja es la de la vista del mapa, no la ubicacion de la persona; aun asi no se escribe en los logs."""
 import math
+from typing import get_args
+
+import schemas as s
 
 
 class InvalidBbox(ValueError):
@@ -48,3 +51,17 @@ def clip_bbox(bbox, max_span):
         cy = (s + n) / 2
         s, n, clipped = cy - max_span / 2, cy + max_span / 2, True
     return (w, s, e, n), clipped
+
+
+def map_points(bbox_text, kinds, repo, cfg):
+    """MapPointsResponse de la caja (recortada a max_span_deg) con como mucho max_points puntos de esos tipos."""
+    box, clipped = clip_bbox(parse_bbox(bbox_text), cfg["max_span_deg"])
+    wanted = set(kinds)
+    destination_kinds = [k for k in get_args(s.MapDestinationKind) if k in wanted]
+    poi_kinds = [k for k in get_args(s.MapPoiKind) if k in wanted]
+    limit = cfg["max_points"]
+    rows = repo.map_points(box, destination_kinds, poi_kinds, limit + 1, cfg["pool_activity"])
+    points = [s.MapPoint(id=i, kind=kind, name=name, source=source, working=working,
+                         coordinate=s.Coordinate(lat=lat, lon=lon))
+              for i, kind, name, source, working, lon, lat in rows[:limit]]
+    return s.MapPointsResponse(points=points, truncated=len(rows) > limit, clipped=clipped)

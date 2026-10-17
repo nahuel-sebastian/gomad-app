@@ -260,3 +260,26 @@ class SourceInfo(Strict):
 
 class SourcesResponse(Strict):
     sources: list[SourceInfo]
+
+
+# --- Mapa explorable (correccion C2, 17/10): GET /map/points ---
+# tipos de destino (DestinationSummary.type, mas «pool»: instalacion con la actividad de nadar) y de punto de ruta
+MapDestinationKind = Literal["facility", "pool", "park", "recreation_area", "trail", "bathing_area"]
+MapPoiKind = Literal["fountain", "bench", "aed", "dog_area", "playground"]
+MapPointKind = Literal["facility", "pool", "park", "recreation_area", "trail", "bathing_area",
+                       "fountain", "bench", "aed", "dog_area", "playground"]
+
+
+class MapPoint(Strict):
+    id: str                                    # '{fuente}:{id_origen}'
+    kind: MapPointKind
+    name: str | None                           # los puntos de ruta no tienen nombre
+    coordinate: Coordinate
+    working: bool | None                       # False = fuera de servicio (se muestra, no cuenta); None = sin dato
+    source: str
+
+
+class MapPointsResponse(Strict):
+    points: list[MapPoint]                     # los mas cercanos al centro de la caja primero
+    truncated: bool                            # True = habia mas de max_points: acercar el mapa
+    clipped: bool                              # True = la caja era mayor que max_span_deg y se recorto

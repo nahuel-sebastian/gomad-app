@@ -339,6 +339,83 @@
      }
     }
    }
+  },
+  "/map/points": {
+   "get": {
+    "summary": "Map Points",
+    "operationId": "map_points_map_points_get",
+    "parameters": [
+     {
+      "name": "bbox",
+      "in": "query",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "maxLength": 200,
+       "description": "Caja visible del mapa: oeste,sur,este,norte (EPSG:4326)",
+       "title": "Bbox"
+      },
+      "description": "Caja visible del mapa: oeste,sur,este,norte (EPSG:4326)"
+     },
+     {
+      "name": "kinds",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "array",
+       "items": {
+        "enum": [
+         "facility",
+         "pool",
+         "park",
+         "recreation_area",
+         "trail",
+         "bathing_area",
+         "fountain",
+         "bench",
+         "aed",
+         "dog_area",
+         "playground"
+        ],
+        "type": "string"
+       },
+       "description": "Tipos de punto; por defecto, los de destino",
+       "default": [
+        "facility",
+        "pool",
+        "park",
+        "recreation_area",
+        "trail",
+        "bathing_area"
+       ],
+       "title": "Kinds"
+      },
+      "description": "Tipos de punto; por defecto, los de destino"
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/MapPointsResponse"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
   }
  },
  "components": {
@@ -1083,6 +1160,98 @@
      "candidates"
     ],
     "title": "LocationResponse"
+   },
+   "MapPoint": {
+    "properties": {
+     "id": {
+      "type": "string",
+      "title": "Id"
+     },
+     "kind": {
+      "type": "string",
+      "enum": [
+       "facility",
+       "pool",
+       "park",
+       "recreation_area",
+       "trail",
+       "bathing_area",
+       "fountain",
+       "bench",
+       "aed",
+       "dog_area",
+       "playground"
+      ],
+      "title": "Kind"
+     },
+     "name": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Name"
+     },
+     "coordinate": {
+      "$ref": "#/components/schemas/Coordinate"
+     },
+     "working": {
+      "anyOf": [
+       {
+        "type": "boolean"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Working"
+     },
+     "source": {
+      "type": "string",
+      "title": "Source"
+     }
+    },
+    "additionalProperties": false,
+    "type": "object",
+    "required": [
+     "id",
+     "kind",
+     "name",
+     "coordinate",
+     "working",
+     "source"
+    ],
+    "title": "MapPoint"
+   },
+   "MapPointsResponse": {
+    "properties": {
+     "points": {
+      "items": {
+       "$ref": "#/components/schemas/MapPoint"
+      },
+      "type": "array",
+      "title": "Points"
+     },
+     "truncated": {
+      "type": "boolean",
+      "title": "Truncated"
+     },
+     "clipped": {
+      "type": "boolean",
+      "title": "Clipped"
+     }
+    },
+    "additionalProperties": false,
+    "type": "object",
+    "required": [
+     "points",
+     "truncated",
+     "clipped"
+    ],
+    "title": "MapPointsResponse"
    },
    "MunicipalityResponse": {
     "properties": {
