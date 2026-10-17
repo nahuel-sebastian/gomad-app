@@ -41,3 +41,10 @@ def test_validate_map_config_needs_positive_values(cfg):
 
 def test_shipped_map_config_is_valid():
     validate_map_config(settings.load("map"))
+
+
+def test_map_point_kind_is_destination_plus_poi_kinds():
+    from typing import get_args
+
+    import schemas as s
+    assert get_args(s.MapPointKind) == get_args(s.MapDestinationKind) + get_args(s.MapPoiKind)

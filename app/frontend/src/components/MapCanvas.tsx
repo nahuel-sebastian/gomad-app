@@ -74,6 +74,12 @@ export default function MapCanvas(props: MapViewProps) {
         const ids = new Set(markerKey.split("|"));
         return explore && nearby ? nearby.points.filter((p) => !ids.has(p.id)) : [];
     }, [explore, nearby, markerKey]);
+    // tipo que da la API a cada id (p. ej. «pool»): manda sobre el del resultado
+    // (globalThis.Map: «Map» aqui es el componente de react-map-gl)
+    const apiKinds = useMemo(
+        () => new globalThis.Map((nearby?.points ?? []).map((p) => [p.id, p.kind] as const)),
+        [nearby],
+    );
     // mismo objeto mientras no cambien los puntos: MapLibre no recalcula los grupos en cada render
     const nearbyData = useMemo(() => nearbyFeatures(nearbyPoints, []), [nearbyPoints]);
     const [info, setInfo] = useState("");
@@ -287,7 +293,7 @@ export default function MapCanvas(props: MapViewProps) {
                                 onSelect?.(m.id);
                             }}>
                             {m.kind ? (
-                                <MapPin kind={m.kind} number={m.number} name={m.name} selected={m.id === selectedId} />
+                                <MapPin kind={apiKinds.get(m.id) ?? m.kind} number={m.number} name={m.name} selected={m.id === selectedId} />
                             ) : (
                                 <span className={`map-marker${m.id === selectedId ? " map-marker--selected" : ""}`}>
                                     {m.number}
@@ -303,7 +309,7 @@ export default function MapCanvas(props: MapViewProps) {
             </div>
             <div className="map-panels">
                 <MapLegend
-                    markerKinds={markers.flatMap((m) => (m.kind ? [m.kind] : []))}
+                    markerKinds={markers.flatMap((m) => (m.kind ? [apiKinds.get(m.id) ?? m.kind] : []))}
                     points={nearbyPoints}
                     zoom={explore ? zoom : null}
                     truncated={explore && (nearby?.truncated ?? false)}

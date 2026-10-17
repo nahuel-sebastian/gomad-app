@@ -266,8 +266,8 @@ class SourcesResponse(Strict):
 # tipos de destino (DestinationSummary.type, mas «pool»: instalacion con la actividad de nadar) y de punto de ruta
 MapDestinationKind = Literal["facility", "pool", "park", "recreation_area", "trail", "bathing_area"]
 MapPoiKind = Literal["fountain", "bench", "aed", "dog_area", "playground"]
-MapPointKind = Literal["facility", "pool", "park", "recreation_area", "trail", "bathing_area",
-                       "fountain", "bench", "aed", "dog_area", "playground"]
+# Literal anidado = la union de los dos (mismo enum en el contrato)
+MapPointKind = Literal[MapDestinationKind, MapPoiKind]
 
 
 class MapPoint(Strict):

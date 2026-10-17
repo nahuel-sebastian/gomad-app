@@ -427,7 +427,7 @@ export default function Results() {
                         number: i + 1,
                         name: item.destination.name,
                         coordinate: item.destination.coordinate,
-                        kind: destinationKind(item.destination.type, activity),
+                        kind: destinationKind(item.destination.type),
                     }))}
                 />
             </div>

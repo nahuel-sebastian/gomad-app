@@ -93,8 +93,8 @@ export const POI_KINDS: MapPointKind[] = ["fountain", "bench", "aed", "dog_area"
 export const OUT_OF_SERVICE_COLOR = "#5f6670";
 export const OUT_OF_SERVICE_LABEL = "Fuera de servicio";
 
-// tipo del pin de un destino recomendado: una instalacion buscando «nadar» es una piscina
-export function destinationKind(type: string, activity?: string | null): MapPointKind {
-    if (type === "facility" && activity === "swim") return "pool";
+// tipo del pin de un destino recomendado segun su tipo. Si es piscina lo decide la API
+// (/map/points, con pool_activity de config/map.yaml): MapCanvas usa el tipo que ella de a ese id.
+export function destinationKind(type: string): MapPointKind {
     return type in KIND_STYLES ? (type as MapPointKind) : "facility";
 }

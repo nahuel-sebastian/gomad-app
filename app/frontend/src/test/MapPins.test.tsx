@@ -34,11 +34,12 @@ describe("iconos del mapa por tipo", () => {
         expect(new Set(KIND_ORDER.map((k) => KIND_STYLES[k].path)).size).toBe(KIND_ORDER.length);
     });
 
-    it("destinationKind da piscina a una instalacion buscando nadar", () => {
-        expect(destinationKind("facility", "swim")).toBe("pool");
-        expect(destinationKind("facility", "padel")).toBe("facility");
-        expect(destinationKind("park", "swim")).toBe("park");
+    it("destinationKind usa el tipo del destino (la piscina la decide la API)", () => {
+        expect(destinationKind("facility")).toBe("facility");
+        expect(destinationKind("park")).toBe("park");
         expect(destinationKind("algo_raro")).toBe("facility");
+        // sin parametro de actividad: «pool_activity» vive solo en config/map.yaml
+        expect(destinationKind.length).toBe(1);
     });
 });
 

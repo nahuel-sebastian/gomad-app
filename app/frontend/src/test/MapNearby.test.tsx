@@ -319,6 +319,37 @@ describe("Estas aqui en el mapa", () => {
     });
 });
 
+// --- Task 152: el pin de un resultado toma el tipo que da la API (verificador) ---
+describe("tipo del pin de un resultado", () => {
+    afterEach(() => {
+        vi.restoreAllMocks();
+    });
+
+    it("una instalacion que la API marca como piscina se pinta como piscina", async () => {
+        withWebGL();
+        const markers: MapMarker[] = [
+            { id: "ejemplo:mapa-piscina", number: 1, name: "Piscina", kind: "facility", coordinate: { lon: -3.7262, lat: 40.3088 } },
+        ];
+        render(<MapView markers={markers} explore />);
+        await screen.findByTestId("maplibre");
+        expect(screen.getByRole("img", { name: "1. Piscina (Instalación deportiva)" })).toBeInTheDocument();
+        await act(async () => {
+            (lastMapProps().onMoveEnd as (e: unknown) => void)({
+                target: {
+                    getZoom: () => NEARBY_MIN_ZOOM,
+                    getBounds: () => ({
+                        getWest: () => BOUNDS.west,
+                        getSouth: () => BOUNDS.south,
+                        getEast: () => BOUNDS.east,
+                        getNorth: () => BOUNDS.north,
+                    }),
+                },
+            });
+        });
+        expect(await screen.findByRole("img", { name: "1. Piscina (Piscina)" })).toBeInTheDocument();
+    });
+});
+
 // --- Task 150: lugares a la vista con teclado (verificador) ---
 describe("lugares a la vista", () => {
     afterEach(() => {

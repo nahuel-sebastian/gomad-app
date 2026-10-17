@@ -32,7 +32,7 @@ function poiSummary(variant: RouteVariant): string[] {
 
 export default function RouteView() {
     const { id = "" } = useParams();
-    const { origin, results, preferences, search } = useAppState();
+    const { origin, results, preferences } = useAppState();
     // «Estas aqui» en tiempo real mientras se ve la ruta (C2); no recalcula la ruta
     const live = useLivePosition(origin?.label === BROWSER_LOCATION_LABEL);
     const item = results.find((r) => r.destination.id === id);
@@ -140,7 +140,7 @@ export default function RouteView() {
                                         number: 1,
                                         name: item.destination.name,
                                         coordinate: item.destination.coordinate,
-                                        kind: destinationKind(item.destination.type, search?.activity),
+                                        kind: destinationKind(item.destination.type),
                                     },
                                 ]}
                                 selectedId={item.destination.id}
