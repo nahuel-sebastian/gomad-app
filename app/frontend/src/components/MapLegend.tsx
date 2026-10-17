@@ -1,0 +1,74 @@
+import type { MapPoint, MapPointKind } from "../api/types";
+import { KIND_ORDER, KIND_STYLES, OUT_OF_SERVICE_COLOR } from "./mapIcons";
+import { NEARBY_MIN_ZOOM, POI_MIN_ZOOM } from "./mapUtils";
+
+interface MapLegendProps {
+    // tipo de cada pin numerado (uno por resultado)
+    markerKinds: MapPointKind[];
+    // puntos de la zona visible
+    points: MapPoint[];
+    // zoom del mapa; null = todavia no se sabe (o el mapa no es explorable)
+    zoom: number | null;
+    truncated: boolean;
+    live?: boolean;
+}
+
+function KindIcon({ color, path }: { color: string; path: string }) {
+    return (
+        <span className="map-legend__icon" style={{ background: color }}>
+            <svg viewBox="0 0 960 960" aria-hidden="true" focusable="false">
+                <path d={path} />
+            </svg>
+        </span>
+    );
+}
+
+// Leyenda del mapa (C2): cada tipo con icono + color + texto y cuantos hay a la vista (nunca
+// solo color, CLAUDE.md §2.10), y una pista de zoom. Plegada por defecto para no tapar el mapa.
+export default function MapLegend({ markerKinds, points, zoom, truncated, live = false }: MapLegendProps) {
+    const counts = new Map<MapPointKind, number>();
+    for (const kind of [...markerKinds, ...points.map((p) => p.kind)]) counts.set(kind, (counts.get(kind) ?? 0) + 1);
+    const outOfService = points.filter((p) => p.working === false).length;
+    const kinds = KIND_ORDER.filter((k) => counts.has(k));
+
+    let hint: string | null = null;
+    if (zoom !== null && zoom < NEARBY_MIN_ZOOM) hint = "Acerca el mapa para ver más lugares de la zona.";
+    else if (zoom !== null && zoom < POI_MIN_ZOOM)
+        hint = "Acerca más para ver fuentes, bancos, desfibriladores y áreas caninas.";
+    else if (truncated) hint = "Hay más lugares de los que se ven: acerca el mapa.";
+
+    if (kinds.length === 0 && !live && !hint) return null;
+
+    return (
+        <details className="map-legend">
+            <summary>Leyenda</summary>
+            <ul role="list" aria-label="Tipos de lugar en el mapa">
+                {kinds.map((kind) => (
+                    <li key={kind}>
+                        <KindIcon color={KIND_STYLES[kind].color} path={KIND_STYLES[kind].path} />
+                        {`${KIND_STYLES[kind].label}: ${counts.get(kind)}`}
+                    </li>
+                ))}
+                {outOfService > 0 && (
+                    <li>
+                        <KindIcon color={OUT_OF_SERVICE_COLOR} path={KIND_STYLES.fountain.path} />
+                        {`Fuente fuera de servicio: ${outOfService}`}
+                    </li>
+                )}
+                {points.length > 0 && (
+                    <li>
+                        <span className="map-legend__icon map-legend__icon--cluster" aria-hidden="true" />
+                        Grupo de lugares (tócalo para acercar)
+                    </li>
+                )}
+                {live && (
+                    <li>
+                        <span className="map-legend__icon map-legend__icon--live" aria-hidden="true" />
+                        Estás aquí (en tiempo real)
+                    </li>
+                )}
+            </ul>
+            {hint && <p className="map-legend__hint">{hint}</p>}
+        </details>
+    );
+}

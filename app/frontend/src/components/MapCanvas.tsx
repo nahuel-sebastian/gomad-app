@@ -12,6 +12,7 @@ import Map, {
 } from "react-map-gl/maplibre";
 import "../styles/map.css";
 import { lineCoordinates } from "../lib/geometry";
+import MapLegend from "./MapLegend";
 import MapPin from "./MapPin";
 import { pinImage, PIN_PIXEL_RATIO } from "./mapPinImage";
 import type { MapViewProps } from "./MapView";
@@ -61,7 +62,10 @@ function registerPinImages(map: StyleImageMap) {
 
 export default function MapCanvas(props: MapViewProps) {
     const { markers, selectedId, origin, route, secondaryRoute, onSelect, explore = false } = props;
-    const { nearby, refresh } = useNearbyPoints(explore);
+    const { nearby, zoom, refresh } = useNearbyPoints(explore);
+    // los destinos que ya tienen pin numerado no se repiten como punto cercano
+    const markerIds = new Set(markers.map((m) => m.id));
+    const nearbyPoints = explore && nearby ? nearby.points.filter((p) => !markerIds.has(p.id)) : [];
     const [info, setInfo] = useState("");
     const imagesFor = useRef<unknown>(null);
     const bounds = boundsOf(mapPoints(props));
@@ -175,10 +179,7 @@ export default function MapCanvas(props: MapViewProps) {
                         <Source
                             id="nearby"
                             type="geojson"
-                            data={nearbyFeatures(
-                                nearby.points,
-                                markers.map((m) => m.id),
-                            )}
+                            data={nearbyFeatures(nearbyPoints, [])}
                             cluster
                             clusterMaxZoom={16}
                             clusterRadius={44}>
@@ -247,6 +248,12 @@ export default function MapCanvas(props: MapViewProps) {
                 <button type="button" aria-label="Acercar mapa" onClick={() => mapRef.current?.zoomIn()} disabled={!padding}>+</button>
                 <button type="button" aria-label="Alejar mapa" onClick={() => mapRef.current?.zoomOut()} disabled={!padding}>−</button>
             </div>
+            <MapLegend
+                markerKinds={markers.flatMap((m) => (m.kind ? [m.kind] : []))}
+                points={nearbyPoints}
+                zoom={explore ? zoom : null}
+                truncated={explore && (nearby?.truncated ?? false)}
+            />
             {explore && (
                 <p className={`map-point-info${info ? "" : " map-point-info--empty"}`} role="status">
                     {info}

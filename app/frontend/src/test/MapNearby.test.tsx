@@ -1,7 +1,8 @@
-import { act, render, screen, waitFor } from "@testing-library/react";
+import { act, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { MapPoint, MapPointsResponse } from "../api/types";
 import { KIND_STYLES, OUT_OF_SERVICE_COLOR } from "../components/mapIcons";
+import MapLegend from "../components/MapLegend";
 import { pinImage, pinImageSpec } from "../components/mapPinImage";
 import {
     nearbyFeatures,
@@ -13,6 +14,7 @@ import {
 import MapView, { type MapMarker } from "../components/MapView";
 import * as mapPointsModule from "../data/mapPoints";
 import { lastMapProps, withWebGL } from "./mapMock";
+import { expectNoAxeViolations } from "./render";
 
 vi.mock("react-map-gl/maplibre", async () => (await import("./mapMock")).mapLibreModule());
 vi.mock("maplibre-gl", async () => (await import("./mapMock")).maplibreModule());
@@ -202,5 +204,69 @@ describe("imagenes de los pines para MapLibre", () => {
 
     it("sin lienzo 2D no dibuja nada", () => {
         expect(pinImage("pin-park")).toBeNull();
+    });
+});
+
+// --- Task 147: leyenda accesible ---
+describe("leyenda del mapa", () => {
+    afterEach(() => {
+        vi.restoreAllMocks();
+    });
+
+    it("lista los tipos visibles con icono, texto y recuento", () => {
+        const { container } = render(
+            <MapLegend
+                markerKinds={["park"]}
+                points={[point("a", "park"), point("b", "fountain", false), point("c", "fountain"), point("d", "bench")]}
+                zoom={POI_MIN_ZOOM}
+                truncated={false}
+            />,
+        );
+        expect(screen.getByText("Leyenda")).toBeInTheDocument();
+        const list = screen.getByRole("list", { name: "Tipos de lugar en el mapa" });
+        const items = within(list).getAllByRole("listitem").map((li) => li.textContent);
+        expect(items).toEqual([
+            "Parque o zona verde: 2",
+            "Fuente: 2",
+            "Banco: 1",
+            "Fuente fuera de servicio: 1",
+            "Grupo de lugares (tócalo para acercar)",
+        ]);
+        expect(container.querySelectorAll(".map-legend__icon svg[aria-hidden='true']").length).toBe(4);
+    });
+
+    it("pide acercar el mapa a poco zoom y avisa si hay mas lugares", () => {
+        const { rerender } = render(<MapLegend markerKinds={["park"]} points={[]} zoom={NEARBY_MIN_ZOOM - 1} truncated={false} />);
+        expect(screen.getByText("Acerca el mapa para ver más lugares de la zona.")).toBeInTheDocument();
+        rerender(<MapLegend markerKinds={["park"]} points={[]} zoom={NEARBY_MIN_ZOOM} truncated={false} />);
+        expect(screen.getByText("Acerca más para ver fuentes, bancos, desfibriladores y áreas caninas.")).toBeInTheDocument();
+        rerender(<MapLegend markerKinds={[]} points={[point("a", "park")]} zoom={POI_MIN_ZOOM} truncated />);
+        expect(screen.getByText("Hay más lugares de los que se ven: acerca el mapa.")).toBeInTheDocument();
+    });
+
+    it("incluye Estas aqui cuando hay posicion en tiempo real", () => {
+        render(<MapLegend markerKinds={[]} points={[]} zoom={null} truncated={false} live />);
+        expect(screen.getByText("Estás aquí (en tiempo real)")).toBeInTheDocument();
+    });
+
+    it("axe sin violaciones con puntos y leyenda en el mapa", async () => {
+        withWebGL();
+        const { container } = render(<MapView markers={MARKERS} explore />);
+        await screen.findByTestId("maplibre");
+        await act(async () => {
+            (lastMapProps().onMoveEnd as (e: unknown) => void)({
+                target: {
+                    getZoom: () => POI_MIN_ZOOM,
+                    getBounds: () => ({
+                        getWest: () => BOUNDS.west,
+                        getSouth: () => BOUNDS.south,
+                        getEast: () => BOUNDS.east,
+                        getNorth: () => BOUNDS.north,
+                    }),
+                },
+            });
+        });
+        await waitFor(() => expect(screen.getByText("Banco: 1")).toBeInTheDocument());
+        await expectNoAxeViolations(container);
     });
 });

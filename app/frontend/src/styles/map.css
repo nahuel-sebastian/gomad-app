@@ -141,6 +141,82 @@
     background: var(--green-dark);
 }
 
+/* Leyenda del mapa (C2): plegada por defecto; icono + color + texto por tipo */
+.map-legend {
+    position: absolute;
+    z-index: 2;
+    top: 0.75rem;
+    left: 0.75rem;
+    max-width: min(17rem, calc(100% - 5rem));
+    border: 1px solid var(--border);
+    border-radius: 0.5rem;
+    background: var(--surface);
+    color: var(--navy);
+    font-size: 0.8125rem;
+    box-shadow: 0 1px 6px rgba(0, 0, 0, 0.2);
+}
+
+.map-legend summary {
+    display: flex;
+    align-items: center;
+    min-height: 2.75rem;
+    padding: 0 0.75rem;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.map-legend summary:focus-visible {
+    outline: 2px solid var(--focus);
+    outline-offset: -3px;
+}
+
+.map-legend ul {
+    display: grid;
+    gap: 0.375rem;
+    max-height: 40vh;
+    margin: 0;
+    padding: 0 0.75rem 0.5rem;
+    overflow: auto;
+    list-style: none;
+}
+
+.map-legend li {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.map-legend__icon {
+    display: grid;
+    flex: 0 0 auto;
+    place-items: center;
+    width: 1.5rem;
+    height: 1.5rem;
+    border: 1.5px solid #ffffff;
+    border-radius: 50%;
+    box-shadow: 0 0 0 1px var(--border);
+}
+
+.map-legend__icon svg {
+    width: 1rem;
+    height: 1rem;
+    fill: #ffffff;
+}
+
+.map-legend__icon--cluster {
+    background: var(--navy);
+}
+
+.map-legend__icon--live {
+    background: var(--focus);
+}
+
+.map-legend__hint {
+    margin: 0;
+    padding: 0 0.75rem 0.625rem;
+    color: var(--muted);
+}
+
 /* Punto cercano pulsado (C2): nombre y tipo, abajo a la izquierda */
 .map-point-info {
     position: absolute;
@@ -193,5 +269,10 @@
 
     .map-demo .map-point-info {
         bottom: 190px;
+    }
+
+    /* debajo de la barra «Volver/Ajustar» */
+    .map-demo .map-legend {
+        top: 7.25rem;
     }
 }
