@@ -49,8 +49,8 @@ class Scored:
     fixed: dict
     factors: dict                      # factores del sitio (0-1) con los que se calcula su nota
     indoor_alternative: bool = False
-    partial_air: bool = False          # hay medicion de aire solo para parte de la ventana
-    predicted_air: datetime | None = None  # descarga de la prevision de aire si alguna hora la usa (al aire libre)
+    partial_air: bool = False          # hay dato de aire (medido o previsto) solo para parte de la ventana
+    predicted_air: datetime | None = None  # descarga de la prevision de aire si alguna hora mostrada la usa
 
     @property
     def viable(self):
@@ -230,7 +230,8 @@ class _Run:
             weights = self._comparable_weights(contexts)
             hours = evaluate_hours(contexts, self.window, covered, self.req.profile, self.cfg["rules"], fixed, weights,
                                    self.req.companions)
-            predicted = set() if covered else self.predicted.get(self._key(c), set())
+            # tambien en cubiertos: hours[].aqi_category se muestra y, si es prevista, se cita cams_air (RF-19)
+            predicted = self.predicted.get(self._key(c), set())
             for h in hours:
                 if h.hour in predicted:
                     h.reasons = [r + PREDICTED if r.startswith("Calidad del aire") else r for r in h.reasons]
@@ -352,7 +353,8 @@ class _Run:
             if any(not x.covered and all(h.ctx is None or h.ctx.aqi_category is None for h in x.hours) for x in picked):
                 out.append("Aire: sin medición reciente cerca; la nota no lo tiene en cuenta.")
         if any(x.partial_air for x in picked):
-            out.append("Aire: solo hay medición para parte de la ventana; se usa la última para la nota, no para elegir la hora.")
+            out.append("Aire: solo hay dato, medido o previsto, para parte de la ventana; se usa el último para la nota, "
+                       "no para elegir la hora.")
         if not self.heat:
             out.append("Calor: no hay umbral de calor cargado; no se evalúa.")
         else:

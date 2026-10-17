@@ -118,7 +118,19 @@ def test_hour_without_air_data_does_not_win(tmp_path):
     assert air.value == 8.0 and air.weight > 0                     # la nota del sitio si usa el aire medido
     weighted = sum(f.value * f.weight for f in rec.factors if f.value is not None)
     assert rec.score == pytest.approx(weighted, abs=0.01)
-    assert "Aire: solo hay medición para parte de la ventana; se usa la última para la nota, no para elegir la hora." in res.warnings
+    assert PARTIAL_AIR in res.warnings
+
+
+PARTIAL_AIR = ("Aire: solo hay dato, medido o previsto, para parte de la ventana; se usa el último para la nota, "
+               "no para elegir la hora.")
+
+
+def test_partial_air_warning_with_forecast_wording(tmp_path, monkeypatch):
+    # dato previsto solo para las dos primeras horas y sin medicion: el aviso no puede hablar solo de «medición»
+    with_air_forecast(monkeypatch, lambda h: "fair" if h <= NOW + timedelta(hours=1) else None)
+    res = run(tmp_path, request(limit=1, window_end=NOW + timedelta(hours=5)), air=False)
+    assert [h.aqi_category for h in res.results[0].hours] == ["fair", "fair", None, None, None]
+    assert PARTIAL_AIR in res.warnings
 
 
 def test_all_weight_on_air_with_partial_air_is_not_silent_zero(tmp_path):
@@ -284,8 +296,11 @@ def test_without_air_forecast_behaves_as_before(tmp_path, monkeypatch):
     assert not any(d.source == "cams_air" for d in rec.sources)
 
 
-def test_covered_site_has_no_cams_source(tmp_path, monkeypatch):
+def test_covered_site_cites_cams_when_it_shows_forecast(tmp_path, monkeypatch):
+    # RF-19: un cubierto tambien muestra hours[].aqi_category; si viene de CAMS, la fuente debe figurar
     with_air_forecast(monkeypatch, lambda h: "good")
-    res = run(tmp_path, request(activity="gym", limit=10))
+    res = run(tmp_path, request(activity="gym", limit=10, window_end=NOW + timedelta(hours=3)))
     rec = next(r for r in res.results if r.destination.id == "eiel_deporte:1")
-    assert not any(d.source == "cams_air" for d in rec.sources)
+    assert [h.aqi_category for h in rec.hours][1:] == ["good", "good"]
+    cams = [d for d in rec.sources if d.source == "cams_air"]
+    assert len(cams) == 1 and cams[0].date == NOW
