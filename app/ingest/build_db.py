@@ -165,23 +165,30 @@ SPORT_SOURCES = ("nmc_deporte", "eiel_deporte", "ay_polideportivos", "ay_piscina
 DOWNLOAD_ID = {"osm_sport": "osm"}   # fuente de destino -> id de download_sources.py (RF-19)
 
 
-def sport_union(facilities, radius_m):
+def sport_union(facilities, radius_m, same_name_radius_m=None):
     """N.º de instalaciones por municipio uniendo SPORT_SOURCES en ese orden, sin contar dos veces la misma.
 
-    Dentro de cada municipio, un punto se descarta si esta a <= radius_m de uno ya contado de una fuente anterior;
+    Dentro de cada municipio, un punto se descarta si esta a <= radius_m de uno ya contado de una fuente anterior,
+    o a <= same_name_radius_m de uno con el mismo nombre (sin tildes, mayusculas ni espacios de mas; Task 176);
     los de una misma fuente no se descartan entre si (en origen son instalaciones distintas). Devuelve un
     DataFrame indexado por ine_code con value y source (ids que aportan, separados por comas, en orden)."""
     f = facilities[facilities["source"].isin(SPORT_SOURCES)]
-    g = gpd.GeoDataFrame(f[["source", "ine_code"]].reset_index(drop=True),
+    names = f["name"] if "name" in f else pd.Series("", index=f.index)
+    g = gpd.GeoDataFrame({"source": f["source"].to_numpy(), "ine_code": f["ine_code"].to_numpy(),
+                          "p": [" ".join(_plain(n).split()) for n in names]},
                          geometry=gpd.points_from_xy(f["lon"], f["lat"]), crs=4326).to_crs(25830)
+    reach = max(radius_m, same_name_radius_m or 0)
     kept = []
     for source in SPORT_SOURCES:
         sub = g[g["source"] == source]
         if kept and len(sub):
             prev = pd.concat(kept)
-            near = gpd.sjoin(sub, prev[["ine_code", "geometry"]], predicate="dwithin", distance=radius_m,
+            near = gpd.sjoin(sub, prev[["ine_code", "p", "geometry"]], predicate="dwithin", distance=reach,
                              how="inner", lsuffix="new", rsuffix="old")
-            dup = near.index[near["ine_code_new"] == near["ine_code_old"]].unique()   # solo en su municipio
+            d = sub.geometry.loc[near.index].distance(prev.geometry.loc[near["index_old"]], align=False)
+            same_name = (near["p_new"] == near["p_old"]) & (near["p_new"] != "") & (d.to_numpy() <= reach)
+            dup = near.index[(near["ine_code_new"] == near["ine_code_old"])          # solo en su municipio
+                             & ((d.to_numpy() <= radius_m) | (same_name & bool(same_name_radius_m)))].unique()
             sub = sub.drop(index=dup)
         kept.append(sub)
     k = pd.concat(kept) if kept else g.iloc[0:0]
@@ -216,9 +223,9 @@ def indicator_values(con, config):
     if pop.empty:
         raise ValueError(f"population.parquet no tiene el año {config['population_year']} (population_year)")
 
-    radius = yaml.safe_load((CONFIG_DIR / "recommend.yaml").read_text(encoding="utf-8"))["dedupe_radius_m"]
-    sport = sport_union(con.execute("SELECT id, source, ine_code, lon, lat FROM destination "
-                                    "WHERE type = 'facility'").df(), radius)
+    rec = yaml.safe_load((CONFIG_DIR / "recommend.yaml").read_text(encoding="utf-8"))
+    sport = sport_union(con.execute("SELECT id, source, name, ine_code, lon, lat FROM destination "
+                                    "WHERE type = 'facility'").df(), rec["dedupe_radius_m"], rec["same_name_radius_m"])
     catalog = con.execute("SELECT d.ine_code, count(DISTINCT a.activity) AS n FROM destination_activity a "
                           "JOIN destination d ON d.id = a.destination_id GROUP BY 1").df().set_index("ine_code")["n"]
     # DEC-09: NULL solo fuera de VPLA; un municipio de VPLA sin zonas verdes tiene 0 m2

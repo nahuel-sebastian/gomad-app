@@ -24,7 +24,9 @@ osm_parks:
 indicators:
   # complement (C3, 17/10): fuentes que solo se usan donde aportan; la fila cita las que de verdad usa.
   # n.º de destinos «facility» por municipio: Nomecalles + EIEL + Ayto. + OSM (CLAUDE.md §7.3), sin contar dos
-  # veces un punto a <= dedupe_radius_m (recommend.yaml) de otro de una fuente anterior (build_db.sport_union)
+  # veces un punto a <= dedupe_radius_m de otro de una fuente anterior, ni a <= same_name_radius_m de uno con el
+  # mismo nombre (build_db.sport_union). Ojo: los dos radios son de recommend.yaml; tocarlos alli cambia tambien
+  # este indicador
   - {key: sport_facilities, category: sport, label: "Instalaciones deportivas",
      source: [nmc_deporte], complement: [eiel_deporte, ay_polideportivos, ay_piscinas, ay_idb, osm],
      unit: "instalaciones", unit_one: "instalación", no_rows: "null", year: null}

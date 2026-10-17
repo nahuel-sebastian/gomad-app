@@ -41,8 +41,9 @@ def test_frame_values_carry_row_source_and_year():
 
 def _facilities(rows):
     """rows: (source, ine_code, dx_m, dy_m) desde un punto de Getafe; lon/lat aproximados (1 m ~ 1e-5 grados)."""
-    return pd.DataFrame([{"id": f"{s}:{i}", "source": s, "ine_code": c, "lon": -3.73 + dx * 1.18e-5,
-                          "lat": 40.30 + dy * 0.9e-5} for i, (s, c, dx, dy) in enumerate(rows)])
+    return pd.DataFrame([{"id": f"{r[0]}:{i}", "source": r[0], "ine_code": r[1], "lon": -3.73 + r[2] * 1.18e-5,
+                          "lat": 40.30 + r[3] * 0.9e-5, "name": r[4] if len(r) > 4 else f"sitio {i}"}
+                         for i, r in enumerate(rows)])
 
 
 def test_sport_union_dedupes_across_sources():
@@ -83,6 +84,16 @@ def test_osm_green_area_none_is_empty():
 
 def test_load_osm_parks_missing_is_none(tmp_path):
     assert build_db.load_osm_parks(tmp_path / "osm_parks.parquet") is None
+
+
+def test_sport_union_same_name_within_300m():
+    # Task 176: mismo nombre (sin tildes ni mayusculas) de otra fuente a <= 300 m = misma instalacion
+    same = [("ay_idb", "28079", 0, 0, "IDB Luis Buitrago"), ("osm_sport", "28079", 120, 0, "idb  luis buitrágo")]
+    assert build_db.sport_union(_facilities(same), 50, 300).loc["28079", "value"] == 1
+    other = [("ay_idb", "28079", 0, 0, "IDB Luis Buitrago"), ("osm_sport", "28079", 120, 0, "Pista Norte")]
+    assert build_db.sport_union(_facilities(other), 50, 300).loc["28079", "value"] == 2
+    far = [("ay_idb", "28079", 0, 0, "IDB Luis Buitrago"), ("osm_sport", "28079", 400, 0, "IDB Luis Buitrago")]
+    assert build_db.sport_union(_facilities(far), 50, 300).loc["28079", "value"] == 2
 
 
 def test_indicator_without_calculation_fails_readably():
