@@ -42,6 +42,9 @@ INDICATORS = [
     ("28065", "connectivity", "good_3g_pct", None, "%", 2023, "eiel_nucleos"),
     ("28079", "nature", "green_m2_per_inhabitant", None, "m²/hab.", 2025, "vpla_redes"),
     ("28079", "health", "health_centres", 0.0, "centros", None, "sanitarios"),
+    # C3 (Task 173): fuente por fila; Las Rozas sin VPLA con verde de OSM y deporte de dos fuentes
+    ("28127", "nature", "green_m2_per_inhabitant", 290.7, "m²/hab.", None, "osm"),
+    ("28127", "sport", "sport_facilities_per_1000", 0.5, "por 1.000 hab.", None, "nmc_deporte,osm"),
 ]
 MUNICIPALITY_BOXES = {"28065": ("GETAFE", box(-3.80, 40.25, -3.65, 40.34)),
                       "28079": ("MADRID", box(-3.85, 40.34, -3.55, 40.55)),
@@ -83,7 +86,8 @@ def build_mini_data(base, *, forecast=True, precip=0.0, feels=20.0, air=True, gr
         for activity, suitability in d[9].items():
             con.execute("INSERT INTO destination_activity VALUES (?, ?, ?)", [d[0], activity, suitability])
     con.execute("CREATE TABLE municipality (ine_code VARCHAR, name VARCHAR, population BIGINT, in_eiel BOOLEAN, in_vpla BOOLEAN)")
-    con.execute("INSERT INTO municipality VALUES ('28065', 'GETAFE', 193238, false, true), ('28079', 'MADRID', 3506730, false, false)")
+    con.execute("INSERT INTO municipality VALUES ('28065', 'GETAFE', 193238, false, true), ('28079', 'MADRID', 3506730, false, false), "
+                "('28127', 'LAS ROZAS DE MADRID', 99037, false, false)")
     con.execute("CREATE TABLE air_station (id VARCHAR, network VARCHAR, name VARCHAR, ine_code VARCHAR, area_type VARCHAR, lon DOUBLE, lat DOUBLE)")
     con.execute("INSERT INTO air_station VALUES ('28065014', 'CM', 'Getafe', '28065', 'Urbana', -3.7310, 40.3060)")
     con.execute("""CREATE TABLE route_poi (id VARCHAR, type VARCHAR, source VARCHAR, ine_code VARCHAR, status VARCHAR,

@@ -71,8 +71,11 @@ def indicators(cfg, rows, labels, dates):
     out = []
     for ind in cfg["indicators"]:
         value, unit, year, source = rows.get(ind["key"], (None, ind["unit"], ind["year"], ind["source"][0]))
-        # RF-19: la tabla guarda la fuente del dato; las demas (padron en las tasas...) salen del YAML
-        extra = [x for x in ind["source"] if x != source]
+        # RF-19: la tabla guarda las fuentes usadas en ese municipio separadas por comas (C3: la principal o una
+        # complementaria primero); despues van las fijas del YAML (padron en las tasas...) que no esten ya
+        used = [x for x in str(source).split(",") if x]
+        source = used[0]
+        extra = list(dict.fromkeys(used[1:] + [x for x in ind["source"][1:] if x not in used]))
         out.append(s.Indicator(category=ind["category"], key=ind["key"], label=ind["label"], value=value, unit=unit,
                                year=year, source=data_source(source, labels, dates.get(source)),
                                extra_sources=[data_source(x, labels, dates.get(x)) for x in extra]))
