@@ -5,4 +5,4 @@ export const FOOTER_DISCLAIMER =
 
 // P-07: sin estado en memoria (recarga de pagina) se vuelve a Inicio con este aviso
 export const NO_SEARCH_NOTICE =
-    "Elige una actividad para ver recomendaciones: los resultados no se guardan al recargar la página.";
+    "Los resultados no se guardan al recargar la página";

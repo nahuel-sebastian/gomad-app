@@ -14,7 +14,7 @@ import ErrorMessage from "./ErrorMessage";
 import Icon from "./Icon";
 import MapView from "./MapView";
 import PageHeading from "./PageHeading";
-import PreferencesDialog from "./PreferencesDialog";
+import PreferencesForm from "./PreferencesForm";
 
 function ResultCard({ item, index }: { item: Recommendation; index: number }) {
     const verdict = verdictFor(item.score);
@@ -57,9 +57,11 @@ function ResultCard({ item, index }: { item: Recommendation; index: number }) {
                         )}
                         {now && <AqiChip category={now.aqi_category} />}
                         {green && (
-                            // el texto lo manda la API; el front no pone cortes propios sobre el valor
-                            <Chip tone={green.value === null ? "nodata" : "info"} icon="park">
-                                {green.value === null ? "Verde: sin datos" : green.text}
+                            // La API incluye el porcentaje en el texto del factor verde.
+                            <Chip tone={green.value === null ? "nodata" : "good"} icon="park">
+                                {green.value === null
+                                    ? "Verde: sin datos"
+                                    : green.text.replace(/^Verde:\s*/, "").replace(/\s*%\s+de zona verde alrededor\.?$/, "% zona verde")}
                             </Chip>
                         )}
                     </span>
@@ -71,12 +73,12 @@ function ResultCard({ item, index }: { item: Recommendation; index: number }) {
                     <span className={`score-badge score-badge--${verdict.tone}`} aria-hidden="true">
                         {formatScore(item.score)}
                     </span>
-                    <span className={`score-verdict score-verdict--${verdict.tone}`} aria-hidden="true">
-                        {verdict.text}
-                    </span>
                     <span className="sr-only">
                         Nota {formatScore(item.score)} sobre 10, {verdict.text.toLowerCase()}
                     </span>
+                </span>
+                <span className={`score-verdict score-verdict--${verdict.tone}`} aria-hidden="true">
+                    {verdict.text}
                 </span>
             </Link>
         </li>
@@ -87,6 +89,7 @@ export default function Results() {
     const navigate = useNavigate();
     const { origin, search, preferences, setResults, setMedicalDisclaimer } = useAppState();
     const [isSheetExpanded, setIsSheetExpanded] = useState(false);
+    const [isAdjusting, setIsAdjusting] = useState(false);
     const sheetRef = useRef<HTMLDivElement>(null);
     const dragStartY = useRef<number | null>(null);
     const didDrag = useRef(false);
@@ -100,6 +103,11 @@ export default function Results() {
                 : Promise.resolve(null),
         [key],
     );
+    const warnings = first.data?.warnings.some((warning) =>
+        warning.startsWith("Ahora no se recomienda actividad al aire libre en la ventana elegida"),
+    )
+        ? ["Ahora no se recomienda actividad al aire libre en la ventana elegida. Prueba otra franja."]
+        : first.data?.warnings ?? [];
     // paginas de «Ver mas opciones», se vacian al cambiar la peticion
     const [more, setMore] = useState<{ key: string; items: Recommendation[]; hasMore: boolean } | null>(null);
     const [loadingMore, setLoadingMore] = useState(false);
@@ -167,15 +175,13 @@ export default function Results() {
     if (first.status === "loading" || loadingMore) announcement = "Buscando los mejores sitios…";
     else if (first.data) announcement = items.length === 0 ? "Ningún resultado." : `${items.length} resultados actualizados`;
     const stale = first.status === "loading" && first.data;
-    const adjust = (
-        <PreferencesDialog
-            trigger={
-                <button type="button" className="button gomad-action gomad-action-adjust-preferences">
-                    Ajustar preferencias
-                </button>
-            }
-        />
-    );
+    const openPreferences = () => {
+        setIsSheetExpanded(true);
+        setIsAdjusting(true);
+        const scroll = sheetRef.current?.querySelector(".results-sheet__scroll");
+        if (scroll instanceof HTMLElement) scroll.scrollTop = 0;
+    };
+    const adjust = <button type="button" className="button gomad-action gomad-action-adjust-preferences" onClick={openPreferences}>Ajustar preferencias</button>;
 
     return (
         <section className="results-screen gomad-component gomad-results" aria-labelledby="resultados-titulo">
@@ -185,16 +191,6 @@ export default function Results() {
                     Volver
                 </button>
 
-                <div className="results-filters">
-                    <PreferencesDialog
-                        trigger={
-                            <button className="filter-button gomad-action gomad-action-adjust-preferences" type="button" aria-label="Ajustar preferencias">
-                                <Icon name="settings" />
-                                Ajustar
-                            </button>
-                        }
-                    />
-                </div>
             </div>
 
             <div className="results-layout">
@@ -202,7 +198,7 @@ export default function Results() {
                     ref={sheetRef}
                     className={`results-sheet${
                         isSheetExpanded ? " results-sheet--expanded" : ""
-                    }`}
+                    }${isAdjusting ? " results-sheet--adjusting" : ""}`}
                     onFocus={(event) => {
                         // solo al llegar con el foco a un resultado (ni el asa ni el h1)
                         if ((event.target as HTMLElement).closest(".results-list")) {
@@ -210,21 +206,8 @@ export default function Results() {
                         }
                     }}
                     onPointerDown={(event) => {
-                        // BLOQUEO EN DESKTOP: Ignoramos el drag si la pantalla es ancha
                         if (window.innerWidth >= 768) return;
-
-                        // Evitar que al hacer scroll dentro del modal se mueva el contenedor entero
-                        const scrollContainer =
-                            event.currentTarget.querySelector(
-                                ".results-sheet__scroll",
-                            );
-
-                        if (
-                            scrollContainer instanceof HTMLElement &&
-                            scrollContainer.scrollTop > 0
-                        ) {
-                            return;
-                        }
+                        if (!(event.target as HTMLElement).closest(".results-sheet__handle")) return;
 
                         dragStartY.current = event.clientY;
                         didDrag.current = false;
@@ -296,13 +279,31 @@ export default function Results() {
                     </button>
 
                     <div className="results-sheet__scroll">
+                        {isAdjusting ? (
+                            <div className="container results-preferences">
+                                <div className="results-preferences__header">
+                                    <div className="results-heading-copy">
+                                        <PageHeading className="view-title" id="resultados-titulo">Tus preferencias</PageHeading>
+                                        <p className="view-subtitle">Los cambios se aplican al momento; los resultados se recalculan solos.</p>
+                                    </div>
+                                    <button type="button" className="button button--primary gomad-action gomad-action-close-preferences" onClick={() => setIsAdjusting(false)}>Listo</button>
+                                </div>
+                                <PreferencesForm weightsOnly />
+                            </div>
+                        ) : (
+                        <>
                         <div className="container view-header">
-                            <PageHeading className="view-title" id="resultados-titulo">
-                                {title}
-                            </PageHeading>
-                            <p className="view-subtitle">
-                                Las mejores opciones cerca de {origin.municipality}
-                            </p>
+                            <div className="results-heading-copy">
+                                <PageHeading className="view-title" id="resultados-titulo">
+                                    {title}
+                                </PageHeading>
+                                <p className="view-subtitle">
+                                    Las mejores opciones cerca de {origin.municipality}
+                                </p>
+                            </div>
+                            <button className="filter-button results-mobile-adjust gomad-action gomad-action-adjust-preferences" type="button" aria-label="Ajustar preferencias" onClick={openPreferences}>
+                                <Icon name="settings" />
+                            </button>
                         </div>
 
                         <div className="container results-body">
@@ -330,10 +331,10 @@ export default function Results() {
                                     />
                                 ))}
 
-                            {first.data && first.data.warnings.length > 0 && (
+                            {warnings.length > 0 && (
                                 <div className="notice notice--warn" role="note">
                                     <ul role="list">
-                                        {first.data.warnings.map((w) => (
+                                        {warnings.map((w) => (
                                             <li key={w}>{w}</li>
                                         ))}
                                     </ul>
@@ -382,6 +383,8 @@ export default function Results() {
 
                             {first.data && <p className="results-disclaimer">{first.data.medical_disclaimer}</p>}
                         </div>
+                        </>
+                        )}
                     </div>
                 </div>
 

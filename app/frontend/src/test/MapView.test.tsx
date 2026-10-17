@@ -10,6 +10,8 @@ import {
     setStyleMock,
     setWorkerUrlMock,
     withWebGL,
+    zoomInMock,
+    zoomOutMock,
 } from "./mapMock";
 
 // jsdom no tiene WebGL: se simula react-map-gl con componentes de DOM simples
@@ -38,6 +40,8 @@ afterEach(() => {
     vi.restoreAllMocks();
     setMapScenario("ok");
     setStyleMock.mockClear();
+    zoomInMock.mockClear();
+    zoomOutMock.mockClear();
 });
 
 describe("MapView", () => {
@@ -70,17 +74,26 @@ describe("MapView", () => {
         expect(await screen.findByText("© OpenStreetMap · OpenMapTiles · OpenFreeMap")).toBeVisible();
     });
 
-    it("el mapa esta oculto a lectores y fuera del teclado", async () => {
+    it("los botones acercan y alejan el mapa", async () => {
+        withWebGL();
+        render(<MapView markers={MARKERS} />);
+        await screen.findByTestId("maplibre");
+        fireEvent.click(screen.getByRole("button", { name: "Acercar mapa" }));
+        fireEvent.click(screen.getByRole("button", { name: "Alejar mapa" }));
+        expect(zoomInMock).toHaveBeenCalledOnce();
+        expect(zoomOutMock).toHaveBeenCalledOnce();
+    });
+
+    it("el mapa expone controles de zoom accesibles sin activar el teclado del lienzo", async () => {
         withWebGL();
         const { container } = render(<MapView markers={MARKERS} />);
         await screen.findByTestId("maplibre");
-        expect(container.querySelector(".map-view")).toHaveAttribute("aria-hidden", "true");
+        expect(screen.getByRole("button", { name: "Acercar mapa" })).toBeInTheDocument();
+        expect(screen.getByRole("button", { name: "Alejar mapa" })).toBeInTheDocument();
         const props = lastMapProps();
         expect(props.keyboard).toBe(false);
         expect(props.attributionControl).toBe(false);
-        expect(
-            container.querySelectorAll("button, a, input, [tabindex]:not([tabindex='-1'])"),
-        ).toHaveLength(0);
+        expect(container.querySelectorAll(".map-zoom button")).toHaveLength(2);
     });
 
     it("los marcadores no dependen del estilo: uno numerado por destino y el origen", async () => {

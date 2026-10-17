@@ -23,6 +23,8 @@ export function AppStateProvider({
     const [preferences, setPreferences] = useState<Preferences>({
         ...DEFAULT_PREFERENCES,
         ...init?.preferences,
+        selectedProfiles: init?.preferences?.selectedProfiles
+            ?? (init?.preferences?.profile && init.preferences.profile !== "general" ? [init.preferences.profile] : []),
     });
     const [results, setResults] = useState<Recommendation[]>(
         init?.results ?? [],

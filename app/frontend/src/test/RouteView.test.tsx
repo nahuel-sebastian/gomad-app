@@ -26,7 +26,7 @@ describe("Ruta saludable", () => {
     it("sin datos en memoria vuelve a Inicio (P-07)", async () => {
         renderAt("/ruta/ejemplo%3Aparque-arroyo");
         expect(
-            await screen.findByText(/Elige una actividad para ver recomendaciones/),
+            await screen.findByText(/Los resultados no se guardan al recargar la página/),
         ).toBeInTheDocument();
     });
 

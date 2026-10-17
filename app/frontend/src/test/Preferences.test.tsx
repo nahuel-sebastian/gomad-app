@@ -13,7 +13,7 @@ describe("Perfil", () => {
         const { container } = renderAt("/perfil");
         expect(screen.getByRole("heading", { level: 1, name: "Tus preferencias" })).toBeInTheDocument();
         const place = screen.getByRole("group", { name: "Lugar" });
-        expect(within(place).getByRole("radio", { name: "Indiferente" })).toBeChecked();
+        expect(within(place).getByRole("radio", { name: "Cualquiera" })).toBeChecked();
         const companions = screen.getByRole("group", { name: "Perfil (opcional)" });
         expect(within(companions).getAllByRole("checkbox")).toHaveLength(2);
         expect(within(companions).getAllByRole("button")).toHaveLength(3);
@@ -44,29 +44,38 @@ describe("Perfil", () => {
         expect(within(windowControl).getByText("3h")).toBeInTheDocument();
         expect(within(windowControl).getByText("1h")).toBeInTheDocument();
         expect(within(windowControl).getByText("12h")).toBeInTheDocument();
-        const weights = await screen.findAllByRole("slider", { name: /^Importancia de/ });
+        const weights = await screen.findAllByRole("group", { name: /^Importancia de/ });
         expect(weights).toHaveLength(5);
-        expect(screen.getByRole("slider", { name: "Importancia de adecuación a la actividad" })).toBeInTheDocument();
-        expect(screen.getByRole("slider", { name: "Importancia de cercanía y rapidez" })).toHaveAttribute(
-            "aria-valuetext",
-            "30 %, importancia media",
-        );
+        for (const group of weights) {
+            expect(within(group).getAllByRole("radio")).toHaveLength(5);
+        }
+        expect(within(screen.getByRole("group", { name: "Importancia de cercanía y rapidez" })).getByRole("radio", { name: "Poca" })).toBeChecked();
         await expectNoAxeViolations(container);
     });
 
-    it("mover un peso con el teclado lo cambia y Restablecer vuelve a los de por defecto", async () => {
+    it("pide confirmación antes de restablecer los pesos y permite cancelar", async () => {
         const { user } = renderAt("/perfil");
-        const air = await screen.findByRole("slider", { name: "Importancia de aire limpio" });
-        air.focus();
-        await user.keyboard("{End}");
-        await waitFor(() => expect(air).toHaveAttribute("aria-valuetext", "100 %, importancia máxima"));
-        await user.click(screen.getByRole("button", { name: "Restablecer valores por defecto" }));
+        const air = await screen.findByRole("group", { name: "Importancia de aire limpio" });
+        const much = within(air).getByRole("radio", { name: "Mucha" });
+        await user.click(much);
+        expect(much).toBeChecked();
+        const clear = screen.getByRole("button", { name: "Borrar todas mis preferencias" });
+        expect(clear.closest(".gomad-preferences-form")).toBeNull();
+        expect(clear.closest(".panel")).toBeNull();
+        await user.click(clear);
+        let confirmation = screen.getByRole("dialog", { name: "¿Restablecer los pesos?" });
+        expect(much).toBeChecked();
+        await user.click(within(confirmation).getByRole("button", { name: "Cancelar" }));
+        expect(screen.queryByRole("dialog", { name: "¿Restablecer los pesos?" })).not.toBeInTheDocument();
+        expect(clear).toHaveFocus();
+        expect(much).toBeChecked();
+        await user.click(clear);
+        confirmation = screen.getByRole("dialog", { name: "¿Restablecer los pesos?" });
+        await user.click(within(confirmation).getByRole("button", { name: "Borrar" }));
         await waitFor(() =>
-            expect(screen.getByRole("slider", { name: "Importancia de aire limpio" })).toHaveAttribute(
-                "aria-valuetext",
-                "15 %, importancia baja",
-            ),
+            expect(within(air).getByRole("radio", { name: "Poca" })).toBeChecked(),
         );
+        expect(screen.getByRole("status")).toHaveTextContent("Pesos restablecidos a los valores por defecto.");
     });
 
     it("ajusta los tres filtros por sus pasos con botones accesibles", async () => {
@@ -92,8 +101,12 @@ describe("Perfil", () => {
         expect(within(companions).getByRole("checkbox", { name: "Con niños" })).toBeChecked();
         await user.click(within(companions).getByRole("button", { name: "Con personas mayores" }));
         expect(within(companions).getByRole("button", { name: "Con personas mayores" })).toHaveAttribute("aria-pressed", "true");
+        await user.click(within(companions).getByRole("button", { name: "Con carrito" }));
+        expect(within(companions).getByRole("button", { name: "Con personas mayores" })).toHaveAttribute("aria-pressed", "true");
+        expect(within(companions).getByRole("button", { name: "Con carrito" })).toHaveAttribute("aria-pressed", "true");
         await user.click(within(companions).getByRole("button", { name: "Con personas mayores" }));
         expect(within(companions).getByRole("button", { name: "Con personas mayores" })).toHaveAttribute("aria-pressed", "false");
+        expect(within(companions).getByRole("button", { name: "Con carrito" })).toHaveAttribute("aria-pressed", "true");
         expect(within(companions).getByRole("checkbox", { name: "Con perro" })).toBeChecked();
     });
 
@@ -106,7 +119,7 @@ describe("Perfil", () => {
     });
 
     it("el resumen de Inicio refleja los cambios", async () => {
-        const { user } = renderAt("/perfil");
+        const { user } = renderAt("/perfil", { origin: SAMPLE_ORIGIN });
         await user.click(screen.getByRole("radio", { name: "Interior" }));
         const nav = screen.getByRole("navigation", { name: "Principal" });
         await user.click(within(nav).getByRole("link", { name: "Mi entorno" }));
@@ -114,16 +127,17 @@ describe("Perfil", () => {
     });
 });
 
-describe("Ajustar como dialogo", () => {
-    it("se abre desde Resultados, Esc cierra y el foco vuelve a Ajustar", async () => {
+describe("Ajustar en el panel de resultados", () => {
+    it("sustituye los resultados por los pesos y Listo vuelve a la lista", async () => {
         const { user } = renderAt("/resultados", WITH_SEARCH);
         const adjust = screen.getByRole("button", { name: "Ajustar preferencias" });
         await user.click(adjust);
-        const dialog = await screen.findByRole("dialog", { name: "Tus preferencias" });
-        expect(dialog).toBeInTheDocument();
-        await user.keyboard("{Escape}");
-        await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
-        expect(adjust).toHaveFocus();
+        expect(screen.getByRole("heading", { name: "Tus preferencias" })).toBeInTheDocument();
+        expect(screen.getByRole("group", { name: "Importancia de cercanía y rapidez" })).toBeInTheDocument();
+        expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+        expect(screen.queryByRole("button", { name: "Guardar preferencias" })).not.toBeInTheDocument();
+        await user.click(screen.getByRole("button", { name: "Listo" }));
+        expect(await screen.findByRole("list", { name: "Resultados" })).toBeInTheDocument();
     });
 
     it("subir la cercania al maximo recalcula y cambia el orden sin recargar", async () => {
@@ -132,16 +146,11 @@ describe("Ajustar como dialogo", () => {
         await waitFor(() => expect(within(list).getAllByRole("listitem")).toHaveLength(3));
         const before = within(list).getAllByRole("link")[0].textContent;
         await user.click(screen.getByRole("button", { name: "Ajustar preferencias" }));
-        const dialog = await screen.findByRole("dialog", { name: "Tus preferencias" });
         for (const name of ["Importancia de sombra y zona verde", "Importancia de aire limpio", "Importancia de adecuación a la actividad", "Importancia de meteorología"]) {
-            const slider = within(dialog).getByRole("slider", { name });
-            slider.focus();
-            await user.keyboard("{Home}");
+            await user.click(within(screen.getByRole("group", { name })).getByRole("radio", { name: "Nada" }));
         }
-        const near = within(dialog).getByRole("slider", { name: "Importancia de cercanía y rapidez" });
-        near.focus();
-        await user.keyboard("{End}");
-        await user.click(within(dialog).getByRole("button", { name: "Listo" }));
+        await user.click(within(screen.getByRole("group", { name: "Importancia de cercanía y rapidez" })).getByRole("radio", { name: "Mucha" }));
+        await user.click(screen.getByRole("button", { name: "Listo" }));
         await waitFor(() =>
             expect(screen.getByRole("status")).toHaveTextContent("3 resultados actualizados"),
         );
@@ -150,7 +159,7 @@ describe("Ajustar como dialogo", () => {
     });
 
     it("«Tus preferencias» en Inicio lleva al perfil", async () => {
-        const { user } = renderAt("/");
+        const { user } = renderAt("/", { origin: SAMPLE_ORIGIN });
         await user.click(screen.getByRole("link", { name: /^Tus preferencias/ }));
         expect(await screen.findByRole("heading", { level: 1, name: "Tus preferencias" })).toBeInTheDocument();
     });
@@ -175,7 +184,7 @@ describe("Perfil: pesos por defecto", () => {
         expect(screen.queryAllByRole("slider", { name: /^Importancia de/ })).toHaveLength(0);
         spy.mockImplementation(real);
         await user.click(retry);
-        expect(await screen.findAllByRole("slider", { name: /^Importancia de/ })).toHaveLength(5);
+        expect(await screen.findAllByRole("group", { name: /^Importancia de/ })).toHaveLength(5);
     });
 
     it("mientras carga dice «Cargando pesos…» y no hay deslizadores de peso", async () => {

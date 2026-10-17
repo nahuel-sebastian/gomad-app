@@ -24,7 +24,7 @@ describe("Resultados", () => {
         renderAt("/resultados");
         expect(
             await screen.findByText(
-                /Elige una actividad para ver recomendaciones/,
+                /Los resultados no se guardan al recargar la página/,
             ),
         ).toBeInTheDocument();
         expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent(
@@ -66,6 +66,40 @@ describe("Resultados", () => {
                 "Recomendación orientativa con datos abiertos. No es consejo médico.",
             ),
         ).toBeInTheDocument();
+    });
+
+    it("nombra la chip de aire razonablemente bueno", async () => {
+        const recommendOriginal = recommendApi.recommend;
+        vi.spyOn(recommendApi, "recommend").mockImplementation(async (...args) => {
+            const response = await recommendOriginal(...args);
+            return {
+                ...response,
+                results: response.results.map((item) => ({
+                    ...item,
+                    hours: item.hours.map((hour) => ({ ...hour, aqi_category: "fair" as const })),
+                })),
+            };
+        });
+        renderAt("/resultados", WITH_SEARCH);
+        const list = await resultsList();
+        expect(within(list).getAllByText("Aire razonablemente bueno").length).toBeGreaterThan(0);
+    });
+
+    it("resume el aviso de actividad al aire libre a la recomendación principal", async () => {
+        const recommendOriginal = recommendApi.recommend;
+        vi.spyOn(recommendApi, "recommend").mockImplementation(async (...args) => {
+            const response = await recommendOriginal(...args);
+            return {
+                ...response,
+                warnings: [
+                    "Ahora no se recomienda actividad al aire libre en la ventana elegida: prueba otra franja.",
+                    "Aire: solo hay medición para parte de la ventana.",
+                ],
+            };
+        });
+        renderAt("/resultados", WITH_SEARCH);
+        expect(await screen.findByText("Ahora no se recomienda actividad al aire libre en la ventana elegida. Prueba otra franja.")).toBeInTheDocument();
+        expect(screen.queryByText(/Aire: solo hay medición/)).not.toBeInTheDocument();
     });
 
     it("muestra «sin datos» cuando un factor viene a null", async () => {
@@ -115,6 +149,31 @@ describe("Resultados", () => {
             fireEvent.pointerDown(link, { pointerId: 1, clientY: 500 });
             fireEvent.pointerUp(link, { pointerId: 1, clientY: 500 });
             expect(capture).not.toHaveBeenCalled();
+        } finally {
+            window.innerWidth = width;
+        }
+    });
+
+    it("permite arrastrar desde el asa aunque el contenido esté desplazado", async () => {
+        const capture = vi.fn();
+        HTMLElement.prototype.setPointerCapture = capture;
+        const width = window.innerWidth;
+        window.innerWidth = 375;
+        try {
+            renderAt("/resultados", WITH_SEARCH);
+            await resultsList();
+            const handle = screen.getByRole("button", { name: "Mostrar resultados" });
+            fireEvent.click(handle);
+            const sheet = handle.closest(".results-sheet") as HTMLElement;
+            const scroll = sheet.querySelector(".results-sheet__scroll") as HTMLElement;
+            scroll.scrollTop = 200;
+
+            fireEvent(handle, Object.assign(new Event("pointerdown", { bubbles: true }), { pointerId: 2, clientY: 100 }));
+            fireEvent(handle, Object.assign(new Event("pointermove", { bubbles: true }), { pointerId: 2, clientY: 160 }));
+            fireEvent(handle, Object.assign(new Event("pointerup", { bubbles: true }), { pointerId: 2, clientY: 160 }));
+
+            expect(capture).toHaveBeenCalledWith(2);
+            expect(screen.getByRole("button", { name: "Mostrar resultados" })).toBeInTheDocument();
         } finally {
             window.innerWidth = width;
         }
@@ -202,11 +261,11 @@ describe("Resultados", () => {
         expect(within(await resultsList()).getAllByRole("listitem")).toHaveLength(3);
     });
 
-    it("tiene un mapa de marcador de posicion oculto a lectores", async () => {
+    it("tiene un mapa con controles de zoom accesibles", async () => {
         const { container } = renderAt("/resultados", WITH_SEARCH);
         await resultsList();
         const map = container.querySelector(".map-view");
-        expect(map).toHaveAttribute("aria-hidden", "true");
+        expect(map).toContainElement(screen.getByRole("button", { name: "Acercar mapa" }));
     });
 });
 
@@ -225,13 +284,12 @@ describe("Resultados: pastilla de verde", () => {
         });
     }
 
-    it("muestra el texto del factor que manda la API, sin cortes propios", async () => {
-        await withGreen(2, "Texto de verde del contrato");
+    it("muestra solo el porcentaje y zona verde", async () => {
+        await withGreen(2, "Verde: 100 % de zona verde alrededor");
         renderAt("/resultados", WITH_SEARCH);
         const list = await resultsList();
-        expect(within(list).getAllByText("Texto de verde del contrato").length).toBeGreaterThan(0);
-        expect(within(list).queryByText("Poco verde")).toBeNull();
-        expect(within(list).queryByText("Mucho verde")).toBeNull();
+        expect(within(list).getAllByText("100% zona verde").length).toBeGreaterThan(0);
+        expect(within(list).queryByText(/alrededor/)).toBeNull();
     });
 
     it("con valor null dice «Verde: sin datos»", async () => {
@@ -247,11 +305,17 @@ describe("Resultados: recalculo", () => {
 
     it("al recalcular la lista lleva aria-busy y se ve «Actualizando…» sin atenuar el texto", async () => {
         const { user } = renderAt("/resultados", WITH_SEARCH);
-        const list = await resultsList();
+        await resultsList();
         vi.spyOn(recommendApi, "recommend").mockReturnValue(new Promise(() => {}));
         await user.click(screen.getByRole("button", { name: "Ajustar preferencias" }));
-        const dialog = await screen.findByRole("dialog", { name: "Tus preferencias" });
-        await user.click(within(dialog).getByRole("radio", { name: "Interior" }));
+        expect(screen.getByRole("heading", { name: "Tus preferencias" })).toBeInTheDocument();
+        expect(screen.queryByRole("dialog", { name: "Tus preferencias" })).not.toBeInTheDocument();
+        expect(screen.queryByRole("list", { name: "Resultados" })).not.toBeInTheDocument();
+        expect(screen.queryByText("Tiempo disponible")).not.toBeInTheDocument();
+        expect(screen.queryByRole("button", { name: "Guardar preferencias" })).not.toBeInTheDocument();
+        await user.click(within(screen.getByRole("group", { name: "Importancia de cercanía y rapidez" })).getByRole("radio", { name: "Mucha" }));
+        await user.click(screen.getByRole("button", { name: "Listo" }));
+        const list = await resultsList();
         await waitFor(() => expect(list).toHaveAttribute("aria-busy", "true"));
         expect(screen.getByText("Actualizando…")).toBeInTheDocument();
         expect(list.className).not.toMatch(/stale/);

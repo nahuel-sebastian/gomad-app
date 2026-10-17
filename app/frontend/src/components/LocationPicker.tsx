@@ -1,6 +1,6 @@
 import { useId, useRef, useState, type FormEvent } from "react";
 import type { LocationCandidate } from "../api/types";
-import { currentLocation, isSampleLocation, searchLocation } from "../data/location";
+import { currentLocation, searchLocation } from "../data/location";
 import { useAppState } from "../state/context";
 import Icon from "./Icon";
 
@@ -23,29 +23,44 @@ export default function LocationPicker({ onPicked, highlight }: LocationPickerPr
     const inputId = useId();
     const statusRef = useRef(0);
     const [picked, setPicked] = useState("");
-    const currentRef = useRef<HTMLParagraphElement>(null);
+    const inputRef = useRef<HTMLInputElement>(null);
     const [locating, setLocating] = useState(false);
     const [locateError, setLocateError] = useState("");
 
     const pick = (candidate: LocationCandidate) => {
+        statusRef.current += 1;
         setOrigin(candidate);
         setSearch({ status: "idle" });
         setText("");
         setPicked(`Ubicación elegida: ${candidate.label}.`);
-        // el candidato pulsado desaparece: el foco va a la ubicacion elegida
-        requestAnimationFrame(() => currentRef.current?.focus());
+        requestAnimationFrame(() => inputRef.current?.focus());
         onPicked?.(candidate);
+    };
+
+    const clear = () => {
+        statusRef.current += 1;
+        setOrigin(null);
+        setText("");
+        setSearch({ status: "idle" });
+        setPicked("");
+        setLocateError("");
+        inputRef.current?.focus();
     };
 
     // GPS tras el gesto; la posicion solo se usa para esta busqueda (no se guarda)
     const locate = async () => {
+        const call = ++statusRef.current;
+        setSearch({ status: "idle" });
         setLocating(true);
         setLocateError("");
         setPicked("");
         try {
-            pick(await currentLocation());
+            const candidate = await currentLocation();
+            if (call === statusRef.current) pick(candidate);
         } catch (error) {
-            setLocateError(error instanceof Error ? error.message : "No hemos podido saber dónde estás.");
+            if (call === statusRef.current) {
+                setLocateError(error instanceof Error ? error.message : "No hemos podido saber dónde estás.");
+            }
         } finally {
             setLocating(false);
         }
@@ -95,42 +110,53 @@ export default function LocationPicker({ onPicked, highlight }: LocationPickerPr
                 ¿Desde dónde sales?
             </h2>
 
-            {origin && (
-                <p className="location__current" ref={currentRef} tabIndex={-1}>
-                    <span className="muted">Ubicación elegida:</span>{" "}
-                    <strong>{origin.label}</strong>
-                    {origin.precision === "municipality" && (
-                        <span className="location__note">
-                            Usaremos el centro de {origin.municipality}.
-                        </span>
-                    )}
-                    {isSampleLocation(origin) && (
-                        <span className="location__note">
-                            Es una ubicación de ejemplo: el GPS no está disponible en este entorno de desarrollo.
-                        </span>
-                    )}
-                </p>
-            )}
-
             <form className="location__form" onSubmit={onSubmit} role="search" aria-label="Buscar ubicación">
                 <label htmlFor={inputId} className="sr-only">
                     Escribe una dirección o un municipio
                 </label>
-                <div className="location__search">
-                    <input
-                        id={inputId}
-                        className="field__input gomad-field gomad-field-location-search"
-                        type="text"
-                        autoComplete="off"
-                        maxLength={200}
-                        placeholder="Escribe una dirección o un municipio"
-                        value={text}
-                        onChange={(e) => setText(e.target.value)}
-                    />
-                    <button type="submit" className="button location__search-button gomad-action gomad-action-search-location">
-                        <Icon name="search" />
-                        <span>Buscar</span>
-                    </button>
+                <div className="location__search-wrap">
+                    <div className="location__search">
+                        <input
+                            ref={inputRef}
+                            id={inputId}
+                            className="field__input gomad-field gomad-field-location-search"
+                            type="text"
+                            autoComplete="off"
+                            maxLength={200}
+                            placeholder="Escribe una dirección o un municipio"
+                            value={origin?.label ?? text}
+                            readOnly={Boolean(origin)}
+                            onChange={(e) => {
+                                statusRef.current += 1;
+                                setText(e.target.value);
+                                setSearch({ status: "idle" });
+                            }}
+                        />
+                        <button
+                            type={origin ? "button" : "submit"}
+                            className="button location__search-button gomad-action gomad-action-search-location"
+                            aria-label={origin ? "Borrar ubicación" : "Buscar"}
+                            onClick={origin ? clear : undefined}>
+                            <Icon name={origin ? "close" : "search"} />
+                            <span aria-hidden="true">{origin ? "Borrar ubicación" : "Buscar"}</span>
+                        </button>
+                    </div>
+                    {announcement && (
+                        <p className={`location__status${picked ? " sr-only" : ""}`} role="status" aria-live="polite">
+                            {announcement}
+                        </p>
+                    )}
+                    {search.status === "done" && search.candidates.length > 0 && (
+                        <ul role="list" className="location__candidates" aria-label="Lugares encontrados">
+                            {search.candidates.map((c) => (
+                                <li key={`${c.ine_code}-${c.label}`}>
+                                    <button type="button" className="candidate gomad-action gomad-action-select-location" onClick={() => pick(c)}>
+                                        {c.label}
+                                    </button>
+                                </li>
+                            ))}
+                        </ul>
+                    )}
                 </div>
                 <div className="location__actions">
                     <button
@@ -144,22 +170,6 @@ export default function LocationPicker({ onPicked, highlight }: LocationPickerPr
                     </button>
                 </div>
             </form>
-
-            <p className={`location__status${picked ? " sr-only" : ""}`} role="status" aria-live="polite">
-                {announcement}
-            </p>
-
-            {search.status === "done" && search.candidates.length > 0 && (
-                <ul role="list" className="location__candidates" aria-label="Lugares encontrados">
-                    {search.candidates.map((c) => (
-                        <li key={`${c.ine_code}-${c.label}`}>
-                            <button type="button" className="candidate gomad-action gomad-action-select-location" onClick={() => pick(c)}>
-                                {c.label}
-                            </button>
-                        </li>
-                    ))}
-                </ul>
-            )}
         </section>
     );
 }

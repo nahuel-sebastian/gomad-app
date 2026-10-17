@@ -29,6 +29,7 @@ const SIZE = 100;
 // Esquema SVG sin teselas: respaldo cuando no hay WebGL, mientras carga MapLibre
 // o si MapLibre falla
 function Schematic({ markers, selectedId, origin, route, secondaryRoute }: MapViewProps) {
+    const [zoom, setZoom] = useState(1);
     const main = lineCoordinates(route);
     const secondary = lineCoordinates(secondaryRoute);
     const points: [number, number][] = [
@@ -52,9 +53,9 @@ function Schematic({ markers, selectedId, origin, route, secondaryRoute }: MapVi
         coords.map((c) => project(c).map((n) => n.toFixed(2)).join(",")).join(" ");
 
     return (
-        <>
+        <div>
             {points.length > 0 && (
-                <svg className="map-view__svg" viewBox={`0 0 ${SIZE} ${SIZE}`} preserveAspectRatio="xMidYMid meet">
+                <svg aria-hidden="true" className="map-view__svg" viewBox={`${(SIZE - SIZE / zoom) / 2} ${(SIZE - SIZE / zoom) / 2} ${SIZE / zoom} ${SIZE / zoom}`} preserveAspectRatio="xMidYMid meet">
                     {secondary.length > 1 && (
                         <polyline className="map-view__route map-view__route--secondary" points={path(secondary)} />
                     )}
@@ -81,8 +82,12 @@ function Schematic({ markers, selectedId, origin, route, secondaryRoute }: MapVi
                     })}
                 </svg>
             )}
+            <div className="map-zoom" role="group" aria-label="Zoom del mapa">
+                <button type="button" aria-label="Acercar mapa" disabled={zoom >= 4} onClick={() => setZoom((value) => Math.min(4, value * 2))}>+</button>
+                <button type="button" aria-label="Alejar mapa" disabled={zoom <= 1} onClick={() => setZoom((value) => Math.max(1, value / 2))}>−</button>
+            </div>
             <span className="map-view__note">Mapa simplificado (sin teselas)</span>
-        </>
+        </div>
     );
 }
 
@@ -111,8 +116,7 @@ export default function MapView(props: MapViewProps) {
 
     return (
         <div
-            className={`map-view gomad-component gomad-map-view${props.className ? ` ${props.className}` : ""}`}
-            aria-hidden="true">
+            className={`map-view gomad-component gomad-map-view${props.className ? ` ${props.className}` : ""}`}>
             {webgl ? (
                 <MapErrorBoundary fallback={schematic}>
                     <Suspense fallback={schematic}>

@@ -19,7 +19,7 @@ describe("Inicio", () => {
         render(
             <StrictMode>
                 <MemoryRouter initialEntries={["/"]}>
-                    <AppStateProvider><AppRoutes /></AppStateProvider>
+                    <AppStateProvider init={{ origin: SAMPLE_ORIGIN }}><AppRoutes /></AppStateProvider>
                 </MemoryRouter>
             </StrictMode>,
         );
@@ -36,7 +36,7 @@ describe("Inicio", () => {
     });
 
     it("pinta las 8 actividades del catalogo como botones en una lista", async () => {
-        const { container } = renderAt("/");
+        const { container } = renderAt("/", { origin: SAMPLE_ORIGIN });
         const list = await screen.findByRole("list", { name: "Actividades" });
         expect(within(list).getAllByRole("button")).toHaveLength(8);
         expect(
@@ -44,7 +44,8 @@ describe("Inicio", () => {
         ).toBeInTheDocument();
         expect(container.querySelector(".icon-random")).toBeInTheDocument();
         expect(container.querySelector(".icon-settings")).toBeInTheDocument();
-        expect(container.querySelectorAll(".activity__tile")).toHaveLength(0);
+        expect(container.querySelectorAll(".activity__icon")).toHaveLength(8);
+        expect(within(list).getByRole("button", { name: "Caminar" }).querySelector(".activity__icon")).toHaveAttribute("data-icon", "directions_walk");
         const nav = screen.getByRole("navigation", { name: "Principal" });
         expect(nav.querySelector(".icon-navigation")).toBeInTheDocument();
         expect(nav.querySelector(".icon-location_on")).toBeInTheDocument();
@@ -56,7 +57,7 @@ describe("Inicio", () => {
         const spy = vi
             .spyOn(activitiesApi, "getActivities")
             .mockRejectedValueOnce(new Error("caida"));
-        const { user } = renderAt("/");
+        const { user } = renderAt("/", { origin: SAMPLE_ORIGIN });
         expect(
             await screen.findByText("No se pudieron cargar las actividades."),
         ).toBeInTheDocument();
@@ -67,21 +68,19 @@ describe("Inicio", () => {
         expect(spy).toHaveBeenCalledTimes(2);
     });
 
-    it("sin ubicacion, pide la ubicacion y despues va a resultados", async () => {
+    it("sin ubicacion muestra el buscador y preferencias; al activarla aparecen las demás opciones", async () => {
         const { user } = renderAt("/");
-        await user.click(await screen.findByRole("button", { name: "Correr" }));
-        expect(
-            screen.getByText(/Antes, dinos dónde estás/),
-        ).toBeInTheDocument();
+        expect(screen.getByRole("heading", { name: "¿Desde dónde sales?" })).toBeInTheDocument();
+        expect(screen.queryByRole("heading", { name: "Elige una actividad" })).not.toBeInTheDocument();
+        expect(screen.queryByRole("button", { name: /Sorpréndeme/ })).not.toBeInTheDocument();
+        expect(screen.queryByRole("link", { name: /Asistente de rutas/ })).not.toBeInTheDocument();
+        expect(screen.getByRole("link", { name: /Tus preferencias/ })).toHaveAttribute("href", "/perfil");
         await user.click(
             screen.getByRole("button", { name: "Usar mi ubicación" }),
         );
-        expect(
-            await screen.findByRole("heading", {
-                level: 1,
-                name: "Correr cerca de ti",
-            }),
-        ).toBeInTheDocument();
+        expect(await screen.findByRole("button", { name: "Correr" })).toBeInTheDocument();
+        expect(screen.getByRole("button", { name: /Sorpréndeme/ })).toBeInTheDocument();
+        expect(screen.getByRole("link", { name: /Asistente de rutas/ })).toBeInTheDocument();
     });
 
     it("con ubicacion, una actividad lleva directo a resultados", async () => {
@@ -106,19 +105,19 @@ describe("Inicio", () => {
         ).toBeInTheDocument();
     });
 
-    it("usar mi ubicacion avisa de que es de ejemplo", async () => {
+    it("usar mi ubicacion pone la ubicacion en el campo y permite borrarla", async () => {
         const { user } = renderAt("/");
         const locationButton = screen.getByRole("button", { name: "Usar mi ubicación" });
         expect(locationButton).toHaveTextContent("Usar ubicación");
         expect(locationButton).toHaveClass("gomad-action-use-location");
         await user.click(locationButton);
-        expect(
-            await screen.findByText(
-                "Es una ubicación de ejemplo: el GPS no está disponible en este entorno de desarrollo.",
-            ),
-        ).toBeInTheDocument();
-        expect(screen.getByText("Ubicación elegida:").nextElementSibling).toHaveTextContent("Tu ubicación de ejemplo");
+        expect(await screen.findByDisplayValue("Tu ubicación de ejemplo (Getafe)")).toBeInTheDocument();
+        expect(screen.getByRole("button", { name: "Borrar ubicación" }).querySelector(".icon-close")).toBeInTheDocument();
         expect(document.querySelector(".location__status")).toHaveClass("sr-only");
+        await user.click(screen.getByRole("button", { name: "Borrar ubicación" }));
+        expect(screen.getByLabelText("Escribe una dirección o un municipio")).toHaveValue("");
+        expect(screen.getByRole("button", { name: "Buscar" })).toBeInTheDocument();
+        expect(screen.queryByRole("heading", { name: "Elige una actividad" })).not.toBeInTheDocument();
     });
 
     it("si el GPS se deniega lo explica y deja escribir la dirección", async () => {
@@ -145,11 +144,18 @@ describe("Inicio", () => {
         );
         await user.click(searchButton);
         const option = await screen.findByRole("button", { name: "Getafe" });
-        expect(screen.getByText("1 lugar encontrado.")).toBeInTheDocument();
+        const count = screen.getByText("1 lugar encontrado.");
+        expect(count.compareDocumentPosition(screen.getByLabelText("Escribe una dirección o un municipio")) & Node.DOCUMENT_POSITION_PRECEDING).toBeTruthy();
+        expect(count.parentElement).toHaveClass("location__search-wrap");
+        expect(option.closest(".location__candidates")?.parentElement).toHaveClass("location__search-wrap");
         await user.click(option);
-        expect(
-            await screen.findByText("Usaremos el centro de Getafe."),
-        ).toBeInTheDocument();
+        expect(screen.getByLabelText("Escribe una dirección o un municipio")).toHaveValue("Getafe");
+        expect(screen.queryByText("Usaremos el centro de Getafe.")).not.toBeInTheDocument();
+        expect(screen.queryByRole("list", { name: "Lugares encontrados" })).not.toBeInTheDocument();
+        expect(await screen.findByRole("heading", { name: "Elige una actividad" })).toBeInTheDocument();
+        await user.click(screen.getByRole("button", { name: "Borrar ubicación" }));
+        expect(screen.getByLabelText("Escribe una dirección o un municipio")).toHaveValue("");
+        expect(screen.queryByRole("heading", { name: "Elige una actividad" })).not.toBeInTheDocument();
         await expectNoAxeViolations(container);
     });
 
@@ -165,6 +171,7 @@ describe("Inicio", () => {
                 "No encontramos esa dirección. Prueba con el nombre del municipio.",
             ),
         ).toBeInTheDocument();
+        expect(screen.getByText("No encontramos esa dirección. Prueba con el nombre del municipio.").parentElement).toHaveClass("location__search-wrap");
     });
 
     it("muestra el estado del momento con temperatura y aire en texto", async () => {
@@ -177,7 +184,7 @@ describe("Inicio", () => {
     });
 
     it("hace que toda la tarjeta de preferencias enlace al perfil y la compone como Sorpréndeme", () => {
-        renderAt("/");
+        renderAt("/", { origin: SAMPLE_ORIGIN });
         expect(
             screen.getByText("45 min · hasta 3 km · interior o exterior"),
         ).toBeInTheDocument();
@@ -194,7 +201,7 @@ describe("Inicio", () => {
     });
 
     it("enlaza con el asistente de rutas", () => {
-        renderAt("/");
+        renderAt("/", { origin: SAMPLE_ORIGIN });
         const assistantCard = screen.getByRole("link", { name: /Asistente de rutas/ });
         expect(assistantCard).toHaveAttribute("href", "/asistente");
         expect(assistantCard).toHaveClass("surprise", "assistant-link");

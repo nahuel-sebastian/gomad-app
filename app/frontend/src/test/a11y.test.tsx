@@ -28,7 +28,7 @@ describe("barrido de accesibilidad por pantalla", () => {
         ["/perfil", "Tus preferencias"],
         ["/asistente", "Asistente de rutas"],
         ["/fuentes", "Fuentes, licencias y aviso"],
-    ])("%s tiene un solo h1, pasa axe y tiene el aviso medico", async (path, title) => {
+    ])("%s tiene un solo h1 y pasa axe", async (path, title) => {
         const state = await stateWithResults();
         const { container } = renderAt(path.replace(":id", state.id), state);
         if (title) {
@@ -37,18 +37,18 @@ describe("barrido de accesibilidad por pantalla", () => {
         // espera a que acabe la carga simulada
         await waitFor(() => expect(container).not.toHaveTextContent(/Cargando|Calculando|Buscando/));
         expect(screen.getAllByRole("heading", { level: 1 })).toHaveLength(1);
-        expect(screen.getByRole("contentinfo")).toHaveTextContent("No es consejo médico");
+        expect(screen.queryByRole("contentinfo")).not.toBeInTheDocument();
         await waitFor(() => expect(document.title).toMatch(/ · GoMad$/));
         await expectNoAxeViolations(container);
     });
 });
 
 describe("navegacion global", () => {
-    it("la barra tiene los tres destinos con texto visible y va despues del logo", () => {
+    it("la barra tiene los cuatro destinos con texto visible y va despues del logo", () => {
         renderAt("/");
         const nav = screen.getByRole("navigation", { name: "Principal" });
         const links = within(nav).getAllByRole("link");
-        expect(links.map((l) => l.textContent)).toEqual(["Mi entorno", "Municipios", "Preferencias"]);
+        expect(links.map((l) => l.textContent)).toEqual(["Mi entorno", "Municipios", "Fuentes", "Preferencias"]);
         expect(screen.queryByRole("button", { name: /menú/i })).not.toBeInTheDocument();
     });
 

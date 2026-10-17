@@ -13,6 +13,7 @@ import type {
 
 export interface Preferences {
     profile: Profile;
+    selectedProfiles: Exclude<Profile, "general">[];
     companions: Companion[];
     // null = pesos por defecto del servidor
     weights: Weights | null;
@@ -25,6 +26,7 @@ export interface Preferences {
 
 export const DEFAULT_PREFERENCES: Preferences = {
     profile: "general",
+    selectedProfiles: [],
     companions: [],
     weights: null,
     durationMin: 45,

@@ -61,7 +61,7 @@ describe("Vista de municipio", () => {
         await user.click(
             await screen.findByRole("button", { name: "Buscar actividad en Getafe" }),
         );
-        expect(await screen.findByText("Usaremos el centro de Getafe.")).toBeInTheDocument();
+        expect(await screen.findByDisplayValue("Getafe")).toBeInTheDocument();
     });
 
     it("avisa si no puede situar el municipio", async () => {

@@ -1,3 +1,4 @@
+import * as Dialog from "@radix-ui/react-dialog";
 import { useState } from "react";
 import type { Companion, Factor, Profile, Setting } from "../api/types";
 import { getActivities } from "../data/activities";
@@ -24,30 +25,34 @@ const PROFILE_ICONS: Record<Exclude<Profile, "general">, string> = {
 };
 // orden de los pesos: los del prototipo y despues la adecuacion (P-11)
 const FACTORS: Factor[] = ["proximity", "green", "air", "weather", "suitability"];
-
-function importance(percent: number): string {
-    if (percent === 0) return "ninguna";
-    if (percent <= 20) return "baja";
-    if (percent <= 40) return "media";
-    if (percent <= 70) return "alta";
-    return "máxima";
-}
+const WEIGHT_OPTIONS = [
+    { label: "Nada", percent: 0 },
+    { label: "Poca", percent: 25 },
+    { label: "Neutra", percent: 50 },
+    { label: "Bastante", percent: 75 },
+    { label: "Mucha", percent: 100 },
+] as const;
 
 function km(meters: number): string {
     return `${String(meters / 1000).replace(".", ",")} km`;
 }
 
 // Formulario de preferencias (pantallas §6): se usa en /perfil y en el dialogo
-export default function PreferencesForm() {
-    const { preferences, updatePreferences, resetPreferences } = useAppState();
+export default function PreferencesForm({ inPanel = false, weightsOnly = false }: { inPanel?: boolean; weightsOnly?: boolean }) {
+    const { preferences, updatePreferences } = useAppState();
     const [savedPreferences, setSavedPreferences] = useState<typeof preferences | null>(null);
+    const [weightsReset, setWeightsReset] = useState(false);
+    const [confirmClearOpen, setConfirmClearOpen] = useState(false);
     const activities = useAsync(() => getActivities(), []);
     // los pesos por defecto los decide el motor (/activities); sin ellos no se pintan los pesos
     const defaults = activities.data?.default_weights ?? null;
     const weights = defaults ? (preferences.weights ?? defaults) : null;
 
-    const setWeight = (factor: Factor, percent: number) =>
-        weights && updatePreferences({ weights: { ...weights, [factor]: percent / 100 } });
+    const setWeight = (factor: Factor, percent: number) => {
+        if (!weights) return;
+        setWeightsReset(false);
+        updatePreferences({ weights: { ...weights, [factor]: percent / 100 } });
+    };
 
     const toggleCompanion = (c: Companion) =>
         updatePreferences({
@@ -56,8 +61,18 @@ export default function PreferencesForm() {
                 : [...preferences.companions, c],
         });
 
+    const toggleProfile = (profile: Exclude<Profile, "general">) => {
+        const selectedProfiles = preferences.selectedProfiles ?? (preferences.profile === "general" ? [] : [preferences.profile]);
+        const next = selectedProfiles.includes(profile)
+            ? selectedProfiles.filter((item) => item !== profile)
+            : [...selectedProfiles, profile];
+        updatePreferences({ selectedProfiles: next, profile: next.at(-1) ?? "general" });
+    };
+
     return (
-        <div className="prefs-form gomad-component gomad-preferences-form">
+        <div className={`prefs-form${weightsOnly ? " prefs-form--weights-only" : ""}`}>
+            <div className={`gomad-component gomad-preferences-form${inPanel ? " panel" : ""}`}>
+            {!weightsOnly && <>
             <PrefSlider
                 label="Tiempo disponible"
                 controls
@@ -131,8 +146,8 @@ export default function PreferencesForm() {
                             key={p}
                             type="button"
                             className={`companion-option gomad-action gomad-option gomad-option-profile-${p}`}
-                            aria-pressed={preferences.profile === p}
-                            onClick={() => updatePreferences({ profile: preferences.profile === p ? "general" : p })}>
+                            aria-pressed={(preferences.selectedProfiles ?? [preferences.profile]).includes(p)}
+                            onClick={() => toggleProfile(p)}>
                             <Icon name={PROFILE_ICONS[p]} />
                             {PROFILE_OPTION_LABELS[p]}
                         </button>
@@ -140,47 +155,88 @@ export default function PreferencesForm() {
                 </div>
             </fieldset>
 
+            </>}
+
             <fieldset className="prefs-form__group">
                 <legend className="field__label">¿A qué le das más importancia?</legend>
-                <p className="muted">
-                    Pesos de la nota (criterio propio). Si los pones todos a 0, se usan los de por defecto.
-                </p>
                 {activities.status === "error" ? (
                     <ErrorMessage message="No se han podido cargar los pesos por defecto." onRetry={activities.reload} />
                 ) : !weights ? (
                     <p className="muted">Cargando pesos…</p>
                 ) : (
                     <>
-                        {FACTORS.map((f) => (
-                            <PrefSlider
-                                key={f}
-                                label={`Importancia de ${FACTOR_LABELS[f].toLowerCase()}`}
-                                min={0}
-                                max={100}
-                                step={5}
-                                value={Math.round(weights[f] * 100)}
-                                format={(v) => `${v} %, importancia ${importance(v)}`}
-                                onCommit={(v) => setWeight(f, v)}
-                            />
-                        ))}
-                        <button type="button" className="button gomad-action gomad-action-reset-weights" onClick={() => updatePreferences({ weights: null })}>
-                            Restablecer valores por defecto
-                        </button>
+                        <ul className="weight-options">
+                            {FACTORS.map((f) => (
+                                <li key={f} className="weight-options__item">
+                                    <fieldset className="weight-option">
+                                        <legend className="field__label">Importancia de {FACTOR_LABELS[f].toLowerCase()}</legend>
+                                        <div className="seg seg--weights">
+                                            {WEIGHT_OPTIONS.map(({ label, percent }) => (
+                                                <label key={percent} className={`seg__option gomad-option gomad-option-weight-${f}-${percent}`}>
+                                                    <input
+                                                        type="radio"
+                                                        className={`gomad-field gomad-field-weight-${f}`}
+                                                        name={`weight-${f}`}
+                                                        value={percent}
+                                                        checked={Math.round(weights[f] * 4) * 25 === percent}
+                                                        onChange={() => setWeight(f, percent)}
+                                                    />
+                                                    <span>{label}</span>
+                                                </label>
+                                            ))}
+                                        </div>
+                                    </fieldset>
+                                </li>
+                            ))}
+                        </ul>
                     </>
                 )}
             </fieldset>
 
-            <div className="prefs-form__footer">
-                <button type="button" className="button button--quiet gomad-action gomad-action-clear-preferences" aria-label="Borrar todas mis preferencias" onClick={resetPreferences}>
-                    <span className="prefs-form__footer-label--full" aria-hidden="true">Borrar todas mis preferencias</span>
-                    <span className="prefs-form__footer-label--short" aria-hidden="true">Borrar</span>
-                </button>
-                <button type="button" className="button button--primary gomad-action gomad-action-save-preferences" aria-label="Guardar preferencias" onClick={() => setSavedPreferences(preferences)}>
+            </div>
+            {!weightsOnly && (weightsReset || savedPreferences === preferences) && (
+                <p className="prefs-form__saved" role="status">
+                    {weightsReset ? "Pesos restablecidos a los valores por defecto." : "Preferencias guardadas durante esta sesión."}
+                </p>
+            )}
+            {!weightsOnly && <div className="prefs-form__footer">
+                <Dialog.Root open={confirmClearOpen} onOpenChange={setConfirmClearOpen}>
+                    <Dialog.Trigger asChild>
+                        <button type="button" className="button button--quiet gomad-action gomad-action-reset-weights" aria-label="Borrar todas mis preferencias">
+                            <span className="prefs-form__footer-label--full" aria-hidden="true">Borrar todas mis preferencias</span>
+                            <span className="prefs-form__footer-label--short" aria-hidden="true">Borrar</span>
+                        </button>
+                    </Dialog.Trigger>
+                    <Dialog.Portal>
+                        <Dialog.Overlay className="confirm-overlay" />
+                        <Dialog.Content className="confirm-dialog">
+                            <Dialog.Title className="sheet__title">¿Restablecer los pesos?</Dialog.Title>
+                            <Dialog.Description className="muted">
+                                Los pesos de importancia volverán a sus valores por defecto.
+                            </Dialog.Description>
+                            <div className="confirm-dialog__actions">
+                                <Dialog.Close asChild>
+                                    <button type="button" className="button button--quiet">Cancelar</button>
+                                </Dialog.Close>
+                                <button type="button" className="button button--primary" onClick={() => {
+                                    updatePreferences({ weights: null });
+                                    setWeightsReset(true);
+                                    setConfirmClearOpen(false);
+                                }}>
+                                    Borrar
+                                </button>
+                            </div>
+                        </Dialog.Content>
+                    </Dialog.Portal>
+                </Dialog.Root>
+                <button type="button" className="button button--primary gomad-action gomad-action-save-preferences" aria-label="Guardar preferencias" onClick={() => {
+                    setWeightsReset(false);
+                    setSavedPreferences(preferences);
+                }}>
                     <span className="prefs-form__footer-label--full" aria-hidden="true">Guardar preferencias</span>
                     <span className="prefs-form__footer-label--short" aria-hidden="true">Guardar</span>
                 </button>
-            </div>
-            {savedPreferences === preferences && <p className="muted" role="status">Preferencias guardadas durante esta sesión.</p>}
+            </div>}
         </div>
     );
 }

@@ -1,4 +1,3 @@
-import { useRef, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router";
 import type { Activity, HourEvaluation } from "../api/types";
 import { getActivities } from "../data/activities";
@@ -73,12 +72,10 @@ export default function Home() {
     const location = useLocation();
     const { origin, setSearch, preferences } = useAppState();
     const activities = useAsync(() => getActivities(), []);
-    const [pending, setPending] = useState<{ activity: string | null; label?: string } | null>(null);
-    const askRef = useRef<HTMLParagraphElement>(null);
     const notice = (location.state as { notice?: string } | null)?.notice;
     const moment = useMoment();
     const live = [
-        activities.status === "loading" && !activities.data
+        !origin ? "" : activities.status === "loading" && !activities.data
             ? "Cargando actividades…"
             : activities.data
               ? "Actividades cargadas."
@@ -89,12 +86,7 @@ export default function Home() {
         .join(" ");
 
     const go = (activity: string | null, label?: string) => {
-        if (!origin) {
-            setPending({ activity, label });
-            // el foco va al aviso, junto a la ubicacion
-            requestAnimationFrame(() => askRef.current?.focus());
-            return;
-        }
+        if (!origin) return;
         setSearch({ activity, label });
         navigate("/resultados");
     };
@@ -115,69 +107,55 @@ export default function Home() {
                     </p>
                 )}
 
-                {pending && !origin && (
-                    <p className="notice notice--info" ref={askRef} tabIndex={-1}>
-                        Antes, dinos dónde estás para buscar{" "}
-                        {pending.activity === null ? "un plan" : `«${pending.label}»`}.
-                    </p>
+                <LocationPicker />
+
+                {origin && (
+                    <section className="panel" aria-labelledby="actividades-titulo">
+                        <h2 className="panel__title" id="actividades-titulo">
+                            Elige una actividad
+                        </h2>
+                        {activities.status === "loading" && !activities.data && (
+                            <p className="muted">
+                                Cargando actividades…
+                            </p>
+                        )}
+                        {activities.status === "error" && (
+                            <ErrorMessage
+                                message="No se pudieron cargar las actividades."
+                                onRetry={activities.reload}
+                            />
+                        )}
+                        {activities.data && (
+                            <ul role="list" className="activities" aria-label="Actividades">
+                                {activities.data.activities.map((a: Activity) => (
+                                    <li key={a.id}>
+                                        <button type="button" className="activity gomad-action gomad-action-select-activity" onClick={() => go(a.id, a.label)}>
+                                            <span className="activity__icon" aria-hidden="true" data-icon={a.icon}>
+                                                {hasIcon(a.icon) && <Icon name={a.icon} />}
+                                            </span>
+                                            <span>{a.label}</span>
+                                        </button>
+                                    </li>
+                                ))}
+                            </ul>
+                        )}
+                    </section>
                 )}
 
-                <LocationPicker
-                    highlight={pending !== null && !origin}
-                    onPicked={() => {
-                        if (pending) {
-                            setSearch(pending);
-                            setPending(null);
-                            navigate("/resultados");
-                        }
-                    }}
-                />
-
-                <section className="panel" aria-labelledby="actividades-titulo">
-                    <h2 className="panel__title" id="actividades-titulo">
-                        Elige una actividad
-                    </h2>
-                    {activities.status === "loading" && !activities.data && (
-                        <p className="muted">
-                            Cargando actividades…
-                        </p>
-                    )}
-                    {activities.status === "error" && (
-                        <ErrorMessage
-                            message="No se pudieron cargar las actividades."
-                            onRetry={activities.reload}
-                        />
-                    )}
-                    {activities.data && (
-                        <ul role="list" className="activities" aria-label="Actividades">
-                            {activities.data.activities.map((a: Activity) => (
-                                <li key={a.id}>
-                                    <button type="button" className="activity gomad-action gomad-action-select-activity" onClick={() => go(a.id, a.label)}>
-                                        {hasIcon(a.icon) && (
-                                            <span className="activity__tile" aria-hidden="true">
-                                                <Icon name={a.icon} />
-                                            </span>
-                                        )}
-                                        <span>{a.label}</span>
-                                    </button>
-                                </li>
-                            ))}
-                        </ul>
-                    )}
-                </section>
-
-                <div className="home__secondary">
-                    <button type="button" className="panel panel--action surprise gomad-action gomad-action-surprise" onClick={() => go(null)}>
-                        <span className="surprise__tile" aria-hidden="true">
-                            <Icon name="auto_awesome" />
-                        </span>
-                        <span className="surprise__text">
-                            <span className="panel__title">Sorpréndeme</span>
-                            <span className="muted">
-                                Te propongo un plan según tu ubicación y tu tiempo libre.
+                <div className={`home__secondary${origin ? "" : " home__secondary--single"}`}>
+                    {origin && (
+                        <button type="button" className="panel panel--action surprise gomad-action gomad-action-surprise" onClick={() => go(null)}>
+                            <span className="surprise__tile" aria-hidden="true">
+                                <Icon name="auto_awesome" />
                             </span>
-                        </span>
-                    </button>
+                            <span className="surprise__text">
+                                <span className="panel__title">Sorpréndeme</span>
+                                <span className="muted">
+                                    Te propongo un plan según tu ubicación y tu tiempo libre.
+                                </span>
+                            </span>
+                        </button>
+                    )}
 
                     <Link
                         to="/perfil"
@@ -191,17 +169,19 @@ export default function Home() {
                         </span>
                     </Link>
 
-                    <Link to="/asistente" className="panel panel--action surprise assistant-link gomad-action gomad-action-open-assistant">
-                        <span className="surprise__tile" aria-hidden="true">
-                            <Icon name="navigation" />
-                        </span>
-                        <span className="surprise__text">
-                            <span className="panel__title">Asistente de rutas</span>
-                            <span className="muted">
-                                Escribe lo que quieres y te propongo una ruta.
+                    {origin && (
+                        <Link to="/asistente" className="panel panel--action surprise assistant-link gomad-action gomad-action-open-assistant">
+                            <span className="surprise__tile" aria-hidden="true">
+                                <Icon name="navigation" />
                             </span>
-                        </span>
-                    </Link>
+                            <span className="surprise__text">
+                                <span className="panel__title">Asistente de rutas</span>
+                                <span className="muted">
+                                    Escribe lo que quieres y te propongo una ruta.
+                                </span>
+                            </span>
+                        </Link>
+                    )}
                 </div>
             </div>
         </>
