@@ -451,6 +451,21 @@
       "https://datos.comunidad.madrid/dataset/calidad_aire_zonas"
      ]
     ]
+   },
+   {
+    "n": "Copernicus CAMS vía Open-Meteo: aire previsto por municipio (O₃, NO₂, PM10, PM2.5; fila 2, 17/10)",
+    "i": "v1/air-quality (un punto por municipio, app/config/forecast_points.csv)",
+    "o": "Externa",
+    "l": [
+     [
+      "Documentación",
+      "https://open-meteo.com/en/docs/air-quality-api"
+     ],
+     [
+      "Licencia (CC BY 4.0)",
+      "https://open-meteo.com/en/licence"
+     ]
+    ]
    }
   ],
   "cov": "179 municipios; sin estación propia se usa la de su zona",
@@ -588,6 +603,21 @@
      [
       "Ficha",
       "https://datos.comunidad.madrid/dataset/calidad_aire_datos_historico"
+     ]
+    ]
+   },
+   {
+    "n": "Copernicus CAMS vía Open-Meteo: aire previsto por municipio (O₃, NO₂, PM10, PM2.5; fila 2, 17/10)",
+    "i": "v1/air-quality (un punto por municipio, app/config/forecast_points.csv)",
+    "o": "Externa",
+    "l": [
+     [
+      "Documentación",
+      "https://open-meteo.com/en/docs/air-quality-api"
+     ],
+     [
+      "Licencia (CC BY 4.0)",
+      "https://open-meteo.com/en/licence"
      ]
     ]
    }
