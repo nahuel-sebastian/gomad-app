@@ -29,6 +29,15 @@ def test_zero_rule_versus_null_rule():
     assert con.execute("SELECT year FROM municipality_indicator WHERE key='a_per_1000' LIMIT 1").fetchone() == (None,)
 
 
+def test_frame_values_carry_row_source_and_year():
+    # Task 170: un DataFrame da fuente (ids separados por comas) y año por municipio; los ausentes, regla no_rows
+    frame = pd.DataFrame({"value": [7.0], "source": ["nmc_deporte,osm"], "year": [None]}, index=["28065"])
+    t = build_db.indicator_table(MINI, ["28065", "28107"], {"a_per_1000": pd.Series(dtype=float), "b": frame})
+    rows = {r.ine_code: r for r in t[t.key == "b"].itertuples()}
+    assert rows["28065"].value == 7.0 and rows["28065"].source == "nmc_deporte,osm" and pd.isna(rows["28065"].year)
+    assert pd.isna(rows["28107"].value) and rows["28107"].source == "nmc_deporte" and rows["28107"].year == 2023
+
+
 def test_indicator_without_calculation_fails_readably():
     with pytest.raises(ValueError, match=r"«b».*no se sabe calcular"):
         build_db.indicator_table(MINI, ["28065"], {"a_per_1000": pd.Series(dtype=float)})

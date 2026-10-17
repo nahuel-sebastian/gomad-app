@@ -102,3 +102,12 @@ def test_poi_types_in_sync_with_route_poi():
     from indicators import POI_TYPES
     from normalize.furniture import CITY_COUNCIL
     assert set(POI_TYPES) == set(OSM_POI.values()) | set(CITY_COUNCIL.values()) | {"aed"}
+
+
+def test_complement_must_be_list_of_ids(real):
+    cfg = copy.deepcopy(real)
+    cfg["indicators"][0]["complement"] = "osm"
+    with pytest.raises(IndicatorConfigError, match="complement"):
+        validate(cfg)
+    cfg["indicators"][0]["complement"] = ["eiel_deporte", "osm"]
+    assert validate(cfg)

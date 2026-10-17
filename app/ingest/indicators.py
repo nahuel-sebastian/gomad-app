@@ -43,6 +43,9 @@ def _check_indicator(ind, n, activities_count):
         _fail(f"el indicador «{name}» tiene no_rows «{ind['no_rows']}»; debe ser {' o '.join(NO_ROWS)}")
     if not isinstance(ind["source"], list) or not ind["source"]:
         _fail(f"el indicador «{name}» necesita «source» como lista de ids de fuente")
+    if "complement" in ind and (not isinstance(ind["complement"], list) or not ind["complement"]
+                                or not all(isinstance(x, str) and x for x in ind["complement"])):
+        _fail(f"el indicador «{name}» tiene «complement» {ind['complement']!r}; debe ser una lista de ids de fuente")
     if ind["year"] is not None and (isinstance(ind["year"], bool) or not isinstance(ind["year"], int)):
         _fail(f"el indicador «{name}» tiene «year» {ind['year']!r}; debe ser un año o null")
     if "unit_one" in ind and (not isinstance(ind["unit_one"], str) or not ind["unit_one"].strip()):

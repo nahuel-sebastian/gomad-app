@@ -202,16 +202,27 @@ def indicator_values(con, config):
 
 
 def indicator_table(config, ine_codes, values):
-    """Una fila por municipio e indicador; no_rows: zero -> sin filas = 0, null -> sin filas = NULL."""
+    """Una fila por municipio e indicador; no_rows: zero -> sin filas = 0, null -> sin filas = NULL.
+
+    values[key]: Series (fuente = primera del YAML, año del YAML) o DataFrame indexado por ine_code con value,
+    source (ids separados por comas, la principal primero) y year, para los indicadores con fuente
+    complementaria (Task 170). Los municipios que no estan en el DataFrame siguen la regla no_rows.
+    """
     rows = []
     for ind in config["indicators"]:
         if ind["key"] not in values:
             raise ValueError(f"indicators.yaml cita «{ind['key']}», pero no se sabe calcular en build_db")
-        series, fill = values[ind["key"]], (0.0 if ind["no_rows"] == "zero" else None)
+        data, fill = values[ind["key"]], (0.0 if ind["no_rows"] == "zero" else None)
+        frame = data if isinstance(data, pd.DataFrame) else None
+        series = frame["value"] if frame is not None else data
         for code in ine_codes:
             v = series.get(code)
+            source, year = ind["source"][0], ind["year"]
+            if frame is not None and code in frame.index:
+                source, year = frame.at[code, "source"], frame.at[code, "year"]
+                year = None if year is None or pd.isna(year) else int(year)
             rows.append((code, ind["category"], ind["key"], fill if v is None or pd.isna(v) else float(v),
-                         ind["unit"], ind["year"], ind["source"][0]))
+                         ind["unit"], year, source))
     t = pd.DataFrame(rows, columns=INDICATOR_COLUMNS)
     t["value"], t["year"] = t["value"].astype("Float64"), t["year"].astype("Int64")   # NULL, no NaN
     return t
