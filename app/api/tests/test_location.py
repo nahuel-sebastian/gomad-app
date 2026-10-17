@@ -34,6 +34,8 @@ def data(tmp_path):
     base = pd.read_parquet(path)
     extra = pd.DataFrame(EXTRA_ADDRESSES, columns=base.columns).astype(base.dtypes.to_dict())
     pd.concat([base, extra], ignore_index=True).to_parquet(path, index=False)
+    pd.DataFrame({"ine_code": ["28079", "28074", "28065", "28079"], "year": [2025, 2025, 2025, 2024],
+                  "population": [3_400_000, 190_000, 185_000, 1]}).to_parquet(root / "clean" / "population.parquet")
     return root
 
 
@@ -188,7 +190,7 @@ def test_location_partial_municipality_then_streets(data):
 
 def test_location_street_in_several_municipalities(data):
     out = Geocoder(data).search("calle toledo")
-    assert [c["label"] for c in out] == ["Calle Toledo, Leganés", "Calle de Toledo, Madrid"]
+    assert [c["label"] for c in out] == ["Calle de Toledo, Madrid", "Calle Toledo, Leganés"]    # mas poblacion antes
     assert Geocoder(data).search("toledo leganes")[0]["municipality"] == "Leganés"
 
 
@@ -232,6 +234,8 @@ def test_location_real_partial_and_order():
     out = timed("san")
     assert out[0]["label"].startswith("San ") and any(c["precision"] == "street" for c in out)
     assert timed("calle madrid 10 getafe")[0]["label"] == "Calle Madrid 10, Getafe"
+    assert timed("calle mayor 5")[0]["label"] == "Calle Mayor 5, Madrid"          # mas poblacion antes
+    assert timed("zzqxw") == []                                                    # sin remoto: nada
     assert slowest < 1.0
 
 
@@ -267,3 +271,9 @@ def test_location_config_missing_is_clear(data, monkeypatch):
     del cfg["max_candidates"]
     with pytest.raises(ValueError, match="falta la clave max_candidates"):
         Geocoder(data, config=cfg)
+
+
+def test_location_without_population_keeps_order(data):
+    (data / "clean" / "population.parquet").unlink()
+    out = Geocoder(data).search("calle toledo")
+    assert [c["label"] for c in out] == ["Calle Toledo, Leganés", "Calle de Toledo, Madrid"]

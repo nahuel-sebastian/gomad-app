@@ -62,6 +62,7 @@ class Geocoder:
         timeout_s = float(cfg["remote_timeout_s"]) if timeout_s is None else timeout_s
         self.addresses = data_dir / "clean" / "addresses.parquet"
         self.municipality_file = data_dir / "clean" / "municipality.parquet"
+        self.population_file = data_dir / "clean" / "population.parquet"
         self.client, self.ttl_s, self.timeout_s = client, ttl_s, timeout_s
         self._cache = {}
         self._municipalities = None
@@ -188,7 +189,8 @@ class Geocoder:
         return _candidate(f"{stype} {street}, {muni}", muni, ine, r[7], r[8], "street")
 
     def _streets(self):
-        """Indice en memoria de los viales del callejero (uno por ine_code + street_code), cargado una vez."""
+        """Indice en memoria de los viales del callejero (uno por ine_code + street_code) con la poblacion de su
+        municipio (clean/population.parquet, ultimo ano; 0 si falta), cargado una vez."""
         if self._street_index is None:
             if not self.addresses.exists():
                 return []
@@ -198,10 +200,14 @@ class Geocoder:
                                              any_value(street), any_value(street_norm), count(*)
                                       FROM read_parquet(?) GROUP BY ine_code, street_code""",
                                    [str(self.addresses)]).fetchall()
+                population = dict(con.execute(
+                    "SELECT ine_code, population FROM read_parquet(?) QUALIFY year = max(year) OVER ()",
+                    [str(self.population_file)]).fetchall()) if self.population_file.exists() else {}
             finally:
                 con.close()
             self._street_index = [(ine, muni, code, plain(stype or ""), norm or "", f" {norm} ", f" {plain(muni)} ",
-                                   portals) for ine, muni, code, stype, _, norm, portals in rows]
+                                   portals, population.get(ine, 0))
+                                  for ine, muni, code, stype, _, norm, portals in rows]
         return self._street_index
 
     def _hit(self, word, padded):
@@ -212,7 +218,7 @@ class Geocoder:
         """Viales cuyo nombre (o su municipio) contiene todas las palabras, al menos una en el nombre del vial."""
         found = []
         for st in self._streets():
-            ine, municipality, _, stype, norm, street_p, muni_p, portals = st
+            ine, municipality, _, stype, norm, street_p, muni_p, portals, population = st
             if muni and ine != muni[0]:
                 continue
             in_street = [w for w in words if self._hit(w, street_p)]
@@ -223,9 +229,9 @@ class Geocoder:
                           for t in name)
             prefix_only = sum(f" {w} " not in street_p for w in in_street)
             # nombre entero cubierto, menos prefijos, tipo escrito (o «Calle»), nombre corto (sin «de la»),
-            # vial con mas portales (las calles principales antes), municipio
-            found.append(((not covered, prefix_only, stype != (typed_type or "calle"), len(" ".join(name)), -portals,
-                           municipality), st))
+            # municipio con mas poblacion (padron, ultimo ano), vial con mas portales, municipio
+            found.append(((not covered, prefix_only, stype != (typed_type or "calle"), len(" ".join(name)), -population,
+                           -portals, municipality), st))
         best = [st for _, st in sorted(found, key=lambda f: f[0])[:self.max_candidates]]
         if not best:
             return []
