@@ -84,6 +84,30 @@ def load_osm_parks(path=None):
     return gpd.read_parquet(path) if path.exists() else None
 
 
+def load_osm_poi(path=None):
+    """Mobiliario de OSM de osm_poi.py (C2b); sin fichero -> None (route_poi usa las filas osm de poi.parquet)."""
+    path = path or CLEAN / "osm_poi.parquet"
+    return gpd.read_parquet(path) if path.exists() else None
+
+
+def route_poi_frame(poi, osm_poi, skip):
+    """Tabla route_poi: poi.parquet sin sus filas de OSM + mobiliario de OSM (osm_poi o, si es None, el de poi).
+
+    skip ({ine_code: [tipos]}, routing.yaml osm_poi.skip_where_official): tipos que en ese municipio da una fuente
+    oficial y no se cargan de OSM (evita duplicados), solo si esa fuente tiene filas. Un id solo aparece una vez.
+    """
+    official = poi[poi["source"] != "osm"]
+    osm = poi[poi["source"] == "osm"] if osm_poi is None else osm_poi
+    # solo se salta un tipo si la fuente oficial tiene filas de ese tipo en ese municipio (p. ej. ay_bancos descargado)
+    loaded = set(zip(official["ine_code"], official["type"]))
+    pairs = {(ine, t) for ine, types in (skip or {}).items() for t in types} & loaded
+    osm = osm[[(i, t) not in pairs for i, t in zip(osm["ine_code"], osm["type"])]]
+    out = gpd.GeoDataFrame(pd.concat([official, osm.reindex(columns=poi.columns)], ignore_index=True),
+                           geometry="geometry", crs=4326).drop_duplicates("id").reset_index(drop=True)
+    out["working"] = out["working"].astype("boolean")
+    return out
+
+
 def green_fraction(destinations, green, municipalities, osm_green=None):
     """Fraccion del circulo de GREEN_RADIUS_M m cubierta por zona verde (EPSG:25830). NULL si el municipio no esta en VPLA.
 
@@ -328,7 +352,9 @@ def build_main(target=DATA_DIR / "gomad.duckdb", rules=None):
     destinations["updated"] = dt.datetime.now()
     activities = apply_activities(destinations, rules)
     stations = gpd.read_parquet(CLEAN / "air_station.parquet")
-    poi = gpd.read_parquet(CLEAN / "poi.parquet")
+    routing = yaml.safe_load((CONFIG_DIR / "routing.yaml").read_text(encoding="utf-8"))
+    poi = route_poi_frame(gpd.read_parquet(CLEAN / "poi.parquet"), load_osm_poi(),
+                          routing["osm_poi"]["skip_where_official"])
 
     def fill(con):
         con.execute("INSTALL spatial; LOAD spatial;")

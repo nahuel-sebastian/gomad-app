@@ -29,4 +29,12 @@ osm_green:
   leisure: [park, garden, nature_reserve]
   landuse: [forest, grass, recreation_ground, village_green, meadow]
   natural: [wood]
+# Mobiliario de OSM en route_poi (C2b, criterio propio). Etiquetas comprobadas en el extracto del 17/10.
+osm_poi:
+  out_of_service:            # tipo -> etiquetas que dan working = false (la ruta no lo cuenta); "no" entre comillas: sin ellas YAML lo lee como false
+    fountain:
+      drinking_water: ["no"]
+      operational_status: ["closed"]
+  skip_where_official:       # municipio -> tipos que ya da una fuente oficial (Ayuntamiento de Madrid): no se cargan de OSM
+    "28079": [bench, fountain, dog_area]
 own_criterion: true
