@@ -8,6 +8,7 @@ El texto es la ubicacion de la persona: nunca se escribe en los logs."""
 import re
 import time
 import unicodedata
+from difflib import SequenceMatcher
 
 import duckdb
 import httpx
@@ -46,11 +47,13 @@ def _candidate(label, municipality, ine_code, lon, lat, precision):
 
 
 class Geocoder:
-    def __init__(self, data_dir, client=None, ttl_s=3600, timeout_s=3.0, config=None):
+    def __init__(self, data_dir, client=None, ttl_s=3600, timeout_s=None, config=None):
         cfg = config if config is not None else settings.load("location")      # topes: config/location.yaml
         self.max_candidates = int(cfg["max_candidates"])
         self.max_municipalities = int(cfg["max_municipalities"])
         self.min_prefix_len = int(cfg["min_prefix_len"])
+        self.remote_min_similarity = float(cfg["remote_min_similarity"])
+        timeout_s = float(cfg["remote_timeout_s"]) if timeout_s is None else timeout_s
         self.addresses = data_dir / "clean" / "addresses.parquet"
         self.municipality_file = data_dir / "clean" / "municipality.parquet"
         self.client, self.ttl_s, self.timeout_s = client, ttl_s, timeout_s
@@ -124,7 +127,7 @@ class Geocoder:
         muni = found[0] if found else None
         if muni and words:
             # calle (y portal) dentro del municipio nombrado; el buscador de Nomecalles solo si el local no la encuentra
-            out = self._local(words, number, muni, typed_type) or self._remote(text, muni)
+            out = self._local(words, number, muni, typed_type) or self._remote(text, muni, words)
         else:
             if muni:
                 # solo el municipio («getafe») o su nombre como calle («calle madrid 10»): sus palabras, en la region
@@ -133,7 +136,7 @@ class Geocoder:
                 return []
             munis = [] if number is not None else self._municipalities_matching(words)
             out = [self._muni_candidate(m) for m in munis]
-            out += self._local(words, number, None, typed_type) or ([] if munis else self._remote(text, None))
+            out += self._local(words, number, None, typed_type) or ([] if munis else self._remote(text, None, words))
         if muni:
             out.append(self._muni_candidate(muni))      # respaldo: el centro del municipio
         unique = list({(c["label"], c["ine_code"]): c for c in out}.values())
@@ -226,7 +229,13 @@ class Geocoder:
             by_street.setdefault((r[0], r[2]), []).append(r)
         return [self._resolve_street(by_street[(st[0], st[2])], number) for st in best if (st[0], st[2]) in by_street]
 
-    def _remote(self, text, muni):
+    def _related(self, norm, words):
+        """Vial de Nomecalles relacionado con el texto: una palabra es prefijo de su nombre o se le parece."""
+        tokens = norm.split()
+        return any(self._hit(w, f" {norm} ") or any(SequenceMatcher(None, w, t).ratio() >= self.remote_min_similarity
+                                                    for t in tokens) for w in words)
+
+    def _remote(self, text, muni, words):
         if self.client is None:
             return []
         key = plain(text)
@@ -260,6 +269,6 @@ class Geocoder:
         out = []
         for ine, code, number in wanted:
             street = by_street.get((ine, code))
-            if street:
+            if street and self._related(street[0][5], words):      # sin relacion con el texto: fuera
                 out.append(self._resolve_street(street, number))
         return out[:self.max_candidates]

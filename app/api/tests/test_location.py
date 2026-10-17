@@ -146,7 +146,7 @@ def test_location_config_limits(data):
     assert cfg["own_criterion"] is True
     keys = ("max_candidates", "max_municipalities", "min_prefix_len")
     assert all(isinstance(cfg[k], int) and cfg[k] > 0 for k in keys)
-    g = Geocoder(data, config={"max_candidates": 2, "max_municipalities": 1, "min_prefix_len": 3})
+    g = Geocoder(data, config=dict(cfg, max_candidates=2, max_municipalities=1))
     assert len(g.search("las rozas")) == 2
 
 
@@ -193,7 +193,7 @@ def test_location_street_in_several_municipalities(data):
 
 
 def test_location_municipalities_capped(data):
-    g = Geocoder(data, config={"max_candidates": 8, "max_municipalities": 1, "min_prefix_len": 3})
+    g = Geocoder(data, config=dict(settings.load("location"), max_candidates=8, max_municipalities=1))
     out = g.search("madrid")
     assert out[0]["label"] == "Madrid" and out[0]["precision"] == "municipality"
     assert [c["precision"] for c in out].count("municipality") == 1
@@ -233,3 +233,25 @@ def test_location_real_partial_and_order():
     assert out[0]["label"].startswith("San ") and any(c["precision"] == "street" for c in out)
     assert timed("calle madrid 10 getafe")[0]["label"] == "Calle Madrid 10, Getafe"
     assert slowest < 1.0
+
+
+def test_location_remote_unrelated_discarded(data):
+    client, calls = client_with(lambda r: httpx.Response(200, json=NOMECALLES))
+    g = Geocoder(data, client)
+    assert g.search("zzqxw") == []                      # Nomecalles devuelve «Calle Madrid»: nada que ver
+    assert len(calls) == 1
+    out = g.search("calle madrd 10 getafe")             # errata parecida: se mantiene
+    assert out[0]["precision"] == "address" and out[0]["label"] == "Calle Madrid 10, Getafe"
+
+
+def test_location_remote_timeout_from_config(data):
+    seen = []
+
+    def handler(request):
+        seen.append(request.extensions["timeout"])
+        return httpx.Response(200, json=NOMECALLES)
+    client, _ = client_with(handler)
+    cfg = dict(settings.load("location"), remote_timeout_s=1.5)
+    Geocoder(data, client, config=cfg).search("calle madrd 10 getafe")
+    assert seen and seen[0]["read"] == 1.5
+    assert settings.load("location")["remote_timeout_s"] == 2.0
