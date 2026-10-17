@@ -81,6 +81,10 @@ def test_osm_green_area_none_is_empty():
     assert build_db.osm_green_area(muni, far).empty
 
 
+def test_load_osm_parks_missing_is_none(tmp_path):
+    assert build_db.load_osm_parks(tmp_path / "osm_parks.parquet") is None
+
+
 def test_indicator_without_calculation_fails_readably():
     with pytest.raises(ValueError, match=r"«b».*no se sabe calcular"):
         build_db.indicator_table(MINI, ["28065"], {"a_per_1000": pd.Series(dtype=float)})
@@ -154,6 +158,10 @@ def test_green_vpla_unchanged_osm_outside(db):
                          "JOIN municipality m USING (ine_code) WHERE i.key='green_m2_per_inhabitant' "
                          "AND i.value IS NOT NULL GROUP BY ALL ORDER BY 1").fetchall()
     assert by_vpla == [(False, "osm", None, 12), (True, "vpla_redes", 2025, 167)]
+    # Task 175: fuera de VPLA solo parques de OSM (sin bosque ni pradera)
+    assert 30 < value(db, "28068", "green_m2_per_inhabitant") < 70      # Guadarrama ~46,7 (con bosque 1.516)
+    assert value(db, "28040", "green_m2_per_inhabitant") < 10           # Ciempozuelos ~3,8 (con bosque 1.343)
+    assert 10 < value(db, "28079", "green_m2_per_inhabitant") < 20      # Madrid ~13,7
 
 
 @pytest.mark.slow

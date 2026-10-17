@@ -78,6 +78,12 @@ def load_osm_green(path=None):
     return gpd.read_parquet(path) if path.exists() else None
 
 
+def load_osm_parks(path=None):
+    """Parques de OSM de osm_green.py (Task 175: indicador de zonas verdes fuera de VPLA); sin fichero -> None."""
+    path = path or CLEAN / "osm_parks.parquet"
+    return gpd.read_parquet(path) if path.exists() else None
+
+
 def green_fraction(destinations, green, municipalities, osm_green=None):
     """Fraccion del circulo de GREEN_RADIUS_M m cubierta por zona verde (EPSG:25830). NULL si el municipio no esta en VPLA.
 
@@ -221,9 +227,10 @@ def indicator_values(con, config):
     green = green.reindex(in_vpla, fill_value=0.0)
     green_year = next(i["year"] for i in config["indicators"] if i["key"] == "green_m2_per_inhabitant")
     green = pd.DataFrame({"value": green / pop.reindex(green.index), "source": "vpla_redes", "year": green_year})
-    # fuera de VPLA, los poligonos verdes de OSM (CLAUDE.md §7.3, mismo fichero que el verde de destinos y rutas)
+    # fuera de VPLA, los parques de OSM (CLAUDE.md §7.3; indicators.yaml osm_parks: sin bosque ni pradera, que el
+    # verde de destinos y rutas si cuenta)
     munis = gpd.read_parquet(CLEAN / "municipality.parquet")
-    osm = osm_green_area(munis[~munis["ine_code"].isin(in_vpla)], load_osm_green())
+    osm = osm_green_area(munis[~munis["ine_code"].isin(in_vpla)], load_osm_parks())
     if len(osm):
         green = pd.concat([green, pd.DataFrame({"value": osm / pop.reindex(osm.index), "source": "osm",
                                                 "year": None})])

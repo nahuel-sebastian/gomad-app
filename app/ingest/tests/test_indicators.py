@@ -111,3 +111,16 @@ def test_complement_must_be_list_of_ids(real):
         validate(cfg)
     cfg["indicators"][0]["complement"] = ["eiel_deporte", "osm"]
     assert validate(cfg)
+
+
+def test_osm_parks_config_needs_own_criterion(real):
+    cfg = copy.deepcopy(real)
+    assert cfg["osm_parks"]["own_criterion"] is True
+    assert cfg["osm_parks"]["tags"] == {"leisure": ["park", "garden", "playground"],
+                                        "landuse": ["recreation_ground", "village_green"]}
+    cfg["osm_parks"]["own_criterion"] = False
+    with pytest.raises(IndicatorConfigError, match="osm_parks"):
+        validate(cfg)
+    cfg["osm_parks"] = {"own_criterion": True, "tags": {"leisure": []}}
+    with pytest.raises(IndicatorConfigError, match="osm_parks"):
+        validate(cfg)

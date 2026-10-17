@@ -98,6 +98,14 @@ def validate(config, activities_count=None):
         seen.add(ind["key"])
     if not seen:
         _fail("no hay indicadores")
+    parks = config.get("osm_parks")
+    if parks is not None:
+        if not isinstance(parks, dict) or parks.get("own_criterion") is not True:
+            _fail("osm_parks: es criterio propio y debe llevar «own_criterion: true»")
+        tags = parks.get("tags")
+        if not isinstance(tags, dict) or not tags or not all(
+                isinstance(v, list) and v and all(isinstance(x, str) for x in v) for v in tags.values()):
+            _fail("osm_parks: «tags» debe ser un mapa clave de OSM -> lista de valores no vacía")
     fit = config.get("fit") or _fail("falta la sección «fit» (encaje RF-18)")
     threshold = fit.get("met_if_above")
     if isinstance(threshold, bool) or not isinstance(threshold, (int, float)):
