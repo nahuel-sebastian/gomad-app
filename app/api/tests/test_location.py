@@ -5,6 +5,7 @@ from fastapi.testclient import TestClient
 from geocoding import Geocoder, plain
 from main import app, get_geocoder
 from mini_data import build_mini_data
+import settings
 from settings import DATA_DIR
 
 NOMECALLES = {"data": {"direcciones": [
@@ -123,3 +124,11 @@ def test_location_without_municipality_file_is_503_not_500(data):
     finally:
         app.dependency_overrides.clear()
     assert r.status_code == 503 and "datos" in r.json()["detail"]
+
+
+def test_location_config_limits(data):
+    cfg = settings.load("location")
+    assert cfg["own_criterion"] is True
+    assert all(isinstance(cfg[k], int) and cfg[k] > 0 for k in ("max_candidates", "max_municipalities", "min_prefix_len"))
+    g = Geocoder(data, config={"max_candidates": 2, "max_municipalities": 1, "min_prefix_len": 3})
+    assert len(g.search("las rozas")) == 2

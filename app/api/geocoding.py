@@ -12,6 +12,8 @@ import httpx
 import pyarrow.parquet as pq
 import shapely
 
+import settings
+
 from repository import DataUnavailable
 
 SEARCH_URL = ("https://apiscm.comunidad.madrid/t/ciudadanos.comunidad.madrid/sector-publico/"
@@ -21,7 +23,6 @@ STREET_TYPES = {"calle", "c", "cl", "avenida", "avda", "av", "plaza", "pza", "pl
                 "urb", "callejon", "cllon", "costanilla", "cstan", "bulevar", "bulev", "cuesta", "custa", "canada",
                 "cnada", "vereda", "vreda", "colonia", "col", "lugar", "rotonda", "rtda"}
 STOP_WORDS = {"de", "del", "la", "las", "el", "los", "y", "en", "n", "no", "num", "numero"}
-MAX_CANDIDATES = 6
 CACHE_MAX = 1000
 
 
@@ -37,7 +38,11 @@ def _candidate(label, municipality, ine_code, lon, lat, precision):
 
 
 class Geocoder:
-    def __init__(self, data_dir, client=None, ttl_s=3600, timeout_s=3.0):
+    def __init__(self, data_dir, client=None, ttl_s=3600, timeout_s=3.0, config=None):
+        cfg = config if config is not None else settings.load("location")      # topes: config/location.yaml
+        self.max_candidates = int(cfg["max_candidates"])
+        self.max_municipalities = int(cfg["max_municipalities"])
+        self.min_prefix_len = int(cfg["min_prefix_len"])
         self.addresses = data_dir / "clean" / "addresses.parquet"
         self.municipality_file = data_dir / "clean" / "municipality.parquet"
         self.client, self.ttl_s, self.timeout_s = client, ttl_s, timeout_s
@@ -106,7 +111,7 @@ class Geocoder:
         if not words:
             if muni:
                 return [self._muni_candidate(muni)]
-            return [self._muni_candidate(m) for m in self.municipalities() if q in m[2]][:MAX_CANDIDATES]
+            return [self._muni_candidate(m) for m in self.municipalities() if q in m[2]][:self.max_candidates]
         number = numbers[-1] if numbers else None
         # callejero local primero (rapido y sin red); el buscador de Nomecalles solo si el local no encuentra el vial
         out = self._local(words, number, muni) or self._remote(text, muni)
@@ -119,7 +124,7 @@ class Geocoder:
         if muni:
             out.append(self._muni_candidate(muni))      # respaldo: el centro del municipio
         unique = list({(c["label"], c["ine_code"]): c for c in out}.values())
-        return unique[:MAX_CANDIDATES]
+        return unique[:self.max_candidates]
 
     def _rows(self, where, params):
         if not self.addresses.exists():
@@ -159,7 +164,7 @@ class Geocoder:
         # primero el vial cuyo nombre (sin «de la») es exactamente lo buscado, luego el mas corto
         ranked = sorted(streets.values(), key=lambda rows: (
             " ".join(t for t in rows[0][5].split() if t not in STOP_WORDS) != target, len(rows[0][5])))
-        return [self._resolve_street(rows, number) for rows in ranked[:MAX_CANDIDATES]]
+        return [self._resolve_street(rows, number) for rows in ranked[:self.max_candidates]]
 
     def _remote(self, text, muni):
         if self.client is None:
@@ -197,4 +202,4 @@ class Geocoder:
             street = by_street.get((ine, code))
             if street:
                 out.append(self._resolve_street(street, number))
-        return out[:MAX_CANDIDATES]
+        return out[:self.max_candidates]

@@ -1,0 +1,5 @@
+# Buscador de ubicacion GET /location (RF-01, D-04; correccion C1, 17/10/2026). CRITERIO PROPIO: la app lo dice.
+own_criterion: true
+max_candidates: 8        # candidatos devueltos como mucho (municipios + calles)
+max_municipalities: 5    # municipios como mucho al principio de la lista, para dejar sitio a las calles («san»)
+min_prefix_len: 3        # palabras de al menos 3 letras valen como prefijo («geta» -> Getafe); las mas cortas, palabra entera
