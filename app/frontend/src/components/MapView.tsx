@@ -1,5 +1,5 @@
 import { Component, lazy, Suspense, useState, type ReactNode } from "react";
-import type { Coordinate, RouteVariant } from "../api/types";
+import type { Coordinate, MapPointKind, RouteVariant } from "../api/types";
 import { lineCoordinates } from "../lib/geometry";
 import { hasWebGL } from "./mapUtils";
 
@@ -9,6 +9,8 @@ export interface MapMarker {
     number: number;
     name: string;
     coordinate: Coordinate;
+    // tipo para el icono del pin (mapIcons.ts); sin tipo, circulo numerado
+    kind?: MapPointKind;
 }
 
 export interface MapViewProps {

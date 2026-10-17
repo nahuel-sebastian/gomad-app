@@ -9,6 +9,7 @@ import { NO_SEARCH_NOTICE } from "../lib/texts";
 import { useAppState } from "../state/context";
 import ErrorMessage from "./ErrorMessage";
 import Icon from "./Icon";
+import { destinationKind } from "./mapIcons";
 import MapView from "./MapView";
 import PageHeading from "./PageHeading";
 import SourceList from "./SourceList";
@@ -29,7 +30,7 @@ function poiSummary(variant: RouteVariant): string[] {
 
 export default function RouteView() {
     const { id = "" } = useParams();
-    const { origin, results, preferences } = useAppState();
+    const { origin, results, preferences, search } = useAppState();
     const item = results.find((r) => r.destination.id === id);
     const [kind, setKind] = useState<"healthy" | "direct">("healthy");
     const [announcement, setAnnouncement] = useState("");
@@ -133,6 +134,7 @@ export default function RouteView() {
                                         number: 1,
                                         name: item.destination.name,
                                         coordinate: item.destination.coordinate,
+                                        kind: destinationKind(item.destination.type, search?.activity),
                                     },
                                 ]}
                                 selectedId={item.destination.id}

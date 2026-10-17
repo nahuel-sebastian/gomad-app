@@ -12,6 +12,7 @@ import { useAppState } from "../state/context";
 import Chip, { AqiChip } from "./Chip";
 import ErrorMessage from "./ErrorMessage";
 import Icon from "./Icon";
+import { destinationKind } from "./mapIcons";
 import MapView from "./MapView";
 import PageHeading from "./PageHeading";
 import PreferencesForm from "./PreferencesForm";
@@ -398,6 +399,7 @@ export default function Results() {
                         number: i + 1,
                         name: item.destination.name,
                         coordinate: item.destination.coordinate,
+                        kind: destinationKind(item.destination.type, activity),
                     }))}
                 />
             </div>

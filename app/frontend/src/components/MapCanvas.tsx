@@ -5,6 +5,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import Map, { Layer, Marker, Source, type ErrorEvent, type MapRef } from "react-map-gl/maplibre";
 import "../styles/map.css";
 import { lineCoordinates } from "../lib/geometry";
+import MapPin from "./MapPin";
 import type { MapViewProps } from "./MapView";
 import {
     boundsOf,
@@ -127,9 +128,13 @@ export default function MapCanvas(props: MapViewProps) {
                                 e.originalEvent.stopPropagation();
                                 onSelect?.(m.id);
                             }}>
-                            <span className={`map-marker${m.id === selectedId ? " map-marker--selected" : ""}`}>
-                                {m.number}
-                            </span>
+                            {m.kind ? (
+                                <MapPin kind={m.kind} number={m.number} name={m.name} selected={m.id === selectedId} />
+                            ) : (
+                                <span className={`map-marker${m.id === selectedId ? " map-marker--selected" : ""}`}>
+                                    {m.number}
+                                </span>
+                            )}
                         </Marker>
                     ))}
                 </Map>
