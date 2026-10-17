@@ -1,6 +1,8 @@
 import duckdb
+import geopandas as gpd
 import pandas as pd
 import pytest
+from shapely.geometry import Point, box
 
 import build_db
 
@@ -63,5 +65,72 @@ def test_build_main_real(tmp_path):
     assert con.execute("SELECT count(*) FROM destination WHERE ine_code IS NULL").fetchone()[0] == 0
     without_vpla = con.execute("SELECT count(*) FROM destination d JOIN municipality m USING (ine_code) "
                                "WHERE NOT m.in_vpla AND d.green IS NOT NULL").fetchone()[0]
-    assert without_vpla == 0                                     # sin VPLA -> green NULL, no 0
+    osm_path = build_db.CLEAN / "osm_green.parquet"
+    if not osm_path.exists():
+        assert without_vpla == 0                                 # sin VPLA ni OSM -> green NULL, no 0
+    else:
+        # Task 111: sin VPLA, verde de OSM solo en los municipios que tienen algun poligono verde de OSM
+        from graph import osm_green_coverage
+        munis = gpd.read_parquet(build_db.CLEAN / "municipality.parquet")
+        covered = set(osm_green_coverage(munis, set(munis.loc[munis["in_vpla"], "ine_code"]),
+                                         gpd.read_parquet(osm_path))["ine_code"])
+        got = {c for (c,) in con.execute("SELECT DISTINCT d.ine_code FROM destination d JOIN municipality m "
+                                         "USING (ine_code) WHERE NOT m.in_vpla AND d.green IS NOT NULL").fetchall()}
+        assert got <= covered and "28079" in got
     assert con.execute("SELECT count(*) FROM destination_activity WHERE activity='swim'").fetchone()[0] > 0
+
+
+# Task 111: municipios de juguete de 2 km (EPSG:25830): A con VPLA, B y C sin VPLA; un destino en el centro de cada uno
+X0, Y0 = 440000, 4470000
+MUNIS = gpd.GeoDataFrame({"ine_code": ["28001", "28002", "28003"], "in_vpla": [True, False, False]},
+                         geometry=[box(X0 + i * 2000, Y0, X0 + (i + 1) * 2000, Y0 + 2000) for i in range(3)], crs=25830)
+CENTERS = [(X0 + 1000 + i * 2000, Y0 + 1000) for i in range(3)]
+DESTS = gpd.GeoDataFrame({"id": ["a", "b", "c"], "ine_code": ["28001", "28002", "28003"]},
+                         geometry=[Point(c) for c in CENTERS], crs=25830).to_crs(4326)
+
+
+def half(i):
+    """Rectangulo que cubre la mitad izquierda del circulo de GREEN_RADIUS_M del destino i."""
+    x, y = CENTERS[i]
+    return box(x - 400, y - 400, x, y + 400)
+
+
+def zones(*geoms):
+    return gpd.GeoDataFrame(geometry=list(geoms), crs=25830).to_crs(4326)
+
+
+def test_green_fraction_without_osm_unchanged():
+    for kw in ({}, {"osm_green": None}):
+        g = build_db.green_fraction(DESTS, zones(half(0)), MUNIS, **kw)
+        assert g[0] == pytest.approx(0.5, abs=0.02)
+        assert pd.isna(g[1]) and pd.isna(g[2])                  # NaN -> NULL al pasar a DuckDB
+
+
+def test_green_fraction_osm_fills_without_vpla():
+    osm = zones(half(1), box(CENTERS[0][0] - 400, Y0 + 600, CENTERS[0][0] + 400, Y0 + 1400))
+    g = build_db.green_fraction(DESTS, zones(half(0)), MUNIS, osm_green=osm)
+    assert g[0] == pytest.approx(0.5, abs=0.02)                  # con VPLA no cambia aunque OSM lo cubra entero
+    assert g[1] == pytest.approx(0.5, abs=0.02)
+
+
+def test_green_fraction_osm_only_where_municipality_has_osm():
+    g = build_db.green_fraction(DESTS, zones(half(0)), MUNIS, osm_green=zones(half(1)))
+    assert pd.isna(g[2])                                         # C sin VPLA y sin poligonos OSM: sin dato, no 0
+
+
+def test_green_fraction_osm_overlapping_counts_once():
+    g = build_db.green_fraction(DESTS, zones(half(0)), MUNIS, osm_green=zones(half(1), half(1)))
+    assert g[1] == pytest.approx(0.5, abs=0.02)
+
+
+def test_load_osm_green_missing_is_none(tmp_path):
+    assert build_db.load_osm_green(tmp_path / "no.parquet") is None
+
+
+def test_apply_activities_rule_source_without_rows():
+    # Task 111: una regla de una fuente sin filas (osm_sport sin el extracto OSM) rompia con KeyError 'id'
+    rules = {"activities": [{"id": "swim", "rules": [
+        {"source": "osm_sport", "field": "name", "contains": ["piscina"], "suitability": 0.9},
+        {"source": "eiel_deporte", "field": "facility_type", "in": ["PISCINAS CUBIERTAS"], "suitability": 1.0}]}]}
+    r = build_db.apply_activities(sample_destinations(), rules)
+    assert set(zip(r.destination_id, r.activity)) == {("eiel_deporte:1", "swim")}

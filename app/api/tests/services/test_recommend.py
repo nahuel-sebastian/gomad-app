@@ -304,3 +304,25 @@ def test_covered_site_cites_cams_when_it_shows_forecast(tmp_path, monkeypatch):
     assert [h.aqi_category for h in rec.hours][1:] == ["good", "good"]
     cams = [d for d in rec.sources if d.source == "cams_air"]
     assert len(cams) == 1 and cams[0].date == NOW
+
+
+def test_vpla_codes(tmp_path):
+    base = build_mini_data(tmp_path / "data")
+    assert Repository(base).vpla_codes() == {"28065"}
+
+
+def test_green_source_osm_outside_vpla(tmp_path):
+    # verde-osm Task 112: fuera de VPLA el verde sale de las areas verdes de OSM y se cita OSM
+    base = build_mini_data(tmp_path / "data")
+    con = duckdb.connect(str(base / "gomad.duckdb"))
+    con.execute("UPDATE destination SET green = 0.4 WHERE id = 'ay_parques:1'")
+    con.close()
+    res = recommend(request(limit=10), Repository(base), GraphStore(), now=NOW)
+    capital = next(r for r in res.results if r.destination.id == "ay_parques:1")
+    ids = [d.source for d in capital.sources]
+    assert "osm" in ids and "vpla_redes" not in ids
+    getafe = next(r for r in res.results if r.destination.id == "eiel_parques:1")
+    assert "vpla_redes" in [d.source for d in getafe.sources]
+    for r in res.results:
+        ids = [d.source for d in r.sources]
+        assert len(ids) == len(set(ids)), ids
