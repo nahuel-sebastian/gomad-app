@@ -87,12 +87,14 @@ def load_osm_poi(path=None):
 def route_poi_frame(poi, osm_poi, skip):
     """Tabla route_poi: poi.parquet sin sus filas de OSM + mobiliario de OSM (osm_poi o, si es None, el de poi).
 
-    skip ({ine_code: [tipos]}, routing.yaml osm_poi.skip_where_official): tipos que en ese municipio ya da una
-    fuente oficial y no se cargan de OSM (evita duplicados). Un id solo aparece una vez.
+    skip ({ine_code: [tipos]}, routing.yaml osm_poi.skip_where_official): tipos que en ese municipio da una fuente
+    oficial y no se cargan de OSM (evita duplicados), solo si esa fuente tiene filas. Un id solo aparece una vez.
     """
     official = poi[poi["source"] != "osm"]
     osm = poi[poi["source"] == "osm"] if osm_poi is None else osm_poi
-    pairs = {(ine, t) for ine, types in (skip or {}).items() for t in types}
+    # solo se salta un tipo si la fuente oficial tiene filas de ese tipo en ese municipio (p. ej. ay_bancos descargado)
+    loaded = set(zip(official["ine_code"], official["type"]))
+    pairs = {(ine, t) for ine, types in (skip or {}).items() for t in types} & loaded
     osm = osm[[(i, t) not in pairs for i, t in zip(osm["ine_code"], osm["type"])]]
     out = gpd.GeoDataFrame(pd.concat([official, osm.reindex(columns=poi.columns)], ignore_index=True),
                            geometry="geometry", crs=4326).drop_duplicates("id").reset_index(drop=True)

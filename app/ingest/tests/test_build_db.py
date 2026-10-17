@@ -167,8 +167,18 @@ def test_route_poi_frame_skips_official_types():
     osm = pois(("osm:node/1", "bench", "osm", "28079"), ("osm:node/2", "fountain", "osm", "28079"),
                ("osm:node/3", "dog_area", "osm", "28079"), ("osm:node/4", "bin", "osm", "28079"),
                ("osm:node/5", "fountain", "osm", "28065"))
-    out = build_db.route_poi_frame(pois(), osm, SKIP)
-    assert sorted(out["id"]) == ["osm:node/4", "osm:node/5"]
+    official = pois(("ay_bancos:1", "bench", "ay_bancos", "28079"), ("ay_fuentes:1", "fountain", "ay_fuentes", "28079"),
+                    ("ay_areas_caninas:1", "dog_area", "ay_areas_caninas", "28079"))
+    out = build_db.route_poi_frame(official, osm, SKIP)
+    assert sorted(out["id"]) == ["ay_areas_caninas:1", "ay_bancos:1", "ay_fuentes:1", "osm:node/4", "osm:node/5"]
+
+
+def test_route_poi_frame_keeps_osm_without_official():
+    # sin ay_bancos descargado (capa pesada) la capital conserva los bancos de OSM
+    official = pois(("ay_fuentes:1", "fountain", "ay_fuentes", "28079"))
+    osm = pois(("osm:node/1", "bench", "osm", "28079"), ("osm:node/2", "fountain", "osm", "28079"))
+    out = build_db.route_poi_frame(official, osm, SKIP)
+    assert sorted(out["id"]) == ["ay_fuentes:1", "osm:node/1"]
 
 
 def test_route_poi_frame_no_double_osm():
@@ -180,7 +190,7 @@ def test_route_poi_frame_no_double_osm():
 
 
 def test_route_poi_frame_without_osm_poi():
-    poi = pois(("osm:node/1", "bench", "osm", "28065"), ("osm:node/2", "bench", "osm", "28079"),
+    poi = pois(("osm:node/1", "bench", "osm", "28065"), ("osm:node/2", "fountain", "osm", "28079"),
                ("ay_fuentes:1", "fountain", "ay_fuentes", "28079"))
     out = build_db.route_poi_frame(poi, None, SKIP)
     assert sorted(out["id"]) == ["ay_fuentes:1", "osm:node/1"]
