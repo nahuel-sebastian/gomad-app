@@ -255,3 +255,15 @@ def test_location_remote_timeout_from_config(data):
     Geocoder(data, client, config=cfg).search("calle madrd 10 getafe")
     assert seen and seen[0]["read"] == 1.5
     assert settings.load("location")["remote_timeout_s"] == 2.0
+
+
+def test_location_config_missing_is_clear(data, monkeypatch):
+    import geocoding
+    monkeypatch.setattr(geocoding.settings, "load", lambda name: None)
+    with pytest.raises(ValueError, match="falta config/location.yaml"):
+        Geocoder(data)
+    monkeypatch.undo()
+    cfg = settings.load("location")
+    del cfg["max_candidates"]
+    with pytest.raises(ValueError, match="falta la clave max_candidates"):
+        Geocoder(data, config=cfg)

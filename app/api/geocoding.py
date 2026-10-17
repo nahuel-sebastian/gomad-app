@@ -33,6 +33,7 @@ TYPE_ALIASES = {"calle": "calle", "c": "calle", "cl": "calle", "avenida": "avda"
 STREET_TYPES = set(TYPE_ALIASES)
 STOP_WORDS = {"de", "del", "la", "las", "el", "los", "y", "en", "n", "no", "num", "numero"}
 CACHE_MAX = 1000
+CONFIG_KEYS = ("max_candidates", "max_municipalities", "min_prefix_len", "remote_timeout_s", "remote_min_similarity")
 
 
 def plain(text):
@@ -49,6 +50,11 @@ def _candidate(label, municipality, ine_code, lon, lat, precision):
 class Geocoder:
     def __init__(self, data_dir, client=None, ttl_s=3600, timeout_s=None, config=None):
         cfg = config if config is not None else settings.load("location")      # topes: config/location.yaml
+        if cfg is None:
+            raise ValueError("falta config/location.yaml")       # se crea en lifespan: para el arranque
+        for key in CONFIG_KEYS:
+            if key not in cfg:
+                raise ValueError(f"falta la clave {key} en config/location.yaml")
         self.max_candidates = int(cfg["max_candidates"])
         self.max_municipalities = int(cfg["max_municipalities"])
         self.min_prefix_len = int(cfg["min_prefix_len"])
