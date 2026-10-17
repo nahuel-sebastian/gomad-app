@@ -127,7 +127,7 @@ class Geocoder:
             out = self._local(words, number, muni, typed_type) or self._remote(text, muni)
         else:
             if muni:
-                # solo el municipio («getafe») o su nombre como calle («calle madrid 10»): sus palabras, en toda la region
+                # solo el municipio («getafe») o su nombre como calle («calle madrid 10»): sus palabras, en la region
                 words = [t for t in found[2].split() if t not in STOP_WORDS]
             if not words:
                 return []

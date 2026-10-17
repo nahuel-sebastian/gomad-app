@@ -144,7 +144,8 @@ def test_location_without_municipality_file_is_503_not_500(data):
 def test_location_config_limits(data):
     cfg = settings.load("location")
     assert cfg["own_criterion"] is True
-    assert all(isinstance(cfg[k], int) and cfg[k] > 0 for k in ("max_candidates", "max_municipalities", "min_prefix_len"))
+    keys = ("max_candidates", "max_municipalities", "min_prefix_len")
+    assert all(isinstance(cfg[k], int) and cfg[k] > 0 for k in keys)
     g = Geocoder(data, config={"max_candidates": 2, "max_municipalities": 1, "min_prefix_len": 3})
     assert len(g.search("las rozas")) == 2
 
