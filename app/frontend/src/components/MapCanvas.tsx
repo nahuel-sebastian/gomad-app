@@ -67,7 +67,7 @@ function registerPinImages(map: StyleImageMap) {
 
 export default function MapCanvas(props: MapViewProps) {
     const { markers, selectedId, origin, route, secondaryRoute, onSelect, explore = false, live } = props;
-    const { nearby, zoom, center, refresh } = useNearbyPoints(explore);
+    const { nearby, zoom, center, checkedPoiKinds, refresh } = useNearbyPoints(explore);
     // los destinos que ya tienen pin numerado no se repiten como punto cercano
     const markerKey = markers.map((m) => m.id).join("|");
     const nearbyPoints = useMemo(() => {
@@ -314,6 +314,7 @@ export default function MapCanvas(props: MapViewProps) {
                     zoom={explore ? zoom : null}
                     truncated={explore && (nearby?.truncated ?? false)}
                     live={Boolean(live)}
+                    checkedPoiKinds={explore ? checkedPoiKinds : []}
                 />
                 {explore && <NearbyList points={listed} onPick={pick} />}
             </div>

@@ -267,6 +267,7 @@ describe("leyenda del mapa", () => {
                 points={[point("a", "park"), point("b", "fountain"), point("c", "bench")]}
                 zoom={POI_MIN_ZOOM}
                 truncated={false}
+                checkedPoiKinds={["fountain", "bench", "aed", "dog_area", "playground"]}
             />,
         );
         expect(
@@ -275,6 +276,57 @@ describe("leyenda del mapa", () => {
         expect(
             screen.getByText("Sin datos en esta zona: Desfibrilador, Área canina, Juegos infantiles."),
         ).toBeInTheDocument();
+    });
+
+    it("no dice sin datos si la respuesta no comprobo esos tipos o esta truncada", () => {
+        const pts = [point("a", "park")];
+        const { rerender } = render(
+            <MapLegend markerKinds={[]} points={pts} zoom={POI_MIN_ZOOM} truncated={false} checkedPoiKinds={[]} />,
+        );
+        expect(screen.queryByText(/Sin datos en esta zona/)).toBeNull();
+        rerender(
+            <MapLegend markerKinds={[]} points={pts} zoom={POI_MIN_ZOOM} truncated checkedPoiKinds={["fountain", "bench"]} />,
+        );
+        expect(screen.queryByText(/Sin datos en esta zona/)).toBeNull();
+        rerender(
+            <MapLegend markerKinds={[]} points={pts} zoom={POI_MIN_ZOOM} truncated={false} checkedPoiKinds={["fountain", "bench"]} />,
+        );
+        expect(screen.getByText("Sin datos en esta zona: Fuente, Banco.")).toBeInTheDocument();
+    });
+
+    it("al acercar de 14 a 15 no dice sin datos mientras llega la respuesta ni si falla", async () => {
+        withWebGL();
+        const spy = vi.spyOn(mapPointsModule, "getMapPoints");
+        render(<MapView markers={MARKERS} explore />);
+        await screen.findByTestId("maplibre");
+        const move = (zoom: number) =>
+            act(async () => {
+                (lastMapProps().onMoveEnd as (e: unknown) => void)({
+                    target: {
+                        getZoom: () => zoom,
+                        getBounds: () => ({
+                            getWest: () => BOUNDS.west,
+                            getSouth: () => BOUNDS.south,
+                            getEast: () => BOUNDS.east,
+                            getNorth: () => BOUNDS.north,
+                        }),
+                    },
+                });
+            });
+        await move(POI_MIN_ZOOM - 1);
+        await waitFor(() => expect(spy).toHaveBeenCalledTimes(1));
+        await screen.findByText("Parque o zona verde: 3");
+        // la siguiente peticion no llega: durante la espera no hay que afirmar nada
+        spy.mockImplementationOnce(() => new Promise(() => {}));
+        await move(POI_MIN_ZOOM);
+        await waitFor(() => expect(spy).toHaveBeenCalledTimes(2));
+        expect(screen.queryByText(/Sin datos en esta zona/)).toBeNull();
+        // y si falla (sin red), tampoco
+        spy.mockRejectedValueOnce(new Error("sin red"));
+        await move(POI_MIN_ZOOM + 1);
+        await waitFor(() => expect(spy).toHaveBeenCalledTimes(3));
+        await new Promise((r) => setTimeout(r, 0));
+        expect(screen.queryByText(/Sin datos en esta zona/)).toBeNull();
     });
 
     it("incluye Estas aqui cuando hay posicion en tiempo real", () => {

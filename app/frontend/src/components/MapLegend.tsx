@@ -11,6 +11,9 @@ interface MapLegendProps {
     zoom: number | null;
     truncated: boolean;
     live?: boolean;
+    // tipos de punto util que comprobo la ultima respuesta aplicada (completa); solo de esos se dice
+    // «sin datos»: mientras llega otra o si fallo, no se afirma nada
+    checkedPoiKinds?: MapPointKind[];
 }
 
 function KindIcon({ color, path }: { color: string; path: string }) {
@@ -25,7 +28,14 @@ function KindIcon({ color, path }: { color: string; path: string }) {
 
 // Leyenda del mapa (C2): cada tipo con icono + color + texto y cuantos hay a la vista (nunca
 // solo color, CLAUDE.md §2.10), y una pista de zoom. Plegada por defecto para no tapar el mapa.
-export default function MapLegend({ markerKinds, points, zoom, truncated, live = false }: MapLegendProps) {
+export default function MapLegend({
+    markerKinds,
+    points,
+    zoom,
+    truncated,
+    live = false,
+    checkedPoiKinds = [],
+}: MapLegendProps) {
     const counts = new Map<MapPointKind, number>();
     for (const kind of [...markerKinds, ...points.map((p) => p.kind)]) counts.set(kind, (counts.get(kind) ?? 0) + 1);
     // fuera de servicio por tipo (hoy solo fuentes; el mobiliario de OSM puede traer mas)
@@ -40,8 +50,10 @@ export default function MapLegend({ markerKinds, points, zoom, truncated, live =
         hints.push("Acerca más para ver fuentes, bancos, juegos, desfibriladores y áreas caninas (solo donde hay datos).");
     else if (zoom !== null) {
         hints.push("Fuentes, bancos, juegos, desfibriladores y áreas caninas: solo donde hay datos.");
-        const missing = POI_KINDS.filter((k) => !counts.has(k)).map((k) => KIND_STYLES[k].label);
-        if (missing.length > 0) hints.push(`Sin datos en esta zona: ${missing.join(", ")}.`);
+        const missing = POI_KINDS.filter((k) => checkedPoiKinds.includes(k) && !counts.has(k)).map(
+            (k) => KIND_STYLES[k].label,
+        );
+        if (!truncated && missing.length > 0) hints.push(`Sin datos en esta zona: ${missing.join(", ")}.`);
     }
     if (truncated) hints.push("Hay más lugares de los que se ven: acerca el mapa.");
 
