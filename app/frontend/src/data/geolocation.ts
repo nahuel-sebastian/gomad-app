@@ -11,6 +11,9 @@ export const LOCATION_MESSAGES = {
         "Tu ubicación está fuera de la Comunidad de Madrid. Escribe una dirección o un municipio de la Comunidad.",
 };
 
+// etiqueta de la ubicacion tomada del GPS (la usa el mapa para seguirla en tiempo real)
+export const BROWSER_LOCATION_LABEL = "Tu ubicación";
+
 export class LocationError extends Error {}
 
 type Ring = [number, number][];
@@ -61,7 +64,7 @@ export async function locateWithBrowser(
     const municipality = await municipalityAt(lat, lon);
     if (!municipality) throw new LocationError(LOCATION_MESSAGES.outside);
     return {
-        label: "Tu ubicación",
+        label: BROWSER_LOCATION_LABEL,
         municipality: municipality.name,
         ine_code: municipality.ine_code,
         coordinate: { lat, lon },
