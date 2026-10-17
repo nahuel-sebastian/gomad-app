@@ -23,8 +23,18 @@ MEDICAL_DISCLAIMER = "Recomendación orientativa con datos abiertos. No es conse
 CONFIG = ("activities", "weights", "rules", "ica_thresholds", "recommend", "routing", "sources")
 
 
+# fila 2: marca de las razones de aire que salen de la prevision de CAMS (sin cambio de contrato)
+PREDICTED = " (previsto)"
+
+
 class UnknownActivity(ValueError):
     pass
+
+
+def air_forecast_feed(repo):
+    """Feed del aire previsto (CAMS via Open-Meteo, live/air_forecast.py) o None sin datos en vivo."""
+    live = getattr(repo, "live", None)
+    return getattr(live, "air_forecast", None) if live is not None else None
 
 
 @dataclass
@@ -40,6 +50,7 @@ class Scored:
     factors: dict                      # factores del sitio (0-1) con los que se calcula su nota
     indoor_alternative: bool = False
     partial_air: bool = False          # hay medicion de aire solo para parte de la ventana
+    predicted_air: datetime | None = None  # descarga de la prevision de aire si alguna hora la usa (al aire libre)
 
     @property
     def viable(self):
@@ -93,8 +104,12 @@ def _hour(h):
 class _Run:
     """Estado de una peticion: contexto cargado una vez y reutilizado por todos los candidatos."""
 
-    def __init__(self, req, repo, graphs, cfg, weights, window):
+    def __init__(self, req, repo, graphs, cfg, weights, window, now_hour=None):
         self.req, self.repo, self.cfg, self.weights, self.window = req, repo, cfg, weights, window
+        # fila 2 (R2): hasta la hora en curso, aire medido; despues, el previsto de CAMS del municipio del destino
+        self.now_hour = now_hour
+        self.air_fc = air_forecast_feed(repo)
+        self.air_fc_of, self.predicted = {}, {}
         self.catalog = {a["id"]: a for a in cfg["activities"]["activities"]}
         self.labels = (cfg["sources"] or {}).get("labels", {})
         self.located = graphs.locate([(req.origin.lon, req.origin.lat)], cfg["routing"]["snap_max_m"])
@@ -144,24 +159,50 @@ class _Run:
             for c, i in zip(cands, d.argmin(axis=1)):
                 self.station_of[c.id] = self.stations[int(i)]
 
+    def _key(self, c):
+        station = self.station_of.get(c.id)
+        return (c.ine_code, station.id if station else None)
+
+    def _air_forecast(self, ine):
+        """({hora: categoria}, descargada) del aire previsto del municipio, o None."""
+        if ine not in self.air_fc_of:
+            self.air_fc_of[ine] = self.air_fc.get(ine) if self.air_fc is not None else None
+        return self.air_fc_of[ine]
+
+    def _air_at(self, readings, predicted, h, valid_h):
+        """(categoria, prevista): medicion en la hora en curso; si no hay o es futura, la prevision; si tampoco,
+        la ultima medicion como antes (valida valid_h horas)."""
+        current = self.now_hour is None or h <= self.now_hour
+        measured = category_at(readings, h, valid_h)
+        if current and measured is not None:
+            return measured, False
+        forecast = predicted[0].get(h) if predicted else None
+        if forecast is not None:
+            return forecast, True
+        return measured, False
+
     def _hour_contexts(self, c):
         station = self.station_of.get(c.id)
-        key = (c.ine_code, station.id if station else None)
+        key = self._key(c)
         if key not in self.contexts:
             fc = self.forecasts.get(c.ine_code)
             readings = self.air.get(station.id, []) if station else []
             valid_h = self.cfg["recommend"]["air_reading_valid_h"]
             zone = self.heat.get("zones", {}).get(self.zones.get(c.ine_code))
             threshold = zone["max_temp_c"] if zone else None
-            out = {}
+            air_fc = self._air_forecast(c.ine_code)
+            out, predicted = {}, set()
             for h in self.window:
                 f = fc.get(h) if fc else None
                 if fc and f is None:
                     continue          # hay prevision del municipio, pero no para esta hora: «Sin prevision»
                 temp, feels, prob = f if f else (None, None, None)
-                out[h] = HourContext(h, temp, feels, prob, category_at(readings, h, valid_h),
-                                     self._day_max(c.ine_code, fc, h.date()), threshold)
+                aqi, is_predicted = self._air_at(readings, air_fc, h, valid_h)
+                if is_predicted:
+                    predicted.add(h)
+                out[h] = HourContext(h, temp, feels, prob, aqi, self._day_max(c.ine_code, fc, h.date()), threshold)
             self.contexts[key] = out
+            self.predicted[key] = predicted
         return self.contexts[key]
 
     def _day_max(self, ine, fc, day):
@@ -189,12 +230,18 @@ class _Run:
             weights = self._comparable_weights(contexts)
             hours = evaluate_hours(contexts, self.window, covered, self.req.profile, self.cfg["rules"], fixed, weights,
                                    self.req.companions)
+            predicted = set() if covered else self.predicted.get(self._key(c), set())
+            for h in hours:
+                if h.hour in predicted:
+                    h.reasons = [r + PREDICTED if r.startswith("Calidad del aire") else r for r in h.reasons]
             best = best_hour(hours, self.heat.get("tiebreak"))
             factors = self._site_factors(fixed, covered, hours, best)
             score = compute_score(factors, self.weights).value
             known = [h.ctx.aqi_category is not None for h in hours if h.ctx is not None]
+            air_fc = self._air_forecast(c.ine_code) if predicted else None
             out.append(Scored(c, float(d), bool(a), covered, hours, best, score, fixed, factors,
-                              partial_air=not covered and any(known) and not all(known)))
+                              partial_air=not covered and any(known) and not all(known),
+                              predicted_air=air_fc[1] if air_fc else None))
         return out
 
     def _comparable_weights(self, contexts):
@@ -246,6 +293,8 @@ class _Run:
             sid = "aire_dia" if station.network == "CM" else "ay_aire"
             out.append(s.DataSource(source=sid, label=f"{self.labels.get(sid, sid)} · estación {station.name}",
                                     date=self.air[station.id][-1][0]))
+        if x.predicted_air is not None:
+            out.append(data_source("cams_air", self.labels, x.predicted_air))
         if self.req.weights is None:
             out.append(data_source("config:weights", self.labels, None,
                                    bool(self.cfg["weights"].get("own_criterion"))))
@@ -279,7 +328,7 @@ class _Run:
             indoor_alternative=x.indoor_alternative,
             activity_label=self.catalog[c.activity]["label"] if surprise else None,
             own_criterion_rule=self._own_rule(first),
-            sources=[(d.label, d.date) for d in sources if d.source in ("open_meteo", "aire_dia", "ay_aire")],
+            sources=[(d.label, d.date) for d in sources if d.source in ("open_meteo", "aire_dia", "ay_aire", "cams_air")],
             approximate_distance=x.approximate))
         return s.Recommendation(
             destination=s.DestinationSummary(id=c.id, name=c.name, type=c.type, covered=True if x.covered else c.covered,
@@ -325,10 +374,12 @@ def recommend(req, repo, graphs, now=None):
         raise UnknownActivity(f"Actividad desconocida: {req.activity}")
     weights, warnings = normalize_weights(req.weights.model_dump() if req.weights else None,
                                           cfg["weights"]["defaults"])
-    window = window_hours(req.window_start, req.window_end, now or datetime.now(LOCAL_TZ))
+    now = now or datetime.now(LOCAL_TZ)
+    window = window_hours(req.window_start, req.window_end, now)
     if not window:
         warnings.append("La ventana horaria elegida ya ha pasado: elige otra.")
-    run = _Run(req, repo, graphs, cfg, weights, window)
+    local_now = now.astimezone(LOCAL_TZ).replace(tzinfo=None) if now.tzinfo is not None else now
+    run = _Run(req, repo, graphs, cfg, weights, window, local_now.replace(minute=0, second=0, microsecond=0))
     rc = cfg["recommend"]
     activities = [req.activity] if req.activity else [a["id"] for a in cfg["activities"]["activities"]]
     scored = run.score(repo.candidates(req.origin.lon, req.origin.lat, req.max_distance_m, activities, req.setting,

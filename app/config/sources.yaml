@@ -27,6 +27,7 @@ labels:
   municipios: "Límites municipales (Comunidad de Madrid)"
   ay_aire: "Calidad del aire (Ayuntamiento de Madrid)"
   open_meteo: "Previsión horaria (Open-Meteo)"
+  cams_air: "Calidad del aire prevista (CAMS, Open-Meteo)"
   osm: "Red peatonal y mobiliario (© colaboradores de OpenStreetMap)"
   ay_fuentes: "Fuentes de agua (Ayuntamiento de Madrid)"
   ay_bancos: "Bancos (Ayuntamiento de Madrid)"
@@ -106,6 +107,10 @@ catalog:
   # DEC-16: atribucion obligatoria de Open-Meteo; SourceInfo no tiene campo propio, asi que va tambien en license
   open_meteo: {publisher: "Open-Meteo.com", license: "CC BY 4.0 · Weather data by Open-Meteo.com",
                url: "https://open-meteo.com/", attribution: "Weather data by Open-Meteo.com"}
+  # fila 2 (17/10): aire previsto de Copernicus CAMS servido por Open-Meteo; CC BY 4.0 de Open-Meteo y aviso de CAMS
+  cams_air: {publisher: "Copernicus Atmosphere Monitoring Service (CAMS) vía Open-Meteo.com",
+             license: "CC BY 4.0 · Weather data by Open-Meteo.com · Contiene información modificada del Copernicus Atmosphere Monitoring Service",
+             url: "https://open-meteo.com/en/docs/air-quality-api", attribution: "Weather data by Open-Meteo.com"}
   osm: {publisher: "Colaboradores de OpenStreetMap (extracto de Geofabrik)", license: "ODbL 1.0",
         url: "https://www.openstreetmap.org/copyright"}
   boe_ica: {publisher: "Ministerio para la Transición Ecológica (BOE)", license: "BOE: norma oficial, reutilización libre",
