@@ -48,6 +48,8 @@ def apply_activities(destinations, rules):
     for act in rules["activities"]:
         for rule in act["rules"]:
             sub = destinations[destinations["source"] == rule["source"]]
+            if sub.empty:
+                continue                # filtrar un DataFrame vacio con una Series vacia pierde las columnas
             if "sport" in rule:
                 sub = sub[sub["sports"].map(lambda xs: xs is not None and rule["sport"] in list(xs))]
             if "in" in rule:
@@ -63,15 +65,43 @@ def apply_activities(destinations, rules):
     return r.groupby(["destination_id", "activity"], as_index=False)["suitability"].max()
 
 
-def green_fraction(destinations, green, municipalities):
-    """Fraccion del circulo de GREEN_RADIUS_M m cubierta por zona verde (EPSG:25830). NULL si el municipio no esta en VPLA."""
+def _circle_fraction(circles, zones):
+    """Fraccion de cada circulo (indice id, EPSG:25830) cubierta por la union de zones; los solapes cuentan una vez."""
+    inter = gpd.overlay(circles, zones.to_crs(25830)[["geometry"]], how="intersection", keep_geom_type=True)
+    area = inter.dissolve(by="id").area if len(inter) else pd.Series(dtype=float)
+    return (area / circles.set_index("id").area).reindex(circles["id"]).fillna(0.0).clip(0, 1)
+
+
+def load_osm_green(path=None):
+    """Poligonos verdes de OSM de osm_green.py (Task 110); sin fichero -> None (green como antes de Task 111)."""
+    path = path or CLEAN / "osm_green.parquet"
+    return gpd.read_parquet(path) if path.exists() else None
+
+
+def green_fraction(destinations, green, municipalities, osm_green=None):
+    """Fraccion del circulo de GREEN_RADIUS_M m cubierta por zona verde (EPSG:25830). NULL si el municipio no esta en VPLA.
+
+    osm_green (Task 111): en los municipios sin VPLA que tienen algun poligono verde de OSM (misma regla que las
+    rutas, graph.osm_green_coverage) la fraccion se calcula con esos poligonos; el resto sigue en NULL.
+    """
     d = destinations.to_crs(25830)
     circles = gpd.GeoDataFrame({"id": d["id"]}, geometry=d.buffer(GREEN_RADIUS_M), crs=25830)
-    inter = gpd.overlay(circles, green.to_crs(25830)[["geometry"]], how="intersection", keep_geom_type=True)
-    area = inter.dissolve(by="id").area if len(inter) else pd.Series(dtype=float)
-    frac = (area / circles.set_index("id").area).reindex(d["id"]).fillna(0.0).clip(0, 1)
-    in_vpla = d["ine_code"].map(municipalities.set_index("ine_code")["in_vpla"]).fillna(False).to_numpy(dtype=bool)
-    return frac.where(in_vpla, None).to_numpy()
+    frac = _circle_fraction(circles, green)
+    vpla = municipalities.set_index("ine_code")["in_vpla"]
+    in_vpla = d["ine_code"].map(vpla).fillna(False).to_numpy(dtype=bool)
+    result = frac.where(in_vpla, None)
+    if osm_green is not None and len(osm_green):
+        from graph import osm_green_coverage
+        covered = set(osm_green_coverage(municipalities, set(vpla[vpla.astype(bool)].index), osm_green)["ine_code"])
+        use_osm = (d["ine_code"].isin(covered) & ~in_vpla).to_numpy()
+        if use_osm.any():
+            sub = circles[use_osm]
+            zones = osm_green.to_crs(25830)
+            # solo los poligonos que tocan algun circulo: el overlay con los ~36.000 de la Comunidad es lento
+            near = gpd.sjoin(zones[["geometry"]], sub[["geometry"]], predicate="intersects")
+            zones = zones.loc[near.index.unique()]
+            result[use_osm] = _circle_fraction(sub, zones).to_numpy() if len(zones) else 0.0
+    return result.to_numpy()
 
 
 def create_aqi_hourly(con):
@@ -209,7 +239,8 @@ def build_main(target=DATA_DIR / "gomad.duckdb", rules=None):
     population = population[population.year == population.year.max()][["ine_code", "population"]]
     destinations = gpd.read_parquet(CLEAN / "destination_raw.parquet")
     destinations = destinations[destinations["ine_code"].notna()].copy()
-    destinations["green"] = green_fraction(destinations, gpd.read_parquet(CLEAN / "green.parquet"), municipalities)
+    destinations["green"] = green_fraction(destinations, gpd.read_parquet(CLEAN / "green.parquet"), municipalities,
+                                           osm_green=load_osm_green())
     destinations["lon"], destinations["lat"] = destinations.geometry.x, destinations.geometry.y
     destinations["updated"] = dt.datetime.now()
     activities = apply_activities(destinations, rules)
