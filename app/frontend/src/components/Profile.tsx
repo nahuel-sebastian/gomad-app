@@ -11,9 +11,7 @@ export default function Profile() {
                 Ajustan la nota y los filtros de las recomendaciones. Se guardan solo mientras tienes la página
                 abierta; nunca guardamos tu ubicación.
             </p>
-            <div className="panel">
-                <PreferencesForm />
-            </div>
+            <PreferencesForm inPanel />
         </section>
     );
 }

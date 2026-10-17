@@ -826,13 +826,12 @@
   }
 
   .nav__link .icon {
-    --icon-size: 1.125rem;
     flex: 0 0 auto;
   }
 
   .nav__icon-svg {
-    width: 1.125rem;
-    height: 1.125rem;
+    width: 1rem;
+    height: 1rem;
     flex: 0 0 auto;
   }
 
@@ -920,10 +919,6 @@
     white-space: nowrap;
   }
 
-  .chip .icon {
-    --icon-size: 1rem;
-  }
-
   .chip--info {
     background: var(--chip-info-bg);
     color: var(--chip-info-fg);
@@ -1002,6 +997,7 @@
     border: 1px solid var(--border);
     border-radius: var(--radius);
     text-align: left;
+    margin-bottom: 2rem;
   }
 
   .panel__title {
@@ -1073,10 +1069,6 @@
     color: var(--muted);
   }
 
-  .activity__icon .icon {
-    --icon-size: 1.5rem;
-  }
-
   .activity:hover {
     background: var(--green-tint);
     border-color: var(--green-dark);
@@ -1101,10 +1093,6 @@
     height: 3rem;
     border-radius: var(--radius-sm);
     background: var(--blue-tint);
-  }
-
-  .surprise__tile .icon {
-    --icon-size: 1.5rem;
   }
 
   .surprise__text {
@@ -1150,10 +1138,6 @@
 
   .button:hover {
     background: var(--bg);
-  }
-
-  .button .icon {
-    --icon-size: 1.125rem;
   }
 
   .page {
@@ -1217,7 +1201,6 @@
   }
 
   .back-button .icon {
-    --icon-size: 1.125rem;
     flex: 0 0 auto;
   }
 
@@ -2017,7 +2000,7 @@
     display: block;
     margin-bottom: 0.375rem;
     font-size: 0.9375rem;
-    font-weight: 600;
+    font-weight: 700;
   }
 
   .field__input {
@@ -2100,10 +2083,6 @@
 
   .location__search-button:hover {
     background: var(--bg);
-  }
-
-  .location__search-button .icon {
-    --icon-size: 1rem;
   }
 
   .location__form .field__input {
@@ -2317,15 +2296,14 @@
     grid-auto-columns: minmax(0px, 1fr);
     grid-auto-flow: column;
     gap: 0.25rem;
-    padding: 0.25rem;
     border-radius: var(--radius-sm);
     background: var(--bg);
-    border: 1px solid var(--border-strong);
   }
 
   .seg__option {
     position: relative;
     display: flex;
+    min-width: 0;
     cursor: pointer;
   }
 
@@ -2344,12 +2322,20 @@
     align-items: center;
     justify-content: center;
     min-height: var(--tap-min);
-    padding: 0.375rem 0.625rem;
+    padding: 0.375rem 0.25rem;
     border-radius: 9px;
     color: var(--muted);
+    font-size: 0.75rem;
     font-weight: 600;
     text-align: center;
+    overflow-wrap: anywhere;
     transition: background var(--transition);
+  }
+
+  @media (min-width: 48rem) {
+    .seg__option span {
+      font-size: 14px;
+    }
   }
 
   .seg__option small {
@@ -2359,7 +2345,7 @@
 
   .seg__option input:checked + span {
     background: var(--surface);
-    box-shadow: inset 0px 0px 0px 2px var(--green-dark);
+    box-shadow: inset 0px 0px 0px 1px var(--green-dark);
     color: var(--green-dark);
     font-weight: 700;
   }
@@ -2367,6 +2353,40 @@
   .seg__option input:focus-visible + span {
     outline: 3px solid var(--focus);
     outline-offset: 2px;
+  }
+
+  .weight-options {
+    display: flex;
+    flex-direction: column;
+    gap: 0.625rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .weight-options__item {
+    position: relative;
+  }
+
+  .weight-options__item::before {
+    position: absolute;
+    top: 0;
+    left: 0;
+    content: "•";
+    font-size: 0.9375rem;
+  }
+
+  .weight-option {
+    min-width: 0;
+    margin: 0;
+    padding: 0;
+    border: 0;
+  }
+
+  .weight-option .field__label {
+    margin-bottom: 0.5rem;
+    padding-left: 1rem;
+    font-weight: 500;
   }
 
   .route-layout {
@@ -2442,7 +2462,6 @@
 
   .route-metrics__label .icon,
   .option__label .icon {
-    --icon-size: 1.125rem;
     flex: 0 0 auto;
   }
 
@@ -2618,6 +2637,45 @@
     background: rgba(18, 57, 91, 0.45);
   }
 
+  .confirm-overlay {
+    position: fixed;
+    z-index: 100;
+    inset: 0;
+    background: rgba(18, 57, 91, 0.55);
+  }
+
+  .confirm-dialog {
+    position: fixed;
+    z-index: 110;
+    top: 50%;
+    left: 50%;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    width: min(calc(100% - 2rem), 26rem);
+    max-height: calc(100dvh - 2rem);
+    overflow-y: auto;
+    padding: 1.5rem;
+    border-radius: 16px;
+    background: var(--surface);
+    box-shadow: 0 12px 36px rgb(18 57 91 / 20%);
+    transform: translate(-50%, -50%);
+  }
+
+  @media (min-width: 48rem) {
+    .confirm-dialog {
+      width: min(calc(100% - 3rem), 32rem);
+      padding: 2rem;
+    }
+  }
+
+  .confirm-dialog__actions {
+    display: flex;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+  }
+
   .gomad-preferences-dialog {
     position: fixed;
     z-index: 90;
@@ -2628,7 +2686,7 @@
     flex-direction: column;
     gap: 0.75rem;
     max-height: 88dvh;
-    overflow-y: auto;
+    overflow: hidden;
     padding: 1.25rem var(--gutter) calc(1.5rem + env(safe-area-inset-bottom));
     border-radius: 20px 20px 0px 0px;
     background: var(--surface);
@@ -2651,11 +2709,32 @@
     font-weight: 700;
   }
 
+  .prefs-form {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+    min-height: 0;
+    container-type: inline-size;
+    padding-bottom: 3rem;
+  }
+
   .gomad-preferences-form {
     display: flex;
     flex-direction: column;
     gap: 1.25rem;
-    container-type: inline-size;
+    min-height: 0;
+  }
+
+  .gomad-preferences-form.panel {
+    margin-bottom: 0;
+  }
+
+  .gomad-preferences-dialog > .prefs-form {
+    flex: 1 1 auto;
+  }
+
+  .gomad-preferences-dialog .gomad-preferences-form {
+    overflow-y: auto;
   }
 
   .prefs-form__footer {
@@ -2672,6 +2751,12 @@
 
   .prefs-form__footer-label--short {
     display: none;
+  }
+
+  .prefs-form__saved {
+    color: var(--green-dark);
+    font-size: 0.875rem;
+    font-weight: 600;
   }
 
   @container (max-width: 30rem) {
@@ -2910,6 +2995,7 @@
   .companion-options {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 7rem));
+    justify-content: center;
     gap: 0.75rem;
   }
 
@@ -2942,14 +3028,6 @@
     justify-content: center;
     gap: 0.375rem;
     flex-direction: column;
-  }
-
-  .companion-option .icon {
-    --icon-size: 1.125rem;
-  }
-
-  .pref-slider__step .icon {
-    --icon-size: 1.25rem;
   }
 
   .companion-option input {

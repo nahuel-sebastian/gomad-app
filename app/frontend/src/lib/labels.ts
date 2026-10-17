@@ -56,7 +56,7 @@ export const COMPANION_LABELS: Record<Companion, string> = {
 };
 
 export const SETTING_LABELS: Record<Setting, string> = {
-    any: "Indiferente",
+    any: "Cualquiera",
     outdoor: "Exterior",
     indoor: "Interior",
 };
