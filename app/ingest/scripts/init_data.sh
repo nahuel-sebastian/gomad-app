@@ -39,6 +39,8 @@ if [ "$skip_download" -eq 0 ]; then
 fi
 
 step "Normalización (app/data/clean)" python -m normalize
+# verde de los destinos sin VPLA (Madrid capital...): areas verdes de OSM; si falla, build_db deja green NULL alli
+step "Áreas verdes de OSM (clean/osm_green.parquet)" python osm_green.py
 step "Bases DuckDB (gomad.duckdb y realtime.duckdb)" python -m build_db all
 
 if [ "$skip_graph" -eq 0 ]; then
