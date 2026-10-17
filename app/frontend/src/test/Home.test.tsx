@@ -104,19 +104,19 @@ describe("Inicio", () => {
         ).toBeInTheDocument();
     });
 
-    it("usar mi ubicacion avisa de que es de ejemplo", async () => {
+    it("usar mi ubicacion pone la ubicacion en el campo y permite borrarla", async () => {
         const { user } = renderAt("/");
         const locationButton = screen.getByRole("button", { name: "Usar mi ubicación" });
         expect(locationButton).toHaveTextContent("Usar ubicación");
         expect(locationButton).toHaveClass("gomad-action-use-location");
         await user.click(locationButton);
-        expect(
-            await screen.findByText(
-                "Es una ubicación de ejemplo: el GPS no está disponible en este entorno de desarrollo.",
-            ),
-        ).toBeInTheDocument();
-        expect(screen.getByText("Ubicación elegida:").nextElementSibling).toHaveTextContent("Tu ubicación de ejemplo");
+        expect(await screen.findByDisplayValue("Tu ubicación de ejemplo (Getafe)")).toBeInTheDocument();
+        expect(screen.getByRole("button", { name: "Borrar ubicación" }).querySelector(".icon-close")).toBeInTheDocument();
         expect(document.querySelector(".location__status")).toHaveClass("sr-only");
+        await user.click(screen.getByRole("button", { name: "Borrar ubicación" }));
+        expect(screen.getByLabelText("Escribe una dirección o un municipio")).toHaveValue("");
+        expect(screen.getByRole("button", { name: "Buscar" })).toBeInTheDocument();
+        expect(screen.queryByRole("heading", { name: "Elige una actividad" })).not.toBeInTheDocument();
     });
 
     it("si el GPS se deniega lo explica y deja escribir la dirección", async () => {
@@ -143,12 +143,18 @@ describe("Inicio", () => {
         );
         await user.click(searchButton);
         const option = await screen.findByRole("button", { name: "Getafe" });
-        expect(screen.getByText("1 lugar encontrado.")).toBeInTheDocument();
+        const count = screen.getByText("1 lugar encontrado.");
+        expect(count.compareDocumentPosition(screen.getByLabelText("Escribe una dirección o un municipio")) & Node.DOCUMENT_POSITION_PRECEDING).toBeTruthy();
+        expect(count.parentElement).toHaveClass("location__search-wrap");
+        expect(option.closest(".location__candidates")?.parentElement).toHaveClass("location__search-wrap");
         await user.click(option);
-        expect(
-            await screen.findByText("Usaremos el centro de Getafe."),
-        ).toBeInTheDocument();
+        expect(screen.getByLabelText("Escribe una dirección o un municipio")).toHaveValue("Getafe");
+        expect(screen.queryByText("Usaremos el centro de Getafe.")).not.toBeInTheDocument();
+        expect(screen.queryByRole("list", { name: "Lugares encontrados" })).not.toBeInTheDocument();
         expect(await screen.findByRole("heading", { name: "Elige una actividad" })).toBeInTheDocument();
+        await user.click(screen.getByRole("button", { name: "Borrar ubicación" }));
+        expect(screen.getByLabelText("Escribe una dirección o un municipio")).toHaveValue("");
+        expect(screen.queryByRole("heading", { name: "Elige una actividad" })).not.toBeInTheDocument();
         await expectNoAxeViolations(container);
     });
 
@@ -164,6 +170,7 @@ describe("Inicio", () => {
                 "No encontramos esa dirección. Prueba con el nombre del municipio.",
             ),
         ).toBeInTheDocument();
+        expect(screen.getByText("No encontramos esa dirección. Prueba con el nombre del municipio.").parentElement).toHaveClass("location__search-wrap");
     });
 
     it("muestra el estado del momento con temperatura y aire en texto", async () => {
