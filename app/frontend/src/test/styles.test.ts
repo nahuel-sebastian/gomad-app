@@ -39,7 +39,7 @@ describe("estilos", () => {
             expect(contrast(token(`--chip-${type}-fg`), token(`--chip-${type}-bg`))).toBeGreaterThanOrEqual(4.5);
         }
         for (const category of ["good", "fair", "moderate", "poor", "very_poor", "extremely_poor", "nodata"]) {
-            const palette = category === "nodata" ? "nodata" : `aqi-${category.replaceAll("_", "-")}`;
+            const palette = `aqi-${category.replaceAll("_", "-")}`;
             const style = rule(`.chip--aqi-${category}`);
             expect(style).toContain(`var(--chip-${palette}-bg)`);
             expect(style).toContain(`var(--chip-${palette}-fg)`);
