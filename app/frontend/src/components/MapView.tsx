@@ -35,6 +35,10 @@ export interface MapViewProps {
     // donde va el boton de la leyenda: sin la prop, sobre el mapa; con
     // un elemento, ahi (portal, p. ej. junto a «Ajustar» en Resultados); null = sin sitio, no se pinta
     legendSlot?: HTMLElement | null;
+    // navegacion: con `live`, la camara sigue cada posicion nueva (zoom minimo NAV_ZOOM)
+    follow?: boolean;
+    // se llama cuando la persona arrastra o hace zoom en el mapa (para soltar el seguimiento)
+    onUserMove?: () => void;
 }
 
 const SIZE = 100;

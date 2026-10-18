@@ -13,6 +13,7 @@ import Map, {
     type MapRef,
 } from "react-map-gl/maplibre";
 import "../styles/map.css";
+import { NAV_ZOOM } from "../data/navigation";
 import { lineCoordinates } from "../lib/geometry";
 import MapLegend from "./MapLegend";
 import MapPin from "./MapPin";
@@ -119,7 +120,7 @@ function upgradeFontPinImages(map: StyleImageMap) {
 }
 
 export default function MapCanvas(props: MapViewProps) {
-    const { markers, selectedId, origin, route, secondaryRoute, onSelect, explore = false, live, legendSlot } = props;
+    const { markers, selectedId, origin, route, secondaryRoute, onSelect, explore = false, live, legendSlot, follow = false, onUserMove } = props;
     const { nearby, zoom, checkedPoiKinds, refresh } = useNearbyPoints(explore);
     // los destinos que ya tienen pin numerado no se repiten como punto cercano
     const markerKey = markers.map((m) => m.id).join("|");
@@ -251,6 +252,24 @@ export default function MapCanvas(props: MapViewProps) {
         mapRef.current?.fitBounds(bounds, { padding, maxZoom: fitMaxZoom, duration: 0 });
     }, [boundsKey, bounds, padding, fitMaxZoom]);
 
+    // navegacion: la camara sigue la posicion en tiempo real; sin follow no se mueve
+    useEffect(() => {
+        const map = mapRef.current;
+        if (!follow || !live || !map || !padding) return;
+        const reduced = typeof window.matchMedia === "function" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+        map.easeTo({
+            center: [live.lon, live.lat],
+            zoom: Math.max(map.getZoom(), NAV_ZOOM),
+            duration: reduced ? 0 : 500,
+        });
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [follow, live?.lat, live?.lon, padding]);
+
+    // solo lo que mueve la persona (con evento de origen); el easeTo programado no lo tiene
+    const handleUserMove = (e: { originalEvent?: unknown }) => {
+        if (e.originalEvent) onUserMove?.();
+    };
+
     if (creationError) {
         throw creationError;
     }
@@ -299,6 +318,8 @@ export default function MapCanvas(props: MapViewProps) {
                     }}
                     onIdle={(e) => handleIdle(e.target as unknown as RenderedMap)}
                     onMoveEnd={(e) => refresh(e.target as unknown as ViewSource)}
+                    onDragStart={handleUserMove}
+                    onZoomStart={handleUserMove}
                     interactiveLayerIds={explore ? NEARBY_LAYERS : undefined}
                     onClick={explore ? handleClick : undefined}
                     onMouseMove={explore ? handleMouseMove : undefined}
