@@ -2737,13 +2737,12 @@
     width: min(100%, 20rem);
   }
 
-  /* Buscador e indice A-Z fijos al bajar por la lista de municipios */
+  /* Buscador fijo al bajar por la lista de municipios */
   .muni-finder {
     position: sticky;
     z-index: 2;
     top: var(--header-height);
     display: grid;
-    /* minmax(0, 1fr): la fila de 26 letras no puede ensanchar el bloque */
     grid-template-columns: minmax(0, 1fr);
     gap: 0.5rem;
     margin-inline: calc(var(--gutter) * -1);
@@ -2751,42 +2750,50 @@
     background: var(--bg);
   }
 
+  /* mismo padding que el buscador de ubicacion de inicio (.gomad-location-picker) */
   .muni-finder__search {
     display: grid;
     gap: 0.375rem;
     min-width: 0px;
     margin: 0px;
-    padding: 0.625rem 0.75rem;
+    padding: clamp(1rem, 3vw, 1.75rem);
   }
 
-  .muni-index {
-    min-width: 0px;
-  }
-
-  /* todas las letras a la vista, sin deslizar: en movil salen en dos filas */
-  .muni-index__list {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(1.75rem, 1fr));
-    gap: 0.25rem;
-  }
-
-  .muni-index__letter {
-    width: 100%;
-    min-height: 2rem;
-    padding: 0px;
-    border: 1px solid var(--border-strong);
-    border-radius: var(--radius-sm);
+  /* mismo campo que el buscador de ubicacion (.location__search), con la lupa a la derecha */
+  .muni-finder__field {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    min-width: 0;
+    min-height: var(--tap-min);
+    padding-right: 0.75rem;
+    border: 1.5px solid var(--muted);
+    border-radius: 10px;
     background: var(--surface);
-    color: var(--navy);
-    font: inherit;
-    font-weight: 700;
-    cursor: pointer;
+    color: var(--muted);
   }
 
-  .muni-index__letter:hover,
-  .muni-index__letter:focus-visible {
-    border-color: var(--green);
-    background: var(--green-tint);
+  .muni-finder__field:focus-within {
+    outline: 3px solid var(--focus);
+    outline-offset: 2px;
+  }
+
+  .muni-finder__field .field__input {
+    flex: 1 1 auto;
+    min-width: 0;
+    min-height: 0;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+  }
+
+  .muni-finder__field .field__input:focus-visible {
+    outline: none;
+  }
+
+  .muni-finder__field .field__input::placeholder {
+    color: var(--muted);
+    opacity: 1;
   }
 
   .muni-section__title,
@@ -2801,31 +2808,43 @@
     gap: 1.25rem;
   }
 
+  /* grid-auto-rows: 1fr: todas las tarjetas igual de altas aunque un nombre ocupe dos lineas */
   .muni-nearby__list {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-auto-rows: 1fr;
     gap: 0.5rem;
   }
 
+  /* blancas y con el mismo borde que las tarjetas de actividad (.activity) */
   .muni-nearby__link {
-    display: grid;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
     gap: 0.25rem;
+    height: 100%;
     min-height: var(--tap-min);
     padding: 0.75rem 1rem;
-    border: 1px solid var(--green);
-    border-radius: var(--radius-sm);
-    background: var(--green-tint);
+    border: 1.5px solid var(--navy);
+    border-radius: 10px;
+    background: var(--surface);
     color: var(--navy);
     font-weight: 700;
+    transition: background var(--transition), border-color var(--transition);
   }
 
-  .muni-nearby__link:hover,
+  .muni-nearby__link:hover {
+    background: var(--green-tint);
+    border-color: var(--green-dark);
+  }
+
   .muni-nearby__link:focus-visible {
-    background: var(--green-tint-active);
+    outline: 3px solid var(--focus);
+    outline-offset: 2px;
   }
 
   .muni-nearby__distance {
-    color: var(--green-dark);
+    color: var(--muted);
     font-size: 0.875rem;
     font-weight: 600;
   }

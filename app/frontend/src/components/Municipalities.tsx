@@ -1,4 +1,4 @@
-import { useId, useRef, useState } from "react";
+import { useId, useState } from "react";
 import { Link, useNavigate } from "react-router";
 import { distanceM } from "../data/livePosition";
 import { listMunicipalities, type MunicipalityItem } from "../data/municipality";
@@ -7,6 +7,7 @@ import { formatDistance } from "../lib/format";
 import { normalize } from "../lib/text";
 import { useAppState } from "../state/context";
 import ErrorMessage from "./ErrorMessage";
+import Icon from "./Icon";
 import PageHeading from "./PageHeading";
 
 // cuantos municipios cercanos se ensenan (por distancia, no por calidad: no es un ranking)
@@ -26,7 +27,7 @@ function groupByInitial(items: MunicipalityItem[]): [string, MunicipalityItem[]]
     return [...groups.entries()];
 }
 
-// Selector de municipio (P-09): los 179 agrupados por letra con indice A-Z, buscador fijo
+// Selector de municipio (P-09): los 179 agrupados por letra, buscador fijo
 // y, si hay ubicacion, los mas cercanos. Sin ningun orden de calidad
 export default function Municipalities() {
     const list = useAsync(() => listMunicipalities(), []);
@@ -34,7 +35,6 @@ export default function Municipalities() {
     const navigate = useNavigate();
     const [query, setQuery] = useState("");
     const inputId = useId();
-    const finderRef = useRef<HTMLDivElement>(null);
     const headingPrefix = useId();
     const q = normalize(query);
     const shown = (list.data ?? []).filter((m) => normalize(m.name).includes(q));
@@ -52,15 +52,6 @@ export default function Municipalities() {
             : [];
     const letterId = (letter: string) => `${headingPrefix}-${letter}`;
 
-    // la letra queda justo debajo del buscador fijo (scroll-padding de la pagina aparte)
-    const goToLetter = (letter: string) => {
-        const heading = document.getElementById(letterId(letter));
-        if (!heading) return;
-        const stuckBottom = finderRef.current?.getBoundingClientRect().bottom ?? 0;
-        window.scrollTo({ top: window.scrollY + heading.getBoundingClientRect().top - stuckBottom - 8 });
-        heading.focus({ preventScroll: true });
-    };
-
     return (
         <section className="container page gomad-component gomad-municipalities" aria-labelledby="municipios-titulo">
             <PageHeading className="view-title" id="municipios-titulo">
@@ -71,7 +62,7 @@ export default function Municipalities() {
                 cuidarte. Sin rankings: cada municipio se ve por sí solo.
             </p>
 
-            <div className="muni-finder" ref={finderRef}>
+            <div className="muni-finder">
                 <form
                     className="panel muni-finder__search"
                     role="search"
@@ -83,33 +74,21 @@ export default function Municipalities() {
                     <label htmlFor={inputId} className="field__label">
                         Busca un municipio
                     </label>
-                    <input
-                        id={inputId}
-                        className="field__input gomad-field gomad-field-municipality-search"
-                        type="search"
-                        autoComplete="off"
-                        value={query}
-                        onChange={(e) => setQuery(e.target.value)}
-                    />
+                    {/* mismo campo que el buscador de ubicacion de inicio, con la lupa a la derecha */}
+                    <div className="muni-finder__field">
+                        <input
+                            id={inputId}
+                            className="field__input gomad-field gomad-field-municipality-search"
+                            type="search"
+                            autoComplete="off"
+                            placeholder="Escribe el nombre del municipio"
+                            value={query}
+                            onChange={(e) => setQuery(e.target.value)}
+                        />
+                        <Icon name="search" />
+                    </div>
                 </form>
 
-                {groups.length > 0 && (
-                    <nav className="muni-index" aria-label="Índice alfabético">
-                        <ul role="list" className="muni-index__list">
-                            {groups.map(([letter]) => (
-                                <li key={letter}>
-                                    <button
-                                        type="button"
-                                        className="muni-index__letter gomad-action gomad-action-jump-to-letter"
-                                        aria-label={`Ir a la ${letter}`}
-                                        onClick={() => goToLetter(letter)}>
-                                        {letter}
-                                    </button>
-                                </li>
-                            ))}
-                        </ul>
-                    </nav>
-                )}
             </div>
 
             <p className="muted muni-list__count" role="status" aria-live="polite">
@@ -149,7 +128,7 @@ export default function Municipalities() {
                 <section className="muni-all" aria-label="Todos los municipios">
                     {groups.map(([letter, items]) => (
                         <section key={letter} className="muni-group" aria-labelledby={letterId(letter)}>
-                            <h2 className="muni-group__letter" id={letterId(letter)} tabIndex={-1}>
+                            <h2 className="muni-group__letter" id={letterId(letter)}>
                                 {letter}
                             </h2>
                             <ul role="list" className="muni-list">

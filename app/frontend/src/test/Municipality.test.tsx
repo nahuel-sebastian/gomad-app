@@ -24,22 +24,12 @@ describe("Lista de municipios", () => {
         await expectNoAxeViolations(container);
     });
 
-    it("el índice A–Z lleva a la letra pulsada", async () => {
-        const { user } = renderAt("/municipios");
-        await screen.findByRole("heading", { level: 2, name: "Z" });
-        const index = screen.getByRole("navigation", { name: "Índice alfabético" });
-        await user.click(within(index).getByRole("button", { name: "Ir a la Z" }));
-        expect(screen.getByRole("heading", { level: 2, name: "Z" })).toHaveFocus();
-    });
-
-    it("filtra por nombre sin tildes y el índice solo deja las letras con resultados", async () => {
+    it("filtra por nombre sin tildes", async () => {
         const { user } = renderAt("/municipios");
         await screen.findByRole("heading", { level: 2, name: "A" });
         await user.type(screen.getByLabelText("Busca un municipio"), "alcala de");
         await waitFor(() => expect(allLinks().map((a) => a.textContent)).toContain("Alcalá de Henares"));
         expect(allLinks().every((a) => normalize(a.textContent!).includes("alcala de"))).toBe(true);
-        const index = screen.getByRole("navigation", { name: "Índice alfabético" });
-        expect(within(index).getAllByRole("button").map((b) => b.textContent)).toEqual(["A"]);
     });
 
     it("dice si no hay coincidencias", async () => {
