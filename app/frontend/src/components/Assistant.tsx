@@ -1,4 +1,5 @@
-import { useId, useRef, useState, type FormEvent } from "react";
+import { useId, useRef, useState, type Dispatch, type FormEvent, type SetStateAction } from "react";
+import { Link } from "react-router";
 import type { AssistantParams, AssistantRouteResponse, Avoid, PassBy } from "../api/types";
 import { assistantRoute, interpret } from "../data/assistant";
 import { ApiError } from "../data/errors";
@@ -6,6 +7,7 @@ import { formatDistance, formatMinutes } from "../lib/format";
 import { AVOID_LABELS, PASS_BY_LABELS } from "../lib/labels";
 import { useAppState } from "../state/context";
 import ErrorMessage from "./ErrorMessage";
+import Hero from "./Hero";
 import Icon from "./Icon";
 import LocationPicker from "./LocationPicker";
 import MapView from "./MapView";
@@ -13,7 +15,99 @@ import PageHeading from "./PageHeading";
 
 const PASS_BY: PassBy[] = ["park", "fountain", "bench", "supermarket", "dog_area", "playground"];
 const AVOID: Avoid[] = ["traffic", "hills"];
+const PASS_BY_ICONS: Record<PassBy, string> = {
+    park: "eco",
+    fountain: "water",
+    bench: "bench",
+    supermarket: "shopping_cart",
+    dog_area: "pets",
+    playground: "playground",
+};
+const AVOID_ICONS: Record<Avoid, string> = { traffic: "traffic", hills: "mountain" };
 const EXAMPLE = "15 km andando, por un parque, con fuentes y bancos y que pase por un supermercado";
+
+function conditionIcon(condition: string): string {
+    const label = condition.toLocaleLowerCase("es");
+    if (label.startsWith("distancia")) return "route";
+    if (label.startsWith("duración")) return "calendar_clock";
+    if (label === "solo ida") return "navigation";
+    if (label === "ida y vuelta") return "route";
+    if (label.startsWith("pasar por:")) {
+        const type = PASS_BY.find((p) => label.includes(PASS_BY_LABELS[p].toLocaleLowerCase("es")));
+        return type ? PASS_BY_ICONS[type] : "route";
+    }
+    if (label.startsWith("evitar:")) {
+        const type = AVOID.find((a) => label.includes(AVOID_LABELS[a].toLocaleLowerCase("es")));
+        return type ? AVOID_ICONS[type] : "criteria";
+    }
+    if (label.includes("fuentes")) return "water";
+    return "criteria";
+}
+
+function explanationSentences(explanation: string): string[] {
+    return explanation.trim().split(/(?<=[.!?])\s+(?=[A-ZÁÉÍÓÚÑ¿])/u).filter(Boolean);
+}
+
+function RouteExplanation({ explanation, conditions }: Pick<AssistantRouteResponse, "explanation" | "conditions">) {
+    const unmet = conditions.filter((condition) => !condition.met);
+    return (
+        <ul role="list" className="assistant__route-description" aria-label="Resumen de la ruta">
+            {explanationSentences(explanation).map((sentence, index) => {
+                if (sentence.startsWith("No cumple:") && unmet.length > 0) {
+                    return (
+                        <li key={index}>
+                            <strong>No cumple:</strong>
+                            <ul role="list" className="assistant__unmet-list">
+                                {unmet.map(({ condition }) => (
+                                    <li key={condition}>
+                                        <Icon name="close" aria-hidden="true" />
+                                        <strong>{condition}</strong>
+                                    </li>
+                                ))}
+                            </ul>
+                        </li>
+                    );
+                }
+                const match = sentence.match(/^(Ruta saludable|Cumple \d+ de \d+ condiciones)(.*)$/u);
+                return <li key={index}>{match ? <><strong>{match[1]}</strong>{match[2]}</> : sentence}</li>;
+            })}
+        </ul>
+    );
+}
+
+function NumberStepper({ id, label, value, setValue, min, max, step, inputMode, className }: {
+    id: string;
+    label: string;
+    value: string;
+    setValue: Dispatch<SetStateAction<string>>;
+    min: number;
+    max: number;
+    step: number;
+    inputMode: "decimal" | "numeric";
+    className: string;
+}) {
+    const current = value.trim() === "" ? null : Number(value.replace(",", "."));
+    const changeBy = (direction: -1 | 1) => {
+        const next = current === null || !Number.isFinite(current)
+            ? min
+            : Math.min(max, Math.max(min, Math.round((current + direction * step) * 10) / 10));
+        setValue(String(next));
+    };
+    return (
+        <div>
+            <label className="field__label" htmlFor={id}>{label}</label>
+            <div className="assistant__stepper">
+                <button type="button" className="pref-slider__step" aria-label={`Reducir ${label}`} disabled={current === null || current <= min} onClick={() => changeBy(-1)}>
+                    <Icon name="remove" />
+                </button>
+                <input id={id} className={`field__input gomad-field ${className}`} type="number" inputMode={inputMode} min={min} max={max} step={step} value={value} onChange={(event) => setValue(event.target.value)} />
+                <button type="button" className="pref-slider__step" aria-label={`Aumentar ${label}`} disabled={current !== null && current >= max} onClick={() => changeBy(1)}>
+                    <Icon name="add" />
+                </button>
+            </div>
+        </div>
+    );
+}
 
 type Interpretation =
     | { status: "idle" }
@@ -146,6 +240,12 @@ export default function Assistant() {
 
     return (
         <section className="container page assistant gomad-component gomad-assistant" aria-labelledby="asistente-titulo">
+            <Hero variant="assistant" className="assistant-hero">
+                <Link to="/" className="detail-media__back gomad-action gomad-action-back-to-home">
+                    <Icon name="arrow_left" />
+                    Volver
+                </Link>
+            </Hero>
             <PageHeading className="view-title" id="asistente-titulo">
                 Asistente de rutas
             </PageHeading>
@@ -157,12 +257,9 @@ export default function Assistant() {
                 {announcement}
             </p>
 
-            <section className="panel" aria-labelledby="peticion">
-                <h2 className="panel__title" id="peticion">
-                    Tu petición
-                </h2>
+            <section className="panel assistant__request">
                 <form className="assistant__form" onSubmit={onInterpret}>
-                    <label htmlFor={textId} className="field__label">
+                    <label htmlFor={textId} className="panel__title assistant__request-label">
                         ¿Qué ruta quieres?
                     </label>
                     <textarea
@@ -194,7 +291,7 @@ export default function Assistant() {
                 )}
             </section>
 
-            <section className="panel" aria-labelledby="entendido">
+            <section className="panel assistant__understood" aria-labelledby="entendido">
                 <h2 className="panel__title" id="entendido">
                     Lo que he entendido
                 </h2>
@@ -218,38 +315,8 @@ export default function Assistant() {
                     </fieldset>
 
                     <div className="assistant__measures">
-                        <div>
-                            <label className="field__label" htmlFor={`${textId}-km`}>
-                                Distancia (km)
-                            </label>
-                            <input
-                                id={`${textId}-km`}
-                                className="field__input gomad-field gomad-field-assistant-distance"
-                                type="number"
-                                inputMode="decimal"
-                                min={0.5}
-                                max={42}
-                                step={0.5}
-                                value={distance}
-                                onChange={(e) => setDistance(e.target.value)}
-                            />
-                        </div>
-                        <div>
-                            <label className="field__label" htmlFor={`${textId}-min`}>
-                                o duración (min)
-                            </label>
-                            <input
-                                id={`${textId}-min`}
-                                className="field__input gomad-field gomad-field-assistant-duration"
-                                type="number"
-                                inputMode="numeric"
-                                min={5}
-                                max={480}
-                                step={5}
-                                value={duration}
-                                onChange={(e) => setDuration(e.target.value)}
-                            />
-                        </div>
+                        <NumberStepper id={`${textId}-km`} label="Distancia (km)" value={distance} setValue={setDistance} min={0.5} max={42} step={0.5} inputMode="decimal" className="gomad-field-assistant-distance" />
+                        <NumberStepper id={`${textId}-min`} label="Duración (min)" value={duration} setValue={setDuration} min={5} max={480} step={5} inputMode="numeric" className="gomad-field-assistant-duration" />
                     </div>
 
                     <fieldset className="prefs-form__group">
@@ -268,17 +335,17 @@ export default function Assistant() {
 
                     <fieldset className="prefs-form__group">
                         <legend className="field__label">Pasar por</legend>
-                        <div className="option-grid">
+                        <div className="companion-options assistant__option-grid">
                             {PASS_BY.map((p) => (
-                                <label key={p} className={`option gomad-option gomad-option-pass-by-${p}`}>
+                                <label key={p} className={`companion-option gomad-option gomad-option-pass-by-${p}`}>
                                     <input
                                         type="checkbox"
                                         className={`gomad-field gomad-field-pass-by-${p}`}
                                         checked={passBy.includes(p)}
                                         onChange={() => setPassBy(toggle(passBy, p))}
                                     />
-                                    <span className="option__label">
-                                        {p === "supermarket" && <Icon name="shopping_cart" />}
+                                    <span className="companion-option__label">
+                                        <Icon name={PASS_BY_ICONS[p]} />
                                         {PASS_BY_LABELS[p]}
                                     </span>
                                 </label>
@@ -288,16 +355,16 @@ export default function Assistant() {
 
                     <fieldset className="prefs-form__group">
                         <legend className="field__label">Evitar</legend>
-                        <div className="option-grid">
+                        <div className="companion-options assistant__option-grid">
                             {AVOID.map((a) => (
-                                <label key={a} className={`option gomad-option gomad-option-avoid-${a}`}>
+                                <label key={a} className={`companion-option gomad-option gomad-option-avoid-${a}`}>
                                     <input
                                         type="checkbox"
                                         className={`gomad-field gomad-field-avoid-${a}`}
                                         checked={avoid.includes(a)}
                                         onChange={() => setAvoid(toggle(avoid, a))}
                                     />
-                                    <span>{AVOID_LABELS[a]}</span>
+                                    <span className="companion-option__label"><Icon name={AVOID_ICONS[a]} />{AVOID_LABELS[a]}</span>
                                 </label>
                             ))}
                         </div>
@@ -322,7 +389,7 @@ export default function Assistant() {
                 </>
             )}
 
-            <section className="panel" aria-labelledby="propuesta">
+            <section className="panel assistant__proposal" aria-labelledby="propuesta">
                 <h2 className="panel__title" id="propuesta">
                     La ruta propuesta
                 </h2>
@@ -338,25 +405,24 @@ export default function Assistant() {
                 )}
                 {done && (
                     <>
-                        <p>
-                            <strong>
-                                {formatDistance(done.route.distance_m)} · {formatMinutes(done.route.duration_min)}
-                                {done.route.green_pct !== null && ` · ${Math.round(done.route.green_pct)} % por zona verde`}
-                            </strong>
+                        <p className="view-subtitle assistant__route-meta">
+                            {formatDistance(done.route.distance_m)} · {formatMinutes(done.route.duration_min)}
+                            {done.route.green_pct !== null && ` · ${Math.round(done.route.green_pct)} % por zona verde`}
                         </p>
                         <ul role="list" className="conditions" aria-label="Condiciones">
                             {done.conditions.map((c) => (
                                 <li key={c.condition} className={`condition condition--${c.met ? "ok" : "ko"}`}>
+                                    <span className="condition__body">
+                                        <strong><Icon name={conditionIcon(c.condition)} />{c.condition}</strong>
+                                        <span>{c.detail}</span>
+                                    </span>
                                     <span className={`chip chip--${c.met ? "good" : "bad"}`}>
                                         {c.met ? "Cumple" : "No cumple"}
-                                    </span>
-                                    <span>
-                                        <strong>{c.condition}</strong> {c.detail}
                                     </span>
                                 </li>
                             ))}
                         </ul>
-                        <p>{done.explanation}</p>
+                        <RouteExplanation explanation={done.explanation} conditions={done.conditions} />
                         {!done.written_by_ai && <p className="muted">Explicación generada sin IA.</p>}
                         {origin && (
                             <MapView

@@ -288,34 +288,8 @@
     outline-offset: 2px;
 }
 
-/* tres filas: punto de color + raya */
-.map-legend-button__glyph {
-    display: grid;
-    gap: 0.1875rem;
-}
-
-.map-legend-button__glyph span {
-    position: relative;
-    width: 0.5rem;
-    height: 0.5rem;
-    border-radius: 50%;
-}
-
-.map-legend-button__glyph span::after {
-    content: "";
-    position: absolute;
-    top: 50%;
-    left: 0.75rem;
-    width: 0.875rem;
-    height: 0.1875rem;
-    border-radius: 999px;
-    background: var(--navy);
-    transform: translateY(-50%);
-}
-
-/* las rayas sobresalen 1,125rem a la derecha: el margen centra el conjunto en el boton */
-.map-legend-button__glyph {
-    margin-right: 1.125rem;
+.map-dialog-button > .icon {
+    font-size: 0.875rem;
 }
 
 /* Ventana de la leyenda (dialog modal, en la capa superior) */

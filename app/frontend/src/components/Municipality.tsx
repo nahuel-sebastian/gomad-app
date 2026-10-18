@@ -9,6 +9,7 @@ import { normalize } from "../lib/text";
 import { CATEGORY_LABELS } from "../lib/labels";
 import { useAppState } from "../state/context";
 import ErrorMessage from "./ErrorMessage";
+import Hero from "./Hero";
 import Icon from "./Icon";
 import PageHeading from "./PageHeading";
 
@@ -24,13 +25,13 @@ const CATEGORY_ORDER: IndicatorCategory[] = [
 ];
 
 const CATEGORY_ICONS: Record<IndicatorCategory, string> = {
-    sport: "sports_soccer",
-    nature: "park",
-    mobility: "directions_bus",
-    health: "local_hospital",
+    sport: "soccer",
+    nature: "eco",
+    mobility: "navigation",
+    health: "hospital",
     education: "school",
-    connectivity: "signal_cellular_alt",
-    social: "diversity_3",
+    connectivity: "linked",
+    social: "social",
 };
 
 // la unidad solo si aporta algo: «Instalaciones deportivas: 5», no «5 instalaciones»
@@ -110,11 +111,13 @@ export default function Municipality() {
 
     return (
         <section className="container page muni gomad-component gomad-municipality" aria-labelledby="municipio-titulo">
-            <Link to="/municipios" className="back-button gomad-action gomad-action-view-municipalities">
-                <Icon name="arrow_left" />
-                Volver
-                <span className="sr-only"> a todos los municipios</span>
-            </Link>
+            <Hero variant="municipality" className="municipality-hero">
+                <Link to="/municipios" className="detail-media__back gomad-action gomad-action-view-municipalities">
+                    <Icon name="arrow_left" />
+                    Volver
+                    <span className="sr-only"> a todos los municipios</span>
+                </Link>
+            </Hero>
 
             <PageHeading className="view-title" id="municipio-titulo" title={m?.name ?? "Municipio"}>
                 {m?.name ?? "Municipio"}

@@ -138,6 +138,7 @@ export default function Municipalities() {
                                             to={`/municipios/${m.ine_code}`}
                                             className="muni-list__link gomad-action gomad-action-open-municipality">
                                             <span className="muni-list__name">{m.name}</span>
+                                            <Icon name="arrow_right" />
                                         </Link>
                                     </li>
                                 ))}
