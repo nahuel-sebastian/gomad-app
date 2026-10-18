@@ -30,8 +30,19 @@ interpret:
   whole_words: [super]           # solo como palabra entera («sierra superior» no es un supermercado)
   clock_prefixes: [a las, a la, sobre las, sobre la, desde las, desde la, hasta las, hasta la, para las, para la]   # «a las 20 h» es una hora, no una duracion
   clock_numbers: [una, dos, tres, cuatro, cinco, seis, siete, ocho, nueve, diez, once, doce]   # «hasta las nueve», «hasta la una»: hora en letra (1-12), no «solo ida»
-  out_of_catalog: [nadar, natacion, piscina, bici, patin, esqui, escalar, escalada, padel, tenis, futbol,
-                   baloncesto, gimnasio]
+  out_of_catalog:                # otra actividad (en infinitivo, se nombra en el rechazo) -> palabras
+    nadar: [nadar, natacion, piscina]
+    montar en bici: [bici]
+    patinar: [patin]
+    esquiar: [esqui]
+    escalar: [escalar, escalada]
+    jugar al pádel: [padel]
+    jugar al tenis: [tenis]
+    jugar al fútbol: [futbol]
+    jugar al baloncesto: [baloncesto]
+    ir al gimnasio: [gimnasio]
+  out_of_catalog_in_recommender: [nadar, jugar al pádel, jugar al tenis, jugar al fútbol, jugar al baloncesto,
+                                  ir al gimnasio]   # las que busca «¿Qué te apetece hacer?» (activities.yaml)
   medical: [medic, tension, hipertens, corazon, cardiac, infarto, asma, dolor, duele, enfermedad, enfermo,
             lesion, lesionad, rodilla, operad, medicacion, medicamento, pastilla, diabetes, colesterol, embaraz,
             artrosis, rehabilitacion, fisioterap, sintoma]
@@ -41,11 +52,21 @@ interpret:
   quantity_entity_types: [QUANTITY, DATETIME]   # entidades de OCI Language que se leen como distancia o duracion
 
 messages:
-  medical: "No puedo responder a eso: GoMad no da consejo médico. Consulta a tu centro de salud. Puedo ayudarte a planear una ruta a pie."
+  medical: "No puedo ayudarte con eso: GoMad no da consejo médico. Consulta a tu centro de salud. Sí puedo prepararte una ruta para caminar o correr."
+  not_understood: "No he entendido qué ruta buscas. Dime cuánto quieres andar o correr y por dónde; por ejemplo: «5 km andando por un parque con fuentes». También puedes rellenar los campos de abajo."
   out_of_catalog: "El asistente solo prepara rutas para caminar o correr. Para otras actividades, usa «¿Qué te apetece hacer?» en Mi entorno."
-  missing_amount: "¿Qué distancia o cuánto tiempo quieres andar o correr? Por ejemplo: «5 km» o «45 minutos»."
-  which_activity: "¿Quieres caminar o correr? Dímelo para calcular el ritmo."
+  out_of_catalog_named: "{activity} no lo prepara el asistente: solo hace rutas para caminar o correr."   # {activity}: clave de interpret.out_of_catalog
+  out_of_catalog_where: " Para buscar dónde {activity}, usa «¿Qué te apetece hacer?» en Mi entorno."   # solo si esta en out_of_catalog_in_recommender
+  missing_amount: "Solo falta la distancia o el tiempo: por ejemplo, «5 km» o «45 minutos»."
+  which_activity: "¿Quieres caminar o correr? Márcalo abajo, en «Actividad», o escríbelo."
   too_long: "Como mucho puedo preparar rutas de 42 km o de 8 horas. ¿Qué distancia o cuánto tiempo quieres?"
+  understood:                    # «He apuntado: ...» delante de la aclaracion: lo entendido va tambien en params
+    sentence: "He apuntado: {items}. "
+    activities: {walk: caminar, run: correr}
+    round_trip: ida y vuelta
+    one_way: solo ida
+    pass_by: "pasar por {labels}"   # labels: route.labels unidas con templates.join_last
+    avoid: "evitar {labels}"
 
 oci:
   timeout_s: 3              # segundos de conexion y de lectura; despues, solo diccionario (criterio propio)
