@@ -288,7 +288,7 @@ export default function Results() {
                                     </div>
                                     <button type="button" className="button button--primary gomad-action gomad-action-close-preferences" onClick={() => setIsAdjusting(false)}>Listo</button>
                                 </div>
-                                <PreferencesForm weightsOnly />
+                                <PreferencesForm compact />
                             </div>
                         ) : (
                         <>

@@ -37,8 +37,10 @@ function km(meters: number): string {
     return `${String(meters / 1000).replace(".", ",")} km`;
 }
 
-// Formulario de preferencias (pantallas §6): se usa en /perfil y en el dialogo
-export default function PreferencesForm({ inPanel = false, weightsOnly = false }: { inPanel?: boolean; weightsOnly?: boolean }) {
+// Formulario de preferencias (pantallas §6): se usa en /perfil y en el dialogo.
+// compact: el panel «Ajustar» de Resultados; todos los campos, sin guardar ni borrar,
+// porque cada cambio recalcula al momento
+export default function PreferencesForm({ inPanel = false, compact = false }: { inPanel?: boolean; compact?: boolean }) {
     const { preferences, updatePreferences } = useAppState();
     const [savedPreferences, setSavedPreferences] = useState<typeof preferences | null>(null);
     const [weightsReset, setWeightsReset] = useState(false);
@@ -70,9 +72,8 @@ export default function PreferencesForm({ inPanel = false, weightsOnly = false }
     };
 
     return (
-        <div className={`prefs-form${weightsOnly ? " prefs-form--weights-only" : ""}`}>
+        <div className={`prefs-form${compact ? " prefs-form--compact" : ""}`}>
             <div className={`gomad-component gomad-preferences-form${inPanel ? " panel" : ""}`}>
-            {!weightsOnly && <>
             <PrefSlider
                 label="Tiempo disponible"
                 controls
@@ -155,8 +156,6 @@ export default function PreferencesForm({ inPanel = false, weightsOnly = false }
                 </div>
             </fieldset>
 
-            </>}
-
             <fieldset className="prefs-form__group">
                 <legend className="field__label">¿A qué le das más importancia?</legend>
                 {activities.status === "error" ? (
@@ -194,12 +193,12 @@ export default function PreferencesForm({ inPanel = false, weightsOnly = false }
             </fieldset>
 
             </div>
-            {!weightsOnly && (weightsReset || savedPreferences === preferences) && (
+            {!compact && (weightsReset || savedPreferences === preferences) && (
                 <p className="prefs-form__saved" role="status">
                     {weightsReset ? "Pesos restablecidos a los valores por defecto." : "Preferencias guardadas durante esta sesión."}
                 </p>
             )}
-            {!weightsOnly && <div className="prefs-form__footer">
+            {!compact && <div className="prefs-form__footer">
                 <Dialog.Root open={confirmClearOpen} onOpenChange={setConfirmClearOpen}>
                     <Dialog.Trigger asChild>
                         <button type="button" className="button button--quiet gomad-action gomad-action-reset-weights" aria-label="Borrar todas mis preferencias">
