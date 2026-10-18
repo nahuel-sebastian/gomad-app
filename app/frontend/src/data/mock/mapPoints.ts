@@ -10,6 +10,7 @@ const POINTS: MapPoint[] = [
     { id: "ejemplo:mapa-fuente-1", kind: "fountain", name: null, lon: -3.7334, lat: 40.3062, working: true },
     { id: "ejemplo:mapa-fuente-2", kind: "fountain", name: null, lon: -3.7302, lat: 40.3049, working: false },
     { id: "ejemplo:mapa-banco", kind: "bench", name: null, lon: -3.7322, lat: 40.3052 },
+    { id: "ejemplo:mapa-papelera", kind: "bin", name: null, lon: -3.7316, lat: 40.3058 },
     { id: "ejemplo:mapa-dea", kind: "aed", name: null, lon: -3.7341, lat: 40.3044 },
     { id: "ejemplo:mapa-canina", kind: "dog_area", name: null, lon: -3.7368, lat: 40.3081 },
 ].map(({ lon, lat, working, ...p }) => ({

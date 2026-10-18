@@ -95,7 +95,8 @@ def build_mini_data(base, *, forecast=True, precip=0.0, feels=20.0, air=True, gr
     con.execute("""INSERT INTO route_poi VALUES
         ('ay_fuentes:1', 'fountain', 'ay_fuentes', '28065', NULL, true, -3.7300, 40.30465),
         ('ay_fuentes:2', 'fountain', 'ay_fuentes', '28065', 'CERRADA_TEMPORALMENT', false, -3.72945, 40.3043),
-        ('osm:node/1', 'bench', 'osm', '28065', NULL, NULL, -3.72945, 40.30435)""")
+        ('osm:node/1', 'bench', 'osm', '28065', NULL, NULL, -3.72945, 40.30435),
+        ('osm:node/2', 'bin', 'osm', '28065', NULL, NULL, -3.72500, 40.31150)""")
     con.execute("CREATE TABLE source_date (source VARCHAR, downloaded VARCHAR, modified VARCHAR)")
     con.execute("""INSERT INTO source_date VALUES ('eiel_parques', '2026-10-14T15:51:38', NULL),
         ('aire_dia', '2026-10-16T09:10:00', '2026-10-16T09:05:00.123456'),

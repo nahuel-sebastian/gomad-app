@@ -43,6 +43,14 @@ def test_map_points_kinds_select_pois(client):
     assert points["osm:node/1"]["name"] is None
 
 
+def test_map_points_bins_are_a_kind(client):
+    # las papeleras (OSM) ya estan en route_poi: el mapa explorable tambien las pinta
+    r = client.get("/map/points", params=[("bbox", BOX), ("kinds", "bin")])
+    assert r.status_code == 200
+    points = r.json()["points"]
+    assert [(p["id"], p["kind"]) for p in points] == [("osm:node/2", "bin")]
+
+
 def test_map_points_unknown_kind_is_422(client):
     assert client.get("/map/points", params={"bbox": BOX, "kinds": "casino"}).status_code == 422
 

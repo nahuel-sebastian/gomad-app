@@ -22,7 +22,7 @@ const contrastWithWhite = (hex: string) => 1.05 / (luminance(hex) + 0.05);
 
 describe("iconos del mapa por tipo", () => {
     it("cada tipo tiene etiqueta, color con contraste >= 4,5:1 frente al blanco y trazo", () => {
-        expect(KIND_ORDER).toHaveLength(11);
+        expect(KIND_ORDER).toHaveLength(12);
         for (const kind of KIND_ORDER) {
             const style = KIND_STYLES[kind];
             expect(style.label).not.toBe("");

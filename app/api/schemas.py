@@ -265,7 +265,7 @@ class SourcesResponse(Strict):
 # --- Mapa explorable (correccion C2, 17/10): GET /map/points ---
 # tipos de destino (DestinationSummary.type, mas «pool»: instalacion con la actividad de nadar) y de punto de ruta
 MapDestinationKind = Literal["facility", "pool", "park", "recreation_area", "trail", "bathing_area"]
-MapPoiKind = Literal["fountain", "bench", "aed", "dog_area", "playground"]
+MapPoiKind = Literal["fountain", "bench", "bin", "aed", "dog_area", "playground"]
 # Literal anidado = la union de los dos (mismo enum en el contrato)
 MapPointKind = Literal[MapDestinationKind, MapPoiKind]
 

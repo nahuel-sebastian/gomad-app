@@ -373,6 +373,7 @@
          "bathing_area",
          "fountain",
          "bench",
+         "bin",
          "aed",
          "dog_area",
          "playground"
@@ -1178,6 +1179,7 @@
        "bathing_area",
        "fountain",
        "bench",
+       "bin",
        "aed",
        "dog_area",
        "playground"

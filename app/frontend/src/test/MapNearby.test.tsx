@@ -51,9 +51,11 @@ describe("que pedir segun el zoom", () => {
         expect(req.kinds).toEqual(["facility", "pool", "park", "recreation_area", "trail", "bathing_area"]);
     });
 
-    it("de cerca pide tambien fuentes, bancos, desfibriladores, areas caninas y juegos", () => {
+    it("de cerca pide tambien fuentes, bancos, papeleras, desfibriladores, areas caninas y juegos", () => {
         const req = nearbyRequest(POI_MIN_ZOOM, BOUNDS)!;
-        expect(req.kinds).toEqual(expect.arrayContaining(["park", "fountain", "bench", "aed", "dog_area", "playground"]));
+        expect(req.kinds).toEqual(
+            expect.arrayContaining(["park", "fountain", "bench", "bin", "aed", "dog_area", "playground"]),
+        );
     });
 
     it("quita los destinos ya numerados y marca las fuentes fuera de servicio", () => {
@@ -103,7 +105,7 @@ describe("MapView explorable", () => {
         const { container } = render(<MapView markers={MARKERS} explore />);
         await screen.findByTestId("maplibre");
         await moveTo(POI_MIN_ZOOM);
-        await waitFor(() => expect(nearbySource(container)).toHaveAttribute("data-count", "9"));
+        await waitFor(() => expect(nearbySource(container)).toHaveAttribute("data-count", "10"));
         expect(spy).toHaveBeenCalledTimes(1);
         expect(spy.mock.calls[0][0]).toEqual([BOUNDS.west, BOUNDS.south, BOUNDS.east, BOUNDS.north]);
         // sin grupos numerados: solo los iconos de cada punto
@@ -224,6 +226,14 @@ describe("leyenda del mapa", () => {
         vi.restoreAllMocks();
     });
 
+    it("las papeleras salen en la leyenda con su icono y su nombre", async () => {
+        const user = userEvent.setup();
+        render(<MapLegend markerKinds={[]} points={[point("p", "bin"), point("q", "bin")]} zoom={POI_MIN_ZOOM} truncated={false} />);
+        await user.click(screen.getByRole("button", { name: "Leyenda del mapa" }));
+        const list = screen.getByRole("list", { name: "Tipos de lugar en el mapa" });
+        expect(within(list).getAllByRole("listitem").map((li) => li.textContent)).toEqual(["Papelera: 2"]);
+    });
+
     it("lista los tipos visibles con icono, texto y recuento", async () => {
         const user = userEvent.setup();
         const { container } = render(
@@ -292,7 +302,7 @@ describe("leyenda del mapa", () => {
         rerender(<MapLegend markerKinds={["park"]} points={[]} zoom={NEARBY_MIN_ZOOM} truncated={false} />);
         expect(
             screen.getByText(
-                "Acerca más para ver fuentes, bancos, juegos, desfibriladores y áreas caninas (solo donde hay datos).",
+                "Acerca más para ver fuentes, bancos, papeleras, juegos, desfibriladores y áreas caninas (solo donde hay datos).",
             ),
         ).toBeInTheDocument();
         rerender(<MapLegend markerKinds={[]} points={[point("a", "park")]} zoom={POI_MIN_ZOOM} truncated />);
@@ -310,7 +320,7 @@ describe("leyenda del mapa", () => {
             />,
         );
         expect(
-            screen.getByText("Fuentes, bancos, juegos, desfibriladores y áreas caninas: solo donde hay datos."),
+            screen.getByText("Fuentes, bancos, papeleras, juegos, desfibriladores y áreas caninas: solo donde hay datos."),
         ).toBeInTheDocument();
         expect(
             screen.getByText("Sin datos en esta zona: Desfibrilador, Área canina, Juegos infantiles."),
@@ -634,7 +644,7 @@ describe("leyenda y mapa coinciden", () => {
         idle([], true);
         await user.click(screen.getByRole("button", { name: "Leyenda del mapa" }));
         const dialog = screen.getByRole("dialog", { name: "Leyenda del mapa" });
-        expect(dialog).toHaveTextContent("Sin datos en esta zona: Desfibrilador, Área canina, Juegos infantiles.");
+        expect(dialog).toHaveTextContent("Sin datos en esta zona: Papelera, Desfibrilador, Área canina, Juegos infantiles.");
         expect(dialog).not.toHaveTextContent(/Sin datos en esta zona:.*(Fuente|Banco)/);
     });
 
