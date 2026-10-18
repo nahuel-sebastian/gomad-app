@@ -8,7 +8,7 @@ services:
       - ../data/live:/data/live
       - ../config:/config:ro
       # credenciales de OCI Language (F6, DEC-03) en solo lectura; el key_file del config debe ser /oci/<clave>.pem.
-      # OCI_DIR en app/deploy/.env si no estan en ~/.oci (si la carpeta no existe, Docker la crea vacia: solo diccionario)
+      # OCI_DIR si no estan en ~/.oci; deploy.sh crea la carpeta (700) si falta. Vacia: el asistente usa solo diccionario
       - ${OCI_DIR:-${HOME}/.oci}:/oci:ro
     # gana a app/.env: dentro del contenedor el config de OCI siempre esta aqui (no depende de ~ ni del usuario)
     environment:
