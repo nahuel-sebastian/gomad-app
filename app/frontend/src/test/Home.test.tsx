@@ -251,4 +251,9 @@ describe("Inicio: region viva", () => {
         const chips = screen.getByRole("list", { name: "Ahora en tu zona" });
         expect(await within(chips).findByText("Tiempo y aire: sin datos")).toBeInTheDocument();
     });
+
+    it("enlaza a la ruta entre dos direcciones", () => {
+        renderAt("/");
+        expect(screen.getByRole("link", { name: /Ruta entre dos direcciones/ })).toHaveAttribute("href", "/trayecto");
+    });
 });
