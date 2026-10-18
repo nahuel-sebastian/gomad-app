@@ -1,6 +1,7 @@
 import { useId, useRef, useState, type FormEvent } from "react";
 import type { AssistantParams, AssistantRouteResponse, Avoid, PassBy } from "../api/types";
 import { assistantRoute, interpret } from "../data/assistant";
+import { ApiError } from "../data/errors";
 import { formatDistance, formatMinutes } from "../lib/format";
 import { AVOID_LABELS, PASS_BY_LABELS } from "../lib/labels";
 import { useAppState } from "../state/context";
@@ -25,7 +26,7 @@ type Interpretation =
 type RouteState =
     | { status: "idle" }
     | { status: "loading" }
-    | { status: "error" }
+    | { status: "error"; message: string | null }
     | { status: "done"; data: AssistantRouteResponse };
 
 // Asistente de rutas (F6). Funciona sin IA: el bloque «Lo que he entendido»
@@ -87,8 +88,10 @@ export default function Assistant() {
         try {
             const data = await assistantRoute({ origin: origin.coordinate, params });
             setRoute({ status: "done", data });
-        } catch {
-            setRoute({ status: "error" });
+        } catch (error) {
+            // 422: el servidor explica por que no hay ruta (p. ej. ningun parque cerca)
+            const message = error instanceof ApiError && error.status === 422 ? error.message : null;
+            setRoute({ status: "error", message });
         }
     };
 
@@ -150,10 +153,6 @@ export default function Assistant() {
                 El asistente solo interpreta tu texto y redacta la respuesta con los resultados del motor; la ruta
                 la calcula el motor con datos abiertos. También puedes rellenar los campos a mano.
             </p>
-            <p className="notice notice--warn" role="note">
-                Respuestas de ejemplo: el asistente todavía no está conectado al servidor.
-            </p>
-
             <p className="sr-only" role="status" aria-live="polite">
                 {announcement}
             </p>
@@ -258,7 +257,7 @@ export default function Assistant() {
                         <div className="seg">
                             <label className="seg__option gomad-option gomad-option-route-circular">
                                 <input type="radio" className="gomad-field gomad-field-route-circular" name="loop" checked={loop} onChange={() => setLoop(true)} />
-                                <span>Circular</span>
+                                <span>Ida y vuelta</span>
                             </label>
                             <label className="seg__option gomad-option gomad-option-route-one-way">
                                 <input type="radio" className="gomad-field gomad-field-route-one-way" name="loop" checked={!loop} onChange={() => setLoop(false)} />
@@ -333,7 +332,7 @@ export default function Assistant() {
                 {route.status === "loading" && <p className="muted">Calculando la ruta…</p>}
                 {route.status === "error" && (
                     <ErrorMessage
-                        message="No se pudo calcular la ruta."
+                        message={route.message ?? "No se pudo calcular la ruta."}
                         onRetry={() => lastParams.current && run(lastParams.current)}
                     />
                 )}

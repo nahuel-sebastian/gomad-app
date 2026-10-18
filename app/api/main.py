@@ -17,6 +17,7 @@ from live import build_live
 from live.store import validate_realtime
 from repository import DataUnavailable, Repository
 from routing.store import GraphStore
+from services import assistant as assistant_service
 from services import map_points as map_points_service
 from services import municipality as municipality_service
 from services import recommend as recommend_service
@@ -42,6 +43,7 @@ async def lifespan(app: FastAPI):
     map_points_service.validate_map_config(settings.load("map"))
     realtime = settings.load("realtime")
     validate_realtime(realtime)
+    app.state.assistant = assistant_service.make_provider(os.environ)   # F6: valida assistant.yaml; OCI si hay claves
     t0 = time.perf_counter()
     app.state.graphs = GraphStore.load(settings.DATA_DIR / "graph")
     log.info("grafos cargados: %s en %.1f s", [z.name for z in app.state.graphs.zones], time.perf_counter() - t0)
@@ -84,10 +86,6 @@ def get_repo(request: Request) -> Repository:
 
 def get_graphs(request: Request) -> GraphStore:
     return getattr(request.app.state, "graphs", None) or GraphStore()
-
-
-def _not_implemented():
-    raise HTTPException(status_code=501, detail="Pendiente de implementar")
 
 
 @app.get("/health")
@@ -150,14 +148,27 @@ def municipality(ine_code: str,
         raise HTTPException(status_code=503, detail=str(e))
 
 
+def get_assistant(request: Request):
+    # sin lifespan (pruebas), se crea una vez; a OCI solo ira el texto de /assistant/interpret
+    if getattr(request.app.state, "assistant", None) is None:
+        request.app.state.assistant = assistant_service.make_provider(os.environ)
+    return request.app.state.assistant
+
+
 @app.post("/assistant/interpret", response_model=s.InterpretResponse)
-def assistant_interpret(request: s.InterpretRequest):
-    _not_implemented()
+def assistant_interpret(request: s.InterpretRequest, assistant=Depends(get_assistant)):
+    return assistant.interpret(request.text)
 
 
 @app.post("/assistant/route", response_model=s.AssistantRouteResponse)
-def assistant_route(request: s.AssistantRouteRequest):
-    _not_implemented()
+def assistant_route(request: s.AssistantRouteRequest, repo: Repository = Depends(get_repo),
+                    graphs: GraphStore = Depends(get_graphs), assistant=Depends(get_assistant)):
+    try:
+        return assistant_service.assistant_route(request, repo, graphs, assistant)
+    except assistant_service.NoDestination as e:
+        raise HTTPException(status_code=422, detail=str(e))
+    except DataUnavailable as e:
+        raise HTTPException(status_code=503, detail=str(e))
 
 
 @app.get("/sources", response_model=s.SourcesResponse)
