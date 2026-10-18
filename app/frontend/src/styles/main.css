@@ -2855,9 +2855,15 @@
     font-size: 1.25rem;
   }
 
+  /* el hueco lo pone el gap: sin el margin-bottom de .panel (se sumaban 3rem) */
   .muni__grid {
     display: grid;
     gap: 1rem;
+    margin-bottom: 1rem;
+  }
+
+  .muni__grid > .muni__category {
+    margin-bottom: 0;
   }
 
   .muni__category .panel__title {
