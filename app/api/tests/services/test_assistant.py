@@ -94,3 +94,13 @@ def test_no_network_is_approximate(setup):
 def test_nothing_nearby_raises(setup):
     with pytest.raises(NoDestination):
         ask(setup, origin=PATONES, graphs=GraphStore(), distance_km=2, pass_by=["park"])
+
+
+def test_waypoint_far_from_network_is_approximate(setup, monkeypatch):
+    far = assistant._Point("park", "Parque Dos", -3.7300, 40.3100, 556.0)    # a 555 m del nodo mas cercano
+    monkeypatch.setattr(assistant, "_nearest", lambda repo, origin, kind, rcfg, pool: far if kind == "park" else None)
+    res = ask(setup, distance_km=1, loop=False, pass_by=["park"])
+    assert res.route.approximate
+    assert res.route.geometry.coordinates[-1] == [-3.7300, 40.3100]
+    assert not by_name(res)["Pasar por: parque"].met
+    assert res.explanation.startswith("Ruta aproximada hasta «Parque Dos»")

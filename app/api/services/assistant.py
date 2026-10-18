@@ -93,10 +93,6 @@ def _ending(point, rcfg):
 def _network_route(req, zone, origin_node, origin_snap, waypoints, rcfg, routing, speed, target_m):
     """(coords, edges, distancia, loop_hecho): ruta por la red. Los puntos sin red cerca se quedan sin nodo."""
     g = zone.graph
-    if waypoints:
-        nodes, _ = nearest_nodes(g, [p.lon for p in waypoints], [p.lat for p in waypoints], routing["snap_max_m"])
-        for p, n in zip(waypoints, nodes):
-            p.node = int(n) if n >= 0 else None
     weights = rcfg["avoid_traffic_weights"] if "traffic" in req.params.avoid else routing["default_route_weights"]
     costs = edge_costs(g, weights, routing["cost_floor"])
     reachable = [p for p in waypoints if p.node is not None]
@@ -147,7 +143,13 @@ def assistant_route(req, repo, graphs, provider):
     waypoints = _order(origin, waypoints)
 
     located = graphs.locate([(origin.lon, origin.lat)], routing["snap_max_m"])
-    looped, approximate = False, located is None
+    if located is not None:
+        nodes, _ = nearest_nodes(located[0].graph, [p.lon for p in waypoints], [p.lat for p in waypoints],
+                                 routing["snap_max_m"])
+        for p, n in zip(waypoints, nodes):
+            p.node = int(n) if n >= 0 else None
+    # sin red en la salida o en todos los puntos de paso: linea recta (aproximada), como /route
+    looped, approximate = False, located is None or all(p.node is None for p in waypoints)
     if approximate:
         coords = [[origin.lon, origin.lat], *[[p.lon, p.lat] for p in waypoints]]
         distance = sum(float(haversine_m(a[0], a[1], b[0], b[1])) for a, b in zip(coords, coords[1:]))
@@ -178,7 +180,8 @@ def assistant_route(req, repo, graphs, provider):
         visited = {int(nodes[0]), *g.u[idx].tolist(), *g.v[idx].tolist()}
         along = Counter(p.type for p in PoiIndex(repo, [coords], rcfg["pass_by_radius_m"]).along(coords))
 
-    end = _ending(waypoints[-1], rcfg)
+    # termina en el ultimo punto al que llega la ruta (uno sin red o sin conexion se queda fuera)
+    end = _ending(next((p for p in reversed(waypoints) if approximate or p.node is not None), waypoints[-1]), rcfg)
     conditions = _conditions(params, variant, target_m, looped, approximate, waypoints, found, visited, along,
                              end, rcfg, texts)
     if looped:
