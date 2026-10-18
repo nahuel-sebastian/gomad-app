@@ -14,7 +14,7 @@ function fakeGeo() {
     const watchers = new Map<number, { ok: PositionCallback; fail?: PositionErrorCallback | null }>();
     let next = 1;
     const geo = {
-        watchPosition: vi.fn((ok: PositionCallback, fail?: PositionErrorCallback | null) => {
+        watchPosition: vi.fn((ok: PositionCallback, fail?: PositionErrorCallback | null, _options?: PositionOptions) => {
             watchers.set(next, { ok, fail });
             return next++;
         }),

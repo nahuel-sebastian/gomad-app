@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import * as assistantApi from "../data/assistant";
 import { ApiError } from "../data/errors";
 import { expectNoAxeViolations, renderAt, SAMPLE_ORIGIN } from "./render";
+import { installFakeGeo } from "./geoMock";
 
 afterEach(() => {
     vi.restoreAllMocks();
@@ -179,5 +180,29 @@ describe("Asistente de rutas", () => {
         expect(within(group).getByRole("radio", { name: "Ida y vuelta" })).toBeChecked();
         expect(within(group).getByRole("radio", { name: "Solo ida" })).not.toBeChecked();
         expect(within(group).queryByRole("radio", { name: "Circular" })).toBeNull();
+    });
+});
+
+describe("Asistente de rutas: seguir mi ubicacion", () => {
+    let geo: ReturnType<typeof installFakeGeo> | null = null;
+    afterEach(() => {
+        geo?.restore();
+        geo = null;
+    });
+
+    it("solo con ruta propuesta; no pide la ubicacion al entrar y al pulsar sigue la posicion", async () => {
+        geo = installFakeGeo();
+        const { container, user } = renderAt("/asistente", { origin: SAMPLE_ORIGIN });
+        expect(screen.queryByRole("button", { name: "Seguir mi ubicación" })).toBeNull();
+        await user.click(screen.getByRole("button", { name: "Calcular ruta" }));
+        await screen.findByRole("list", { name: "Condiciones" });
+        const button = screen.getByRole("button", { name: "Seguir mi ubicación" });
+        expect(geo.raw.watchPosition).not.toHaveBeenCalled();
+        expect(geo.raw.getCurrentPosition).not.toHaveBeenCalled();
+        await user.click(button);
+        expect(geo.raw.watchPosition).toHaveBeenCalledOnce();
+        geo.emit(SAMPLE_ORIGIN.coordinate.lat, SAMPLE_ORIGIN.coordinate.lon);
+        expect(await screen.findByText(/^Te quedan /)).toBeInTheDocument();
+        await expectNoAxeViolations(container);
     });
 });

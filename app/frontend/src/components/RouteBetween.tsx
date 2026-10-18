@@ -10,6 +10,7 @@ import ErrorMessage from "./ErrorMessage";
 import Icon from "./Icon";
 import MapView from "./MapView";
 import PageHeading from "./PageHeading";
+import { useRouteNavigation } from "./RouteNavigation";
 import SourceList from "./SourceList";
 
 // Ruta entre dos direcciones escritas (complementaria a /ruta/:id). Las direcciones son
@@ -176,6 +177,8 @@ export default function RouteBetween() {
     const variant = data ? data[kind] : null;
     const other = data ? data[kind === "healthy" ? "direct" : "healthy"] : null;
     const pois = variant ? poiSummary(variant) : [];
+    // «Seguir mi ubicacion»: al empezar se recoge la hoja para ver el mapa
+    const nav = useRouteNavigation(done ? variant : null, { onStart: () => setSheetExpanded(false) });
 
     const status = (
         <p className="sr-only" role="status" aria-live="polite">
@@ -261,6 +264,8 @@ export default function RouteBetween() {
                         </button>
 
                         <div className="results-sheet__scroll">
+                            {/* al principio de la hoja: visible con la hoja recogida */}
+                            <div className="container route-between__nav">{nav.controls}</div>
                             <div className="container view-header">
                                 <div className="results-heading-copy" ref={headingRef}>
                                     <PageHeading className="view-title" id="trayecto-titulo">
@@ -375,6 +380,9 @@ export default function RouteBetween() {
                     <MapView
                         className="map-demo"
                         explore
+                        live={nav.live}
+                        follow={nav.follow}
+                        onUserMove={nav.onUserMove}
                         origin={done.from.coordinate}
                         route={variant.geometry}
                         secondaryRoute={other?.geometry}
