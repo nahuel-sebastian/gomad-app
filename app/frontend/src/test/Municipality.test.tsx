@@ -1,35 +1,77 @@
 import { screen, waitFor, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import * as municipalityApi from "../data/municipality";
-import { expectNoAxeViolations, renderAt } from "./render";
+import { MUNICIPALITIES } from "../data/mock/municipalities";
+import { normalize } from "../lib/text";
+import { expectNoAxeViolations, renderAt, SAMPLE_ORIGIN } from "./render";
 
 afterEach(() => {
     vi.restoreAllMocks();
 });
 
 describe("Lista de municipios", () => {
-    it("muestra tarjetas por partes y filtra por nombre sin tildes", async () => {
-        const { user, container } = renderAt("/municipios");
+    const allLinks = () =>
+        within(screen.getByRole("region", { name: "Todos los municipios" })).getAllByRole("link");
+
+    it("muestra los 179 agrupados por letra, sin paginar", async () => {
+        const { container } = renderAt("/municipios");
         expect(screen.getByRole("heading", { level: 1, name: "Municipios" })).toBeInTheDocument();
-        const list = await screen.findByRole("list", { name: "Municipios de la Comunidad de Madrid" });
-        expect(within(list).getAllByRole("link")).toHaveLength(12);
-        await user.click(screen.getByRole("button", { name: "Mostrar más municipios" }));
-        expect(within(list).getAllByRole("link")).toHaveLength(24);
-        await user.type(screen.getByLabelText("Busca un municipio"), "alcala");
-        await waitFor(() =>
-            expect(within(list).getAllByRole("link").map((a) => a.textContent)).toContain(
-                "Alcalá de Henares",
-            ),
-        );
-        expect(screen.getByRole("status")).toHaveTextContent(/Mostrando \d+ de \d+ municipios?/);
+        await screen.findByRole("heading", { level: 2, name: "A" });
+        expect(allLinks()).toHaveLength(MUNICIPALITIES.length);
+        expect(screen.getByRole("heading", { level: 2, name: "Z" })).toBeInTheDocument();
+        expect(screen.queryByRole("button", { name: "Mostrar más municipios" })).not.toBeInTheDocument();
+        expect(screen.getByRole("status")).toHaveTextContent(`${MUNICIPALITIES.length} municipios`);
         await expectNoAxeViolations(container);
+    });
+
+    it("el índice A–Z lleva a la letra pulsada", async () => {
+        const { user } = renderAt("/municipios");
+        await screen.findByRole("heading", { level: 2, name: "Z" });
+        const index = screen.getByRole("navigation", { name: "Índice alfabético" });
+        await user.click(within(index).getByRole("button", { name: "Ir a la Z" }));
+        expect(screen.getByRole("heading", { level: 2, name: "Z" })).toHaveFocus();
+    });
+
+    it("filtra por nombre sin tildes y el índice solo deja las letras con resultados", async () => {
+        const { user } = renderAt("/municipios");
+        await screen.findByRole("heading", { level: 2, name: "A" });
+        await user.type(screen.getByLabelText("Busca un municipio"), "alcala de");
+        await waitFor(() => expect(allLinks().map((a) => a.textContent)).toContain("Alcalá de Henares"));
+        expect(allLinks().every((a) => normalize(a.textContent!).includes("alcala de"))).toBe(true);
+        const index = screen.getByRole("navigation", { name: "Índice alfabético" });
+        expect(within(index).getAllByRole("button").map((b) => b.textContent)).toEqual(["A"]);
     });
 
     it("dice si no hay coincidencias", async () => {
         const { user } = renderAt("/municipios");
-        await screen.findByRole("list", { name: "Municipios de la Comunidad de Madrid" });
+        await screen.findByRole("heading", { level: 2, name: "A" });
         await user.type(screen.getByLabelText("Busca un municipio"), "zzzz");
         expect(await screen.findByText("Ningún municipio coincide con «zzzz».")).toBeInTheDocument();
+    });
+
+    it("con un solo resultado, Enter abre el municipio", async () => {
+        const { user } = renderAt("/municipios");
+        await screen.findByRole("heading", { level: 2, name: "A" });
+        await user.type(screen.getByLabelText("Busca un municipio"), "getafe{Enter}");
+        expect(await screen.findByRole("heading", { level: 1, name: "Getafe" })).toBeInTheDocument();
+    });
+
+    it("con ubicación, «Cerca de ti» muestra tu municipio y los 3 más cercanos con su distancia", async () => {
+        renderAt("/municipios", { origin: SAMPLE_ORIGIN });
+        const near = await screen.findByRole("region", { name: "Cerca de ti" });
+        const links = within(near).getAllByRole("link");
+        expect(links).toHaveLength(4);
+        // el municipio de la ubicacion va primero aunque el centro de otro quede mas cerca
+        expect(links[0]).toHaveTextContent("GetafeEstás aquí");
+        for (const link of links.slice(1)) {
+            expect(link).toHaveTextContent(/\d+(,\d)? km|\d+ m/);
+        }
+    });
+
+    it("sin ubicación no aparece «Cerca de ti»", async () => {
+        renderAt("/municipios");
+        await screen.findByRole("heading", { level: 2, name: "A" });
+        expect(screen.queryByRole("region", { name: "Cerca de ti" })).not.toBeInTheDocument();
     });
 });
 
