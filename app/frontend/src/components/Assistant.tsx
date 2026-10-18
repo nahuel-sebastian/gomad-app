@@ -40,6 +40,8 @@ export default function Assistant() {
     const [activity, setActivity] = useState<AssistantParams["activity"]>("walk");
     const [distance, setDistance] = useState("5");
     const [duration, setDuration] = useState("");
+    // true si la persona ha escrito distancia o duracion a mano: una aclaracion no se las borra
+    const [amountTouched, setAmountTouched] = useState(false);
     const [loop, setLoop] = useState(true);
     const [passBy, setPassBy] = useState<PassBy[]>([]);
     const [avoid, setAvoid] = useState<Avoid[]>([]);
@@ -48,16 +50,18 @@ export default function Assistant() {
     const [route, setRoute] = useState<RouteState>({ status: "idle" });
     const lastParams = useRef<AssistantParams | null>(null);
 
-    const applyParams = (p: AssistantParams) => {
+    // partial: respuesta con aclaracion. Suma pasar por y evitar a lo marcado a mano y, sin cantidad, solo vacia
+    // la distancia si la persona no la habia escrito (asi el campo vacio casa con «Solo falta la distancia»)
+    const applyParams = (p: AssistantParams, partial = false) => {
         setActivity(p.activity);
-        // sin distancia ni duracion (respuesta con aclaracion) se conserva lo que ya hay en los campos
-        if (p.distance_km != null || p.duration_min != null) {
+        if (p.distance_km != null || p.duration_min != null || !(partial && amountTouched)) {
             setDistance(p.distance_km != null ? String(p.distance_km) : "");
             setDuration(p.duration_min != null ? String(p.duration_min) : "");
         }
         setLoop(p.loop ?? true);
-        setPassBy(p.pass_by ?? []);
-        setAvoid(p.avoid ?? []);
+        const merge = <T,>(current: T[], next: T[]) => (partial ? [...new Set([...current, ...next])] : next);
+        setPassBy((current) => merge(current, p.pass_by ?? []));
+        setAvoid((current) => merge(current, p.avoid ?? []));
     };
 
     const onInterpret = async (event: FormEvent) => {
@@ -74,7 +78,7 @@ export default function Assistant() {
                 setInterpretation({ status: "rejection", text: result.rejection });
             } else if (result.clarification) {
                 // puede traer tambien lo que si ha entendido: se apunta en el formulario
-                if (result.params) applyParams(result.params);
+                if (result.params) applyParams(result.params, true);
                 setInterpretation({ status: "clarification", text: result.clarification });
                 textRef.current?.focus();
             } else if (result.params) {
@@ -236,7 +240,10 @@ export default function Assistant() {
                                 max={42}
                                 step={0.5}
                                 value={distance}
-                                onChange={(e) => setDistance(e.target.value)}
+                                onChange={(e) => {
+                                    setDistance(e.target.value);
+                                    setAmountTouched(true);
+                                }}
                             />
                         </div>
                         <div>
@@ -252,7 +259,10 @@ export default function Assistant() {
                                 max={480}
                                 step={5}
                                 value={duration}
-                                onChange={(e) => setDuration(e.target.value)}
+                                onChange={(e) => {
+                                    setDuration(e.target.value);
+                                    setAmountTouched(true);
+                                }}
                             />
                         </div>
                     </div>
