@@ -24,9 +24,12 @@ function token(name: string): string {
     return match[1];
 }
 
+// regla cuyo selector es exactamente `selector` (no `.padre .seg` al buscar `.seg`)
 function rule(selector: string): string {
-    const start = css.indexOf(`${selector} {`);
-    if (start < 0) throw new Error(`falta la regla ${selector}`);
+    const escaped = selector.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const match = new RegExp(`(?:^|\\n)\\s*${escaped} \\{`).exec(css);
+    if (!match) throw new Error(`falta la regla ${selector}`);
+    const start = match.index + match[0].indexOf(selector);
     return css.slice(start, css.indexOf("}", start));
 }
 
