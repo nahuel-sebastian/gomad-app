@@ -73,4 +73,9 @@ describe("AddressField", () => {
         expect(screen.getByText("Getafe")).toBeInTheDocument();
         await expectNoAxeViolations(container);
     });
+
+    it("el botón «Cambiar» dice qué dirección está elegida", () => {
+        render(<AddressField label="Desde" value={SAMPLE_ORIGIN} onChange={vi.fn()} />);
+        expect(screen.getByRole("button", { name: `Cambiar desde: ${SAMPLE_ORIGIN.label}` })).toBeInTheDocument();
+    });
 });

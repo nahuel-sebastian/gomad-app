@@ -120,7 +120,7 @@ export default function AddressField({ label, value, onChange, allowCurrentLocat
                     </p>
                     <button ref={changeRef} type="button" className="button gomad-action gomad-action-change-address" onClick={clear}>
                         <Icon name="close" />
-                        <span>Cambiar<span className="sr-only"> {label.toLowerCase()}</span></span>
+                        <span>Cambiar<span className="sr-only"> {label.toLowerCase()}: {value.label}</span></span>
                     </button>
                 </div>
             </div>
