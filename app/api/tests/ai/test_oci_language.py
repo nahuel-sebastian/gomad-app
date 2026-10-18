@@ -69,3 +69,13 @@ def test_recorded_demo_phrases_interpret_like_the_dictionary(cfg):
         with_oci = interpret_text(text, analysis, cfg)
         assert with_oci.params is not None, text
         assert with_oci == interpret_text(text, None, cfg), text
+
+
+def test_recorded_dani_is_round_trip(cfg):
+    from ai.dictionary import interpret_text
+
+    text = "Media hora con mi hija hasta unos columpios y volver, sin tráfico"
+    analysis = recorded(text)
+    assert analysis is not None
+    p = interpret_text(text, analysis, cfg).params
+    assert p.loop is True and p.pass_by == ["playground"] and p.avoid == ["traffic"] and p.duration_min == 30

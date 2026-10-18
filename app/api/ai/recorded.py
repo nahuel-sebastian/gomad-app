@@ -17,7 +17,7 @@ RECORDED = {
          Analysis(entities=[("10 km", "QUANTITY")], phrases=["10 km sin", "tráfico"])),
         ("Un paseo de media hora llano y con bancos",
          Analysis(entities=[("bancos", "LOCATION")], phrases=["media hora llano", "paseo", "bancos"])),
-        ("Media hora con mi hija hasta unos columpios, sin tráfico",
+        ("Media hora con mi hija hasta unos columpios y volver, sin tráfico",
          Analysis(entities=[("Media hora", "DATETIME")], phrases=["media hora", "columpios", "hija", "tráfico"])),
         ("45 minutos con mi perro y que pase por fuentes",
          Analysis(entities=[("45 minutos", "DATETIME")], phrases=["45 minutos", "perro"])),

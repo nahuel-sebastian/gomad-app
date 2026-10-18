@@ -37,4 +37,13 @@ describe("asistente contra la API", () => {
         expect(url).toBe("/api/assistant/route");
         expect(JSON.parse(init.body)).toEqual(req);
     });
+
+    it("los datos de ejemplo entienden ida y vuelta antes que solo ida", async () => {
+        expect((await interpret("5 km ida y vuelta")).params?.loop).toBe(true);
+        expect((await interpret("5 km hasta el parque y volver")).params?.loop).toBe(true);
+        expect((await interpret("5 km circular")).params?.loop).toBe(true);
+        expect((await interpret("5 km solo ida")).params?.loop).toBe(false);
+        expect((await interpret("5 km sin volver")).params?.loop).toBe(false);
+        expect((await interpret("5 km hasta el parque")).params?.loop).toBe(false);
+    });
 });

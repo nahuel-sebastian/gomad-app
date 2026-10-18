@@ -59,7 +59,10 @@ export function interpretMock(text: string): InterpretResponse {
         activity: /corr|running|trot/.test(t) ? "run" : "walk",
         distance_km: distance !== null ? Math.min(42, distance) : null,
         duration_min: distance === null && duration !== null ? Math.min(480, duration) : null,
-        loop: !/\bida\b|solo ida|hasta /.test(t),
+        // primero ida y vuelta (gana), despues solo ida; «sin volver» es solo ida
+        loop: /ida y vuelta|(?<!sin )volver|circular|(?<!sin )vuelta/.test(t)
+            ? true
+            : !/solo ida|sin volver|sin vuelta|hasta /.test(t),
         pass_by: PASS_BY_WORDS.filter(([re]) => re.test(t)).map(([, v]) => v),
         avoid: [
             ...(/tr[aá]fico|coches|avenida/.test(t) ? (["traffic"] as const) : []),
