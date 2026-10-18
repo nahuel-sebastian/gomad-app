@@ -114,13 +114,13 @@ export default function AddressField({ label, value, onChange, allowCurrentLocat
     if (value) {
         return (
             <div className="address-field gomad-component gomad-address-field">
-                <div className="location__search">
+                <div className="address-field__chosen">
                     <p className="address-field__value">
                         <span className="field__label">{label}</span> <strong>{value.label}</strong>
                     </p>
                     <button ref={changeRef} type="button" className="button gomad-action gomad-action-change-address" onClick={clear}>
                         <Icon name="close" />
-                        <span>Cambiar<span className="sr-only"> {label.toLowerCase()}: {value.label}</span></span>
+                        <span>Cambiar<span className="sr-only"> la dirección «{label}»: {value.label}</span></span>
                     </button>
                 </div>
             </div>

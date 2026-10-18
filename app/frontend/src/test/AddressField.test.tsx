@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { useState } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -50,7 +50,7 @@ describe("AddressField", () => {
         expect(onChange).toHaveBeenCalledWith(locationApi.sampleLocation());
     });
 
-    it("error de búsqueda muestra un mensaje", async () => {
+    it("error de busqueda muestra un mensaje", async () => {
         vi.spyOn(locationApi, "searchLocation").mockRejectedValue(new Error("red"));
         const user = userEvent.setup();
         render(<AddressField label="Desde" value={null} onChange={vi.fn()} />);
@@ -70,12 +70,17 @@ describe("AddressField", () => {
         await screen.findByRole("button", { name: "Getafe" });
         await expectNoAxeViolations(container);
         await user.click(screen.getByRole("button", { name: "Getafe" }));
-        expect(screen.getByText("Getafe")).toBeInTheDocument();
+        // el foco pasa al boton Cambiar tras elegir
+        await waitFor(() =>
+            expect(screen.getByRole("button", { name: "Cambiar la dirección «Desde»: Getafe" })).toHaveFocus(),
+        );
         await expectNoAxeViolations(container);
     });
 
-    it("el botón «Cambiar» dice qué dirección está elegida", () => {
+    it("el boton «Cambiar» dice que direccion esta elegida", () => {
         render(<AddressField label="Desde" value={SAMPLE_ORIGIN} onChange={vi.fn()} />);
-        expect(screen.getByRole("button", { name: `Cambiar desde: ${SAMPLE_ORIGIN.label}` })).toBeInTheDocument();
+        expect(
+            screen.getByRole("button", { name: `Cambiar la dirección «Desde»: ${SAMPLE_ORIGIN.label}` }),
+        ).toBeInTheDocument();
     });
 });

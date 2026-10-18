@@ -57,6 +57,8 @@ export default function RouteBetween() {
     const [kind, setKind] = useState<"healthy" | "direct">("healthy");
     const [announcement, setAnnouncement] = useState("");
     const [legendSlot, setLegendSlot] = useState<HTMLElement | null>(null);
+    // cada intento con el mismo punto vuelve a montar el aviso para que se anuncie otra vez
+    const [sameTry, setSameTry] = useState(0);
     const callRef = useRef(0);
 
     // cambiar una direccion invalida la ruta mostrada
@@ -73,6 +75,7 @@ export default function RouteBetween() {
         setAnnouncement("");
         if (from.coordinate.lat === to.coordinate.lat && from.coordinate.lon === to.coordinate.lon) {
             setRoute({ status: "same" });
+            setSameTry((n) => n + 1);
             return;
         }
         setRoute({ status: "loading" });
@@ -152,7 +155,7 @@ export default function RouteBetween() {
             </div>
 
             {route.status === "same" && (
-                <p className="notice notice--warn" role="alert">
+                <p key={sameTry} className="notice notice--warn" role="alert">
                     El inicio y el final son el mismo punto.
                 </p>
             )}

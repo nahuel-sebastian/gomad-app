@@ -62,6 +62,14 @@ describe("estilos", () => {
         }
     });
 
+    it("la tarjeta de ruta entre dos direcciones ocupa una fila entera en Inicio (no queda suelta)", () => {
+        expect(rule(".home__secondary > .route-between-link")).toMatch(/grid-column:\s*1 \/ -1/);
+    });
+
+    it("el campo de direccion elegida separa el texto del boton Cambiar", () => {
+        expect(rule(".address-field__chosen")).toMatch(/justify-content:\s*space-between/);
+    });
+
     it("un boton con aria-disabled se ve deshabilitado sin bajar el texto de 4,5:1", () => {
         const disabled = rule('.button[aria-disabled="true"]');
         expect(disabled).toMatch(/cursor:\s*not-allowed/);

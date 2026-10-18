@@ -197,7 +197,7 @@ export default function Home() {
                         </Link>
                     )}
 
-                    <Link to="/trayecto" className="panel panel--action surprise gomad-action gomad-action-open-route-between">
+                    <Link to="/trayecto" className="panel panel--action surprise route-between-link gomad-action gomad-action-open-route-between">
                         <span className="surprise__tile" aria-hidden="true">
                             <Icon name="route" />
                         </span>

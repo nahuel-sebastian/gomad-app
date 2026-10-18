@@ -73,7 +73,7 @@ describe("Ruta entre dos direcciones", () => {
         expect(spy).not.toHaveBeenCalled();
     });
 
-    it("con una sola direccion el botón está deshabilitado", async () => {
+    it("con una sola direccion el boton esta deshabilitado", async () => {
         const spy = vi.spyOn(routeApi, "getRoute");
         const { user } = renderAt("/trayecto");
         expect(screen.getByRole("button", { name: "Calcular ruta" })).toBeDisabled();
@@ -85,13 +85,29 @@ describe("Ruta entre dos direcciones", () => {
     });
 
     it("avisa si la ruta es aproximada", async () => {
-        selectScenario("family");
+        const original = routeApi.getRoute;
+        vi.spyOn(routeApi, "getRoute").mockImplementation(async (req) => {
+            const data = await original(req);
+            return { ...data, healthy: { ...data.healthy, approximate: true } };
+        });
         const { user } = renderAt("/trayecto");
         await chooseBoth(user);
         await user.click(screen.getByRole("button", { name: "Calcular ruta" }));
         expect(
             await screen.findByText("Ruta aproximada en línea recta: no hay red peatonal en esta zona."),
         ).toBeInTheDocument();
+    });
+
+    it("al repetir con el mismo punto vuelve a avisar", async () => {
+        const { user } = renderAt("/trayecto");
+        await choose(user, "Desde", "getafe", "Getafe");
+        await choose(user, "Hasta", "getafe", "Getafe");
+        await user.click(screen.getByRole("button", { name: "Calcular ruta" }));
+        const first = await screen.findByRole("alert");
+        await user.click(screen.getByRole("button", { name: "Calcular ruta" }));
+        // el aviso se vuelve a montar para que el lector de pantalla lo repita
+        await waitFor(() => expect(screen.getByRole("alert")).not.toBe(first));
+        expect(screen.getByRole("alert")).toHaveTextContent("El inicio y el final son el mismo punto.");
     });
 
     it("error de red con Reintentar", async () => {
