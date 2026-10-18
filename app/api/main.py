@@ -88,10 +88,6 @@ def get_graphs(request: Request) -> GraphStore:
     return getattr(request.app.state, "graphs", None) or GraphStore()
 
 
-def _not_implemented():
-    raise HTTPException(status_code=501, detail="Pendiente de implementar")
-
-
 @app.get("/health")
 def health() -> dict:
     return {"status": "ok"}

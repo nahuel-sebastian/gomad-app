@@ -88,7 +88,7 @@ export function assistantRouteMock(req: AssistantRouteRequest): AssistantRouteRe
         duration_min: Math.round((distanceM / 1000 / (params.activity === "run" ? 9 : 4.5)) * 60),
         description: "",
     };
-    route.description = `Ruta ${params.loop === false ? "de ida" : "circular"} de ${formatDistance(distanceM)} (ejemplo).`;
+    route.description = `Ruta ${params.loop === false ? "de ida" : "de ida y vuelta"} de ${formatDistance(distanceM)} (ejemplo).`;
 
     const conditions: Condition[] = [
         {
@@ -97,7 +97,7 @@ export function assistantRouteMock(req: AssistantRouteRequest): AssistantRouteRe
             detail: `${formatDistance(distanceM)}, dentro del margen.`,
         },
         {
-            condition: params.loop === false ? "Solo ida" : "Circular",
+            condition: params.loop === false ? "Solo ida" : "Ida y vuelta",
             met: true,
             detail: params.loop === false ? "Termina lejos del punto de salida." : "Vuelve al punto de salida.",
         },

@@ -1,6 +1,7 @@
 import { screen, waitFor, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import * as assistantApi from "../data/assistant";
+import { ApiError } from "../data/errors";
 import { expectNoAxeViolations, renderAt, SAMPLE_ORIGIN } from "./render";
 
 afterEach(() => {
@@ -107,5 +108,22 @@ describe("Asistente de rutas", () => {
         expect(await screen.findByText("No se pudo calcular la ruta.")).toBeInTheDocument();
         await user.click(screen.getByRole("button", { name: "Reintentar" }));
         expect(await screen.findByRole("list", { name: "Condiciones" })).toBeInTheDocument();
+    });
+
+    it("muestra el motivo del servidor si no hay donde hacer la ruta (422)", async () => {
+        const detail = "No hay ningún punto de paso ni ningún parque cerca de tu ubicación para preparar la ruta.";
+        vi.spyOn(assistantApi, "assistantRoute").mockRejectedValueOnce(new ApiError(422, detail));
+        const { user } = renderAt("/asistente", { origin: SAMPLE_ORIGIN });
+        await user.click(screen.getByRole("button", { name: "Calcular ruta" }));
+        expect(await screen.findByText(detail)).toBeInTheDocument();
+        expect(screen.queryByText("No se pudo calcular la ruta.")).toBeNull();
+    });
+
+    it("ofrece ida y vuelta (por defecto) o solo ida", () => {
+        renderAt("/asistente", { origin: SAMPLE_ORIGIN });
+        const group = screen.getByRole("group", { name: "Tipo de ruta" });
+        expect(within(group).getByRole("radio", { name: "Ida y vuelta" })).toBeChecked();
+        expect(within(group).getByRole("radio", { name: "Solo ida" })).not.toBeChecked();
+        expect(within(group).queryByRole("radio", { name: "Circular" })).toBeNull();
     });
 });
