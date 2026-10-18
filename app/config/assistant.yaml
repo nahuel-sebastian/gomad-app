@@ -1,0 +1,44 @@
+# Asistente de rutas (F6, fila 4). DEC-03 (15/10/2026): OCI Language + reglas + plantillas, sin LLM.
+# CRITERIO PROPIO: palabras, umbrales y textos los fija el equipo; no son datos oficiales.
+# Las palabras se comparan sin tildes ni mayusculas y por inicio de palabra («fuente» vale para «fuentes»).
+own_criterion: true
+
+interpret:
+  max_distance_km: 42            # mismo tope que AssistantParams (contrato)
+  max_duration_min: 480
+  default_activity: walk
+  activities:                    # actividad del contrato -> palabras
+    walk: [caminar, caminando, camina, andar, andando, anda, pasear, paseo, paseando, senderismo]
+    run: [correr, corriendo, corre, carrera, running, trotar, trote, footing, jogging]
+  pass_by:                       # pasar por (RF-21) -> palabras; la mas larga gana («parque infantil» -> juegos)
+    park: [parque, jardin, zona verde, zonas verdes]
+    fountain: [fuente, beber agua]
+    bench: [banco, sentarme, sentarse]
+    supermarket: [supermercado, super, hipermercado, tienda de alimentacion]
+    dog_area: [perro, area canina, zona canina, pipican]
+    playground: [parque infantil, juegos infantiles, juegos, columpio, tobogan, area infantil, zona infantil]
+  avoid:                         # evitar (RF-21) -> palabras; solo cuentan con una negacion delante («sin cuestas»)
+    traffic: [trafico, coches, avenida, carretera]
+    hills: [cuesta, pendiente, subida, desnivel, repecho]
+  avoid_direct:                  # cuentan como «evitar» sin negacion
+    hills: [llano, llana, plano, plana]
+  negations: [sin, ni, evitar, evitando, evita, "no", nada, lejos, poco, poca, menos]
+  negation_window: 3             # palabras hacia atras en las que una negacion afecta a la palabra
+  negation_breaks: [con, "y", pero, aunque, pasando]   # cortan el alcance de la negacion (tambien la puntuacion); «no» e «y» entre comillas: sin ellas YAML podria leer un booleano
+  one_way: [solo ida, de ida, sin volver, sin vuelta]
+  out_of_catalog: [nadar, natacion, piscina, bici, patin, esqui, escalar, escalada, padel, tenis, futbol,
+                   baloncesto, gimnasio]
+  medical: [medic, tension, hipertens, corazon, cardiac, infarto, asma, dolor, duele, enfermedad, enfermo,
+            lesion, lesionad, rodilla, operad, medicacion, medicamento, pastilla, diabetes, colesterol, embaraz,
+            artrosis, rehabilitacion, fisioterap, sintoma]
+  distance_units: {kilometros: 1, kilometro: 1, kms: 1, km: 1, metros: 0.001, metro: 0.001, m: 0.001}
+  duration_units: {minutos: 1, minuto: 1, mins: 1, min: 1, horas: 60, hora: 60, h: 60}
+  duration_phrases: {hora y media: 90, media hora: 30, una hora: 60, dos horas: 120, tres cuartos de hora: 45}
+  quantity_entity_types: [QUANTITY, DATETIME]   # entidades de OCI Language que se leen como distancia o duracion
+
+messages:
+  medical: "No puedo responder a eso: GoMad no da consejo médico. Consulta a tu centro de salud. Puedo ayudarte a planear una ruta a pie."
+  out_of_catalog: "El asistente solo prepara rutas para caminar o correr. Para otras actividades, usa «¿Qué te apetece hacer?» en Mi entorno."
+  missing_amount: "¿Qué distancia o cuánto tiempo quieres andar o correr? Por ejemplo: «5 km» o «45 minutos»."
+  which_activity: "¿Quieres caminar o correr? Dímelo para calcular el ritmo."
+  too_long: "Como mucho puedo preparar rutas de 42 km o de 8 horas. ¿Qué distancia o cuánto tiempo quieres?"
