@@ -68,7 +68,7 @@ describe("Resultados", () => {
         ).toBeInTheDocument();
     });
 
-    it("nombra la chip de aire razonablemente bueno", async () => {
+    it("explica el aire razonablemente bueno en lenguaje llano con la categoría oficial", async () => {
         const recommendOriginal = recommendApi.recommend;
         vi.spyOn(recommendApi, "recommend").mockImplementation(async (...args) => {
             const response = await recommendOriginal(...args);
@@ -82,7 +82,9 @@ describe("Resultados", () => {
         });
         renderAt("/resultados", WITH_SEARCH);
         const list = await resultsList();
-        expect(within(list).getAllByText("Aire razonablemente bueno").length).toBeGreaterThan(0);
+        const chip = within(list).getAllByText("Aire limpio")[0].closest(".gomad-aqi-chip")!;
+        expect(chip).toHaveTextContent("bien para salir");
+        expect(chip).toHaveTextContent("índice oficial: razonablemente buena, nivel 2 de 6");
     });
 
     it("resume el aviso de actividad al aire libre a la recomendación principal", async () => {

@@ -3,7 +3,7 @@ import type { Activity, HourEvaluation } from "../api/types";
 import { getActivities } from "../data/activities";
 import { recommend } from "../data/recommend";
 import { useAsync } from "../data/useAsync";
-import { aqiLabel } from "../lib/labels";
+import { AQI_PLAIN } from "../lib/labels";
 import { buildRecommendRequest, preferencesKey, preferencesSummary } from "../lib/request";
 import { useAppState } from "../state/context";
 import Chip, { AqiChip } from "./Chip";
@@ -31,7 +31,7 @@ function useMoment() {
 function momentText(municipality: string, hour: MomentHour): string {
     if (!hour) return "";
     const temp = hour.temperature_c === null ? "temperatura sin datos" : `${hour.temperature_c} °C`;
-    return `Ahora en ${municipality}: ${temp}, aire ${aqiLabel(hour.aqi_category).toLowerCase()}.`;
+    return `Ahora en ${municipality}: ${temp}, ${hour.aqi_category ? `${AQI_PLAIN[hour.aqi_category].text.toLowerCase()} (${AQI_PLAIN[hour.aqi_category].hint})` : "aire sin datos"}.`;
 }
 
 function MomentChips({ hour, failed }: { hour: MomentHour; failed: boolean }) {

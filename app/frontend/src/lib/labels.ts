@@ -27,6 +27,18 @@ export function aqiLabel(category: AqiCategory | null): string {
     return category ? AQI_LABELS[category] : "Sin datos";
 }
 
+// Lectura en lenguaje llano de cada categoria del ICA: como esta el aire y que supone
+// para salir (resumen de las recomendaciones del BOE para la poblacion general, umbrales.md §1.5)
+export const AQI_PLAIN: Record<AqiCategory, { level: number; text: string; hint: string }> = {
+    good: { level: 1, text: "Aire muy limpio", hint: "ideal para salir" },
+    fair: { level: 2, text: "Aire limpio", hint: "bien para salir" },
+    moderate: { level: 3, text: "Aire regular", hint: "ojo si eres sensible" },
+    poor: { level: 4, text: "Aire contaminado", hint: "reduce el esfuerzo fuera" },
+    very_poor: { level: 5, text: "Aire muy contaminado", hint: "mejor bajo techo" },
+    extremely_poor: { level: 6, text: "Aire pésimo", hint: "evita salir" },
+};
+export const AQI_LEVELS = 6;
+
 export const DESTINATION_TYPE_LABELS: Record<DestinationSummary["type"], string> = {
     facility: "Instalación deportiva",
     park: "Parque",

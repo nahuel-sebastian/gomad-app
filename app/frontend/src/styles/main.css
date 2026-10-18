@@ -129,8 +129,15 @@
   --chip-nodata-fg: #40566a;
   --chip-aqi-good-bg: #c8edf8;
   --chip-aqi-good-fg: #12395b;
-  --chip-aqi-fair-bg: #e7f2fb;
-  --chip-aqi-fair-fg: #12395b;
+  --chip-aqi-fair-bg: #d5f0e6;
+  --chip-aqi-fair-fg: #0f4a37;
+  /* escala del ICA con los colores del BOE (BOE-A-2020-10426) */
+  --aqi-1: #50f0e6;
+  --aqi-2: #50ccaa;
+  --aqi-3: #f0e641;
+  --aqi-4: #ff5050;
+  --aqi-5: #960032;
+  --aqi-6: #7d2181;
   --chip-aqi-moderate-bg: #fff3c4;
   --chip-aqi-moderate-fg: #6d4a00;
   --chip-aqi-poor-bg: #fbe0de;
@@ -1035,6 +1042,38 @@
     background: var(--chip-nodata-bg);
     color: var(--chip-nodata-fg);
   }
+
+  .aqi-chip__hint {
+    font-weight: 500;
+  }
+
+  .aqi-meter {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    margin-inline-start: 0.125rem;
+  }
+
+  .aqi-meter__step {
+    width: 5px;
+    height: 8px;
+    border-radius: 2px;
+    opacity: 0.45;
+  }
+
+  .aqi-meter__step.is-current {
+    height: 14px;
+    width: 7px;
+    opacity: 1;
+    outline: 1.5px solid currentColor;
+  }
+
+  .aqi-meter__step--1 { background: var(--aqi-1); }
+  .aqi-meter__step--2 { background: var(--aqi-2); }
+  .aqi-meter__step--3 { background: var(--aqi-3); }
+  .aqi-meter__step--4 { background: var(--aqi-4); }
+  .aqi-meter__step--5 { background: var(--aqi-5); }
+  .aqi-meter__step--6 { background: var(--aqi-6); }
 
   .gomad-home {
     display: flex;
