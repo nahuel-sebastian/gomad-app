@@ -144,3 +144,39 @@ def test_time_budget_returns_best(grid, cfg):
     ticks = iter(np.arange(0, 1000) * cfg["time_budget_s"])
     r = loop_route(grid, CENTER, 3000, costs_of(grid), cfg, clock=lambda: next(ticks))
     assert r.attempts == 1 and r.edges
+
+
+def test_one_way_within_tolerance(grid, cfg):
+    r = loop_route(grid, CENTER, 1500, costs_of(grid), cfg, loop=False)
+    assert r.within_tolerance
+    assert chain_nodes(grid, CENTER, r.edges)[-1] != CENTER
+    assert len(r.waypoints) == 1 and not r.waypoints[0].requested
+
+
+def test_loop_through_requested_waypoint(grid, cfg):
+    park = node(10, 15)
+    r = loop_route(grid, CENTER, 3000, costs_of(grid), cfg, waypoints=[park])
+    assert r.within_tolerance
+    seq = chain_nodes(grid, CENTER, r.edges)
+    assert park in seq and seq[-1] == CENTER
+    assert r.waypoints[0].requested and r.waypoints[0].node == park
+    assert len(r.waypoints) == 2 and not r.waypoints[1].requested
+
+
+def test_one_way_ends_beyond_requested(grid, cfg):
+    park = node(15, 10)
+    r = loop_route(grid, CENTER, 1500, costs_of(grid), cfg, loop=False, waypoints=[park])
+    assert r.within_tolerance and park in chain_nodes(grid, CENTER, r.edges)
+
+
+def test_waypoints_longer_than_target_flagged(grid, cfg):
+    corner = node(N - 1, N - 1)
+    r = loop_route(grid, CENTER, 1000, costs_of(grid), cfg, waypoints=[corner])
+    assert corner in chain_nodes(grid, CENTER, r.edges)
+    assert r.within_tolerance is False and r.warning
+    assert [w.requested for w in r.waypoints] == [True]
+
+
+def test_unreachable_waypoint_raises(grid, cfg):
+    with pytest.raises(RouteNotFound):
+        loop_route(grid, CENTER, 3000, costs_of(grid), cfg, waypoints=[ISOLATED[0]])
