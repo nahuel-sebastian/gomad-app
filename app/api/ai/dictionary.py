@@ -138,7 +138,12 @@ def interpret_text(text, analysis, cfg):
                             "avoid_direct": it["avoid_direct"], **simple("one_way"), **simple("out_of_catalog"),
                             **simple("medical")})
     groups = {}
+    # lo que ya menciona el texto lo decide el texto (con sus negaciones): una frase de OCI suelta («supermercado»
+    # de «sin pasar por supermercado») no lo deshace; OCI solo suma valores que el texto no menciona
+    in_text = {(group, value) for start, _, group, value in found if start < len(base)}
     for start, _, group, value in found:
+        if start >= len(base) and (group, value) in in_text:
+            continue
         negated = _negated(tokens, start, it)
         if group == "avoid" and not negated:
             continue                       # «con cuestas»: no es evitar

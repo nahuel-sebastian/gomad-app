@@ -58,3 +58,14 @@ def test_recorded_by_normalized_text():
     text = "15 KM andando, por un parque, con fuentes y bancos y que pase por un supermercado "
     assert isinstance(recorded(text), Analysis)
     assert recorded("otra cosa") is None
+
+
+def test_recorded_demo_phrases_interpret_like_the_dictionary(cfg):
+    from ai.dictionary import interpret_text
+    from ai.recorded import RECORDED
+
+    assert len(RECORDED) == 5
+    for text, analysis in RECORDED.items():
+        with_oci = interpret_text(text, analysis, cfg)
+        assert with_oci.params is not None, text
+        assert with_oci == interpret_text(text, None, cfg), text

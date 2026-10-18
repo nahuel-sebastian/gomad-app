@@ -91,3 +91,12 @@ def test_config_covers_every_pass_by(cfg):
     del bad["route"]["labels"]["hills"]
     with pytest.raises(ValueError):
         validate_assistant_config(bad)
+
+
+def test_oci_phrases_do_not_undo_negations(cfg):
+    # OCI devuelve «supermercado» suelto aunque el texto diga «sin pasar por supermercado» (comprobado el 18/10)
+    p = params("5 km sin pasar por supermercado", cfg, Analysis(phrases=["supermercado"]))
+    assert p.pass_by == []
+    p = params("Quiero correr 10 km sin tráfico", cfg, Analysis(entities=[("10 km", "QUANTITY")],
+                                                                  phrases=["10 km sin", "tráfico"]))
+    assert p.avoid == ["traffic"] and p.distance_km == 10
