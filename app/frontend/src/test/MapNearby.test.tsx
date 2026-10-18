@@ -557,3 +557,109 @@ describe("etiqueta del punto en el mapa", () => {
         await expectNoAxeViolations(container);
     });
 });
+
+// --- La leyenda cuenta lo mismo que se ve en el mapa ---
+describe("leyenda y mapa coinciden", () => {
+    afterEach(() => {
+        vi.restoreAllMocks();
+    });
+
+    const POINTS: MapPoint[] = [
+        { ...point("b1", "bench"), coordinate: { lat: 40.301, lon: -3.731 } },
+        { ...point("b2", "bench"), coordinate: { lat: 40.302, lon: -3.731 } },
+        { ...point("f1", "fountain"), coordinate: { lat: 40.303, lon: -3.731 } },
+    ];
+
+    async function showPoints() {
+        withWebGL();
+        vi.spyOn(mapPointsModule, "getMapPoints").mockResolvedValue({ points: POINTS, truncated: false, clipped: false });
+        const view = render(<MapView markers={MARKERS} explore />);
+        await screen.findByTestId("maplibre");
+        await act(async () => {
+            (lastMapProps().onMoveEnd as (e: unknown) => void)({
+                target: {
+                    getZoom: () => POI_MIN_ZOOM,
+                    getBounds: () => ({
+                        getWest: () => BOUNDS.west,
+                        getSouth: () => BOUNDS.south,
+                        getEast: () => BOUNDS.east,
+                        getNorth: () => BOUNDS.north,
+                    }),
+                },
+            });
+        });
+        await waitFor(() =>
+            expect(view.container.querySelector('[data-source="nearby"]')).toHaveAttribute("data-count", "3"),
+        );
+        return view;
+    }
+
+    // mapa simulado que solo pinta los puntos ids y ve los destinos de markerInView
+    function idle(ids: string[], markerInView: boolean) {
+        const queryRenderedFeatures = vi.fn(() => ids.map((id) => ({ properties: { id } })));
+        act(() =>
+            (lastMapProps().onIdle as (e: unknown) => void)({
+                target: {
+                    getLayer: () => ({}),
+                    queryRenderedFeatures,
+                    getBounds: () => ({ contains: () => markerInView }),
+                    getCanvas: () => ({ clientWidth: 400, clientHeight: 600 }),
+                },
+            }),
+        );
+        return queryRenderedFeatures;
+    }
+
+    async function legendItems(user: ReturnType<typeof userEvent.setup>) {
+        await user.click(screen.getByRole("button", { name: "Leyenda del mapa" }));
+        const list = screen.getByRole("list", { name: "Tipos de lugar en el mapa" });
+        const items = within(list).getAllByRole("listitem").map((li) => li.textContent);
+        await user.keyboard("{Escape}");
+        return items;
+    }
+
+    it("cuenta solo los puntos y destinos que el mapa pinta en pantalla", async () => {
+        const user = userEvent.setup();
+        await showPoints();
+        expect(await legendItems(user)).toEqual(["Parque o zona verde: 1", "Fuente: 1", "Banco: 2"]);
+        // un banco tapado (solapado o bajo la hoja) y el destino fuera de la vista
+        const query = idle(["b1", "f1"], false);
+        expect(query).toHaveBeenCalledWith([[0, 0], [400, 600]], { layers: ["nearby-points"] });
+        expect(await legendItems(user)).toEqual(["Fuente: 1", "Banco: 1"]);
+    });
+
+    it("un tipo cargado pero sin pintar no se da como «sin datos»", async () => {
+        const user = userEvent.setup();
+        await showPoints();
+        idle([], true);
+        await user.click(screen.getByRole("button", { name: "Leyenda del mapa" }));
+        const dialog = screen.getByRole("dialog", { name: "Leyenda del mapa" });
+        expect(dialog).toHaveTextContent("Sin datos en esta zona: Desfibrilador, Área canina, Juegos infantiles.");
+        expect(dialog).not.toHaveTextContent(/Sin datos en esta zona:.*(Fuente|Banco)/);
+    });
+
+    it("oculta los puntos de interes del mapa base y deja sus nombres de calles", async () => {
+        withWebGL();
+        render(<MapView markers={MARKERS} explore />);
+        await screen.findByTestId("maplibre");
+        const setLayoutProperty = vi.fn();
+        const target = {
+            getStyle: () => ({
+                layers: [
+                    { id: "poi_r20", "source-layer": "poi" },
+                    { id: "poi_transit", "source-layer": "poi" },
+                    { id: "highway-name-minor", "source-layer": "transportation_name" },
+                    { id: "background" },
+                ],
+            }),
+            setLayoutProperty,
+            getZoom: () => 14,
+            getBounds: () => ({ getWest: () => 0, getSouth: () => 0, getEast: () => 0, getNorth: () => 0 }),
+        };
+        act(() => (lastMapProps().onLoad as (e: unknown) => void)({ target }));
+        expect(setLayoutProperty.mock.calls).toEqual([
+            ["poi_r20", "visibility", "none"],
+            ["poi_transit", "visibility", "none"],
+        ]);
+    });
+});

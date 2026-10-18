@@ -251,6 +251,8 @@
     .map-demo {
         --map-fit-top: 7.25rem;
         --map-fit-bottom: 11.75rem;
+        /* lo que tapa la hoja recogida: la leyenda no cuenta lo que queda debajo */
+        --map-covered-bottom: 164px;
     }
 
     /* la atribucion tiene que verse: encima de la hoja recogida */

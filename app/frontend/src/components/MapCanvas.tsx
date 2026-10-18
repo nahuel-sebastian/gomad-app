@@ -47,6 +47,30 @@ const ROUTE_MAIN_COLOR = "#135c3a";
 const ROUTE_SECONDARY_COLOR = "#55677a";
 const NEARBY_LAYERS = ["nearby-points"];
 
+type BaseStyleMap = {
+    getStyle(): { layers?: { id: string; "source-layer"?: string }[] } | undefined;
+    setLayoutProperty(layer: string, name: string, value: unknown): unknown;
+};
+
+// El estilo de teselas trae sus propios puntos de interes (aparcamientos, paradas, parques...) con
+// iconos que no son datos de GoMad ni salen en la leyenda: se ocultan. Los nombres de calles y
+// lugares se quedan (son otras capas).
+function hideBasePoiLayers(map: BaseStyleMap) {
+    for (const layer of map.getStyle()?.layers ?? []) {
+        if (layer["source-layer"] === "poi") map.setLayoutProperty(layer.id, "visibility", "none");
+    }
+}
+
+type RenderedMap = {
+    getLayer(id: string): unknown;
+    queryRenderedFeatures(
+        geometry: [[number, number], [number, number]],
+        options: { layers: string[] },
+    ): { properties?: { id?: unknown } | null }[];
+    getBounds(): { contains(lnglat: [number, number]): boolean };
+    getCanvas(): { clientWidth: number; clientHeight: number };
+};
+
 type StyleImageMap = {
     setMissingStyleImageResolver(resolver: (id: string) => void): unknown;
     hasImage(id: string): boolean;
@@ -98,6 +122,17 @@ export default function MapCanvas(props: MapViewProps) {
     const containerRef = useRef<HTMLDivElement>(null);
     // margenes leidos del CSS antes de pintar; el mapa se crea cuando ya se conocen
     const [padding, setPadding] = useState<Padding | null>(null);
+    // franja de abajo tapada por la hoja de Resultados en movil (--map-covered-bottom)
+    const coveredBottom = useRef(0);
+    // lo que el mapa pinta de verdad en pantalla (fuera de la hoja), para que la leyenda cuente lo
+    // mismo que se ve: sin los puntos ocultos por solaparse ni los que quedan fuera. null = aun no
+    // se sabe (sin MapLibre real, p. ej. en pruebas): se cuenta todo lo cargado
+    const [onScreen, setOnScreen] = useState<{
+        key: string;
+        pointIds: Set<string>;
+        markerIds: Set<string>;
+        live: boolean;
+    } | null>(null);
 
     // si MapLibre no puede crear el mapa (sin WebGL2, sin memoria de GPU), react-map-gl solo
     // llama a onError: se relanza en el render para que MapErrorBoundary pinte el esquema
@@ -136,8 +171,32 @@ export default function MapCanvas(props: MapViewProps) {
     };
 
     useLayoutEffect(() => {
-        if (containerRef.current) setPadding(fitPadding(containerRef.current));
+        if (containerRef.current) {
+            setPadding(fitPadding(containerRef.current));
+            coveredBottom.current =
+                parseFloat(getComputedStyle(containerRef.current).getPropertyValue("--map-covered-bottom")) || 0;
+        }
     }, []);
+
+    // al terminar de pintar: que puntos y destinos se ven
+    const handleIdle = (map: RenderedMap) => {
+        const { clientWidth: width, clientHeight: height } = map.getCanvas();
+        const box: [[number, number], [number, number]] = [
+            [0, 0],
+            [width, Math.max(0, height - coveredBottom.current)],
+        ];
+        const features = map.getLayer("nearby-points") ? map.queryRenderedFeatures(box, { layers: ["nearby-points"] }) : [];
+        const pointIds = new Set(features.map((f) => String(f.properties?.id)));
+        const view = map.getBounds();
+        const markerIds = new Set(
+            markers.filter((m) => view.contains([m.coordinate.lon, m.coordinate.lat])).map((m) => m.id),
+        );
+        const liveInView = Boolean(live && view.contains([live.lon, live.lat]));
+        const key = [...pointIds].sort().join("|") + "#" + [...markerIds].sort().join("|") + "#" + liveInView;
+        setOnScreen((current) => (current?.key === key ? current : { key, pointIds, markerIds, live: liveInView }));
+    };
+    const visiblePoints = onScreen ? nearbyPoints.filter((p) => onScreen.pointIds.has(p.id)) : nearbyPoints;
+    const visibleMarkers = onScreen ? markers.filter((m) => onScreen.markerIds.has(m.id)) : markers;
 
     useEffect(() => {
         // el primer encuadre lo hace initialViewState; despues, al cambiar los puntos
@@ -156,11 +215,12 @@ export default function MapCanvas(props: MapViewProps) {
     const mapButtons = (
         <>
             <MapLegend
-            markerKinds={markers.flatMap((m) => (m.kind ? [apiKinds.get(m.id) ?? m.kind] : []))}
-            points={nearbyPoints}
+            markerKinds={visibleMarkers.flatMap((m) => (m.kind ? [apiKinds.get(m.id) ?? m.kind] : []))}
+            points={visiblePoints}
+            loadedPoints={nearbyPoints}
             zoom={explore ? zoom : null}
             truncated={explore && (nearby?.truncated ?? false)}
-            live={Boolean(live)}
+            live={Boolean(live) && (onScreen?.live ?? true)}
                 checkedPoiKinds={explore ? checkedPoiKinds : []}
             />
         </>
@@ -188,7 +248,11 @@ export default function MapCanvas(props: MapViewProps) {
                     onStyleData={() => {
                         styleLoaded.current = true;
                     }}
-                    onLoad={(e) => refresh(e.target as unknown as ViewSource)}
+                    onLoad={(e) => {
+                        hideBasePoiLayers(e.target as unknown as BaseStyleMap);
+                        refresh(e.target as unknown as ViewSource);
+                    }}
+                    onIdle={(e) => handleIdle(e.target as unknown as RenderedMap)}
                     onMoveEnd={(e) => refresh(e.target as unknown as ViewSource)}
                     interactiveLayerIds={explore ? NEARBY_LAYERS : undefined}
                     onClick={explore ? handleClick : undefined}

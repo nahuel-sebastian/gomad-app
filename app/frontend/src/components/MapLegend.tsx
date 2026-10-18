@@ -6,8 +6,10 @@ import { NEARBY_MIN_ZOOM, POI_MIN_ZOOM } from "./mapUtils";
 interface MapLegendProps {
     // tipo de cada pin numerado (uno por resultado)
     markerKinds: MapPointKind[];
-    // puntos de la zona visible
+    // puntos que se ven en el mapa (los que cuenta la leyenda)
     points: MapPoint[];
+    // todos los puntos cargados de la zona (aunque no se vean): deciden «sin datos»; por defecto, points
+    loadedPoints?: MapPoint[];
     // zoom del mapa; null = todavia no se sabe (o el mapa no es explorable)
     zoom: number | null;
     truncated: boolean;
@@ -33,6 +35,7 @@ function KindIcon({ color, path }: { color: string; path: string }) {
 export default function MapLegend({
     markerKinds,
     points,
+    loadedPoints = points,
     zoom,
     truncated,
     live = false,
@@ -52,7 +55,8 @@ export default function MapLegend({
         hints.push("Acerca más para ver fuentes, bancos, juegos, desfibriladores y áreas caninas (solo donde hay datos).");
     else if (zoom !== null) {
         hints.push("Fuentes, bancos, juegos, desfibriladores y áreas caninas: solo donde hay datos.");
-        const missing = POI_KINDS.filter((k) => checkedPoiKinds.includes(k) && !counts.has(k)).map(
+        const loaded = new Set(loadedPoints.map((p) => p.kind));
+        const missing = POI_KINDS.filter((k) => checkedPoiKinds.includes(k) && !loaded.has(k)).map(
             (k) => KIND_STYLES[k].label,
         );
         if (!truncated && missing.length > 0) hints.push(`Sin datos en esta zona: ${missing.join(", ")}.`);
