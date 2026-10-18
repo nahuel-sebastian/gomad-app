@@ -1,0 +1,50 @@
+"""Proveedor de IA de F6 (DEC-03): OCI Language + diccionario para interpretar y plantillas para redactar.
+
+Implementa ai.base.AIProvider. Nunca decide rutas ni comprueba condiciones: eso lo hace el motor."""
+import logging
+
+from ai.dictionary import interpret_text
+from ai.oci_language import from_env
+from ai.recorded import recorded
+
+log = logging.getLogger("gomad.api")
+
+
+def _lower_first(text):
+    return text[:1].lower() + text[1:]
+
+
+def _join(items, last):
+    return items[0] if len(items) == 1 else ", ".join(items[:-1]) + last + items[-1]
+
+
+class RulesProvider:
+    def __init__(self, cfg, language=None):
+        self.cfg = cfg
+        self.language = language
+
+    def _analysis(self, text):
+        if self.language is not None:
+            try:
+                return self.language.analyze(text)
+            except Exception as e:     # caida, tiempo agotado o permisos: se sigue sin OCI (sin el texto en el log)
+                log.warning("asistente: OCI Language fallo (%s); se usa el diccionario", type(e).__name__)
+        return recorded(text)
+
+    def interpret(self, text):
+        return interpret_text(text, self._analysis(text), self.cfg)
+
+    def write_up(self, conditions, route_summary):
+        t = self.cfg["templates"]
+        out = t["summary"].format(summary=route_summary)
+        if conditions:
+            met = sum(c.met for c in conditions)
+            out += t["score"].format(met=met, total=len(conditions))
+            failed = [_lower_first(c.condition) for c in conditions if not c.met]
+            if failed:
+                out += t["failed"].format(failed=_join(failed, t["join_last"]))
+        return out
+
+
+def build_provider(cfg, env):
+    return RulesProvider(cfg, from_env(env, cfg))

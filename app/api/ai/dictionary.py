@@ -17,7 +17,9 @@ REQUIRED = {"interpret": ["activities", "pass_by", "avoid", "avoid_direct", "neg
                           "negation_breaks", "one_way", "out_of_catalog", "medical", "distance_units",
                           "duration_units", "duration_phrases", "quantity_entity_types", "max_distance_km",
                           "max_duration_min", "default_activity"],
-            "messages": ["medical", "out_of_catalog", "missing_amount", "which_activity", "too_long"]}
+            "messages": ["medical", "out_of_catalog", "missing_amount", "which_activity", "too_long"],
+            "oci": ["timeout_s", "language_code"],
+            "templates": ["summary", "score", "failed", "join_last"]}
 
 
 @dataclass

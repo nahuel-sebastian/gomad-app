@@ -46,3 +46,9 @@ messages:
 oci:
   timeout_s: 3              # segundos de conexion y de lectura; despues, solo diccionario (criterio propio)
   language_code: es
+
+templates:                       # write_up: la explicacion solo usa datos del motor (RF-23)
+  summary: "{summary}."
+  score: " Cumple {met} de {total} condiciones."
+  failed: " No cumple: {failed}."
+  join_last: " y "
