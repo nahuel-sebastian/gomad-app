@@ -66,6 +66,10 @@ describe("estilos", () => {
         expect(rule(".home__secondary > .route-between-link")).toMatch(/grid-column:\s*1 \/ -1/);
     });
 
+    it("los detalles de la ruta entre dos direcciones van en columna con separacion", () => {
+        expect(rule(".route-between__body")).toMatch(/flex-direction:\s*column/);
+    });
+
     it("el campo de direccion elegida separa el texto del boton Cambiar", () => {
         expect(rule(".address-field__chosen")).toMatch(/justify-content:\s*space-between/);
     });

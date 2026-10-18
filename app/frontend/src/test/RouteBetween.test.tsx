@@ -132,6 +132,46 @@ describe("Ruta entre dos direcciones", () => {
         expect(screen.getByLabelText("Escribe una dirección o un municipio")).toHaveValue("");
     });
 
+    it("con la ruta, el mapa ocupa la pantalla y los detalles van en una hoja que se sube y se baja", async () => {
+        const { user, container } = renderAt("/trayecto");
+        expect(container.querySelector(".map-demo")).toBeNull();
+        await chooseBoth(user);
+        await user.click(screen.getByRole("button", { name: "Calcular ruta" }));
+        await screen.findByRole("list", { name: "Resumen de la ruta" });
+        expect(container.querySelector(".gomad-results .map-demo")).not.toBeNull();
+        const handle = screen.getByRole("button", { name: "Mostrar detalles de la ruta" });
+        expect(handle).toHaveAttribute("aria-expanded", "false");
+        await user.click(handle);
+        expect(screen.getByRole("button", { name: "Ocultar detalles de la ruta" })).toHaveAttribute("aria-expanded", "true");
+        expect(container.querySelector(".results-sheet")).toHaveClass("results-sheet--expanded");
+        await user.click(screen.getByRole("button", { name: "Ocultar detalles de la ruta" }));
+        expect(container.querySelector(".results-sheet")).not.toHaveClass("results-sheet--expanded");
+    });
+
+    it("al calcular, el foco va al titulo y la hoja dice desde donde y hasta donde", async () => {
+        const { user } = renderAt("/trayecto");
+        await chooseBoth(user);
+        await user.click(screen.getByRole("button", { name: "Calcular ruta" }));
+        const heading = await screen.findByRole("heading", { level: 1, name: "Ruta entre dos direcciones" });
+        await waitFor(() => expect(heading).toHaveFocus());
+        expect(screen.getByText("Getafe → Leganés")).toBeInTheDocument();
+    });
+
+    it("«Cambiar direcciones» vuelve al formulario con las direcciones elegidas", async () => {
+        const spy = vi.spyOn(routeApi, "getRoute");
+        const { user, container } = renderAt("/trayecto");
+        await chooseBoth(user);
+        await user.click(screen.getByRole("button", { name: "Calcular ruta" }));
+        await screen.findByRole("list", { name: "Resumen de la ruta" });
+        await user.click(screen.getByRole("button", { name: "Cambiar direcciones" }));
+        expect(container.querySelector(".map-demo")).toBeNull();
+        expect(screen.getByRole("button", { name: "Cambiar la dirección «Desde»: Getafe" })).toBeInTheDocument();
+        expect(screen.getByRole("button", { name: "Cambiar la dirección «Hasta»: Leganés" })).toBeInTheDocument();
+        await user.click(screen.getByRole("button", { name: "Calcular ruta" }));
+        await screen.findByRole("list", { name: "Resumen de la ruta" });
+        expect(spy).toHaveBeenCalledTimes(2);
+    });
+
     it("sin violaciones de axe con la ruta en pantalla", async () => {
         const { user, container } = renderAt("/trayecto");
         await chooseBoth(user);

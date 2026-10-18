@@ -2649,6 +2649,12 @@
     background: var(--surface);
   }
 
+  .route-between__body {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+
   .address-field__value {
     display: flex;
     flex-direction: column;
