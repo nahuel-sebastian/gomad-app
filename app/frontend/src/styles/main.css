@@ -231,14 +231,6 @@
       box-shadow: none;
     }
 
-    .detail-header {
-      position: sticky;
-      top: var(--header-height);
-      z-index: 4;
-      padding-inline: max(var(--gutter), calc((100% - var(--max-width)) / 2));
-      background: rgba(255, 255, 255, 0.96);
-      backdrop-filter: blur(0.75rem);
-    }
 
     .detail-media {
       min-height: calc(clamp(18.75rem, 34vw, 26.875rem) + 3rem);
@@ -292,11 +284,6 @@
 
     .gomad-results .back-button {
       align-self: flex-start;
-      padding-inline: 0.875rem;
-      border: 1px solid var(--border);
-      border-radius: 999px;
-      background: var(--surface);
-      box-shadow: 0 2px 8px rgba(18, 57, 91, 0.12);
     }
 
     .gomad-recommendation {
@@ -312,29 +299,9 @@
       box-shadow: none;
     }
 
-    .detail-header {
-      position: sticky;
 
-      z-index: 4;
-      min-height: 3.5rem;
-      padding: 0.375rem var(--gutter);
-      background: rgba(255, 255, 255, 0.96);
-      backdrop-filter: blur(0.75rem);
-    }
 
-    .detail-header__back {
-      max-width: 6.875rem;
-      font-size: 0.875rem;
-      text-align: left;
-    }
 
-    .detail-header__count {
-      font-size: 0.875rem;
-    }
-
-    .detail-header__close {
-      font-size: 0.875rem;
-    }
 
     .detail-media {
       min-height: 14.375rem;
@@ -427,8 +394,8 @@
     }
 
     .results-desktop-toolbar .back-button {
-      margin: 0px;
-      padding-top: 1rem;
+      align-self: flex-start;
+      margin: 1rem 0 0;
     }
 
     .results-filters {
@@ -1240,6 +1207,16 @@
     flex: 0 0 auto;
   }
 
+  .gomad-results .back-button {
+    min-height: 2.25rem;
+    padding: 0.25rem 0.75rem 0.25rem 0.5rem;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    background: var(--surface);
+    box-shadow: 0 2px 8px rgba(18, 57, 91, 0.16);
+    font-size: 0.8125rem;
+  }
+
   .view-header {
     padding: 2rem 1.5rem 1.5rem;
     background: var(--surface);
@@ -1574,46 +1551,11 @@
     box-shadow: 0 20px 50px rgba(18, 57, 91, 0.14);
   }
 
-  .detail-header {
-    display: grid;
-    grid-template-columns: 1fr auto 1fr;
-    align-items: center;
-    min-height: 4rem;
-    padding: 0.5rem 1.25rem;
-    border-bottom: 1px solid var(--border);
-  }
 
-  .detail-header__back,
-  .detail-header__close {
-    display: inline-flex;
-    align-items: center;
-    min-height: var(--tap-min);
-    color: var(--muted);
-    font-size: 0.875rem;
-    font-weight: 700;
-  }
 
-  .detail-header__back {
-    justify-self: start;
-  }
 
-  .detail-header__close {
-    justify-self: end;
-    color: var(--navy);
-  }
 
-  .detail-header__back:hover,
-  .detail-header__close:hover {
-    color: var(--green-dark);
-    text-decoration: underline;
-    text-underline-offset: 0.1875rem;
-  }
 
-  .detail-header__count {
-    color: var(--navy);
-    font-size: 0.9375rem;
-    font-weight: 700;
-  }
 
   .detail-media {
     position: relative;
@@ -1657,7 +1599,7 @@
     display: none;
   }
 
-  .detail-media__tag,
+  .detail-media__back,
   .detail-media__credit {
     position: absolute;
     z-index: 1;
@@ -1669,9 +1611,25 @@
     font-weight: 700;
   }
 
-  .detail-media__tag {
-    top: 16px;
-    left: 20px;
+  .detail-media__back {
+    top: 12px;
+    left: 16px;
+    display: inline-flex;
+    gap: 0.125rem;
+    align-items: center;
+    min-height: 2.25rem;
+    padding: 0.25rem 0.75rem 0.25rem 0.5rem;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    font-size: 0.8125rem;
+    box-shadow: 0 2px 8px rgba(18, 57, 91, 0.16);
+    text-decoration: none;
+  }
+
+  .detail-media__back:hover {
+    color: var(--green-dark);
+    text-decoration: underline;
+    text-underline-offset: 0.1875rem;
   }
 
   .detail-media__credit {
@@ -3295,5 +3253,193 @@
   .gomad-assistant > .panel > .button--primary,
   .gomad-assistant .gomad-preferences-form > .button--primary {
     align-self: flex-start;
+  }
+}
+
+/* Inicio sin ubicacion: el buscador manda y las preferencias quedan en segundo plano */
+@layer responsive {
+  .gomad-home .location--highlight .panel__title {
+    font-size: 1.375rem;
+  }
+
+  .gomad-home .location--highlight .location__search {
+    min-height: 3.25rem;
+    border-color: var(--navy);
+  }
+
+  .gomad-home .location--highlight .gomad-action-use-location {
+    min-height: 3.25rem;
+  }
+
+  .home__secondary > .prefs--compact {
+    align-items: center;
+    padding: 0.75rem 1rem;
+    border: 1px solid var(--border);
+    box-shadow: none;
+  }
+
+  .prefs--compact .surprise__tile {
+    width: 2.25rem;
+    height: 2.25rem;
+  }
+
+  .prefs--compact .panel__title {
+    font-size: 1rem;
+    font-weight: 600;
+  }
+
+  .home__secondary .prefs--compact .muted {
+    font-size: 0.875rem;
+  }
+}
+
+/* Fuentes: desplegables por categoria */
+@layer responsive {
+  .sources-groups {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .sources-group {
+    border: 1px solid var(--border-strong);
+    border-radius: 10px;
+    background: var(--surface);
+  }
+
+  .sources-group__summary {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      "title chevron"
+      "meta chevron";
+    align-items: center;
+    column-gap: 0.75rem;
+    min-height: var(--tap-min);
+    padding: 0.75rem 1rem;
+    border-radius: 10px;
+    cursor: pointer;
+    list-style: none;
+  }
+
+  .sources-group__summary::-webkit-details-marker {
+    display: none;
+  }
+
+  /* chevron: borde girado, apunta abajo cerrado y arriba abierto */
+  .sources-group__summary::after {
+    content: "";
+    grid-area: chevron;
+    width: 0.625rem;
+    height: 0.625rem;
+    margin-right: 0.25rem;
+    border-right: 2px solid var(--navy);
+    border-bottom: 2px solid var(--navy);
+    transform: translateY(-25%) rotate(45deg);
+    transition: transform var(--transition);
+  }
+
+  .sources-group[open] > .sources-group__summary::after {
+    transform: translateY(25%) rotate(-135deg);
+  }
+
+  .sources-group__summary:hover {
+    background: var(--bg);
+  }
+
+  .sources-group__summary:focus-visible {
+    outline: 3px solid var(--focus);
+    outline-offset: 2px;
+  }
+
+  .sources-group[open] > .sources-group__summary {
+    border-bottom: 1px solid var(--border);
+    border-radius: 10px 10px 0 0;
+  }
+
+  .sources-group__title {
+    grid-area: title;
+    color: var(--navy);
+    font-weight: 700;
+  }
+
+  .sources-group__meta {
+    grid-area: meta;
+    color: var(--muted);
+    font-size: 0.875rem;
+  }
+
+  .sources-group__warning {
+    color: var(--warn-fg);
+    font-weight: 600;
+  }
+
+  .sources-group__body {
+    padding: 0 1rem 0.5rem;
+  }
+
+  .sources-group__body .sources-table tr:last-child,
+  .sources-group__body .sources-table tr:last-child td {
+    border-bottom: 0;
+  }
+}
+
+/* Resultados: cabecera de la hoja con «Leyenda» y «Ajustar» a la derecha del titulo */
+@layer responsive {
+  .results-sheet__scroll > .view-header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+
+  .results-heading-copy {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  /* si el titulo no cabe en una linea, que no quede una palabra sola */
+  .results-sheet__scroll > .view-header .view-title {
+    text-wrap: balance;
+  }
+
+  .results-header-actions {
+    display: flex;
+    flex: 0 0 auto;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .results-legend-slot {
+    display: contents;
+  }
+
+  .results-header-actions .map-dialog-button {
+    box-shadow: none;
+  }
+}
+
+@media (max-width: 47.9375rem) {
+  @layer responsive {
+    /* hoja recogida: titulo a todo el ancho; debajo, subtitulo y botones; sin hueco sobre el titulo */
+    .results-sheet__scroll > .view-header {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      column-gap: 0.75rem;
+      align-items: center;
+      padding-top: 0.25rem;
+      padding-bottom: 1rem;
+    }
+
+    .results-sheet__scroll > .view-header .results-heading-copy {
+      display: contents;
+    }
+
+    .results-sheet__scroll > .view-header .view-title {
+      grid-column: 1 / -1;
+    }
+
+    .results-sheet__scroll > .view-header .results-header-actions {
+      grid-column: 2;
+    }
   }
 }

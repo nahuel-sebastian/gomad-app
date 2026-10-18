@@ -3,15 +3,13 @@ import type { Coordinate } from "../api/types";
 
 // Ubicacion en tiempo real mientras la pantalla del mapa esta abierta (correccion C2).
 // La posicion se queda en el navegador: no se guarda ni se envia; solo se usa como origen de una
-// consulta si la persona pulsa «Buscar desde aqui». Criterio propio:
+// para pintar «Estas aqui» en el mapa. Criterio propio:
 // - como mucho una actualizacion cada LIVE_MIN_INTERVAL_MS y solo si se ha movido LIVE_MIN_MOVE_M
 //   (el GPS del movil oscila unos metros aunque no te muevas); la ultima posicion que llega antes de
-//   tiempo queda pendiente y se aplica al vencer el intervalo, para que el punto no se quede atras;
-// - a partir de LIVE_OFFER_DISTANCE_M del origen de la busqueda se ofrece buscar desde aqui
-//   (no se recalcula solo).
+//   tiempo queda pendiente y se aplica al vencer el intervalo, para que el punto no se quede atras.
+// La busqueda no se recalcula al moverse.
 export const LIVE_MIN_INTERVAL_MS = 5_000;
 export const LIVE_MIN_MOVE_M = 15;
-export const LIVE_OFFER_DISTANCE_M = 300;
 
 const EARTH_RADIUS_M = 6_371_008.8;
 

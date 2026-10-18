@@ -89,11 +89,14 @@ export function hasWebGL(): boolean {
 }
 
 // --- Mapa explorable (C2) ---
-// Criterio propio. A zoom 13 un movil ve unos 3 km de ancho: por debajo no se pide nada (solo los
-// resultados numerados). Desde el 15 (~800 m) se piden tambien los puntos utiles, que son muchos
-// (en el centro de Madrid, mas de mil bancos). La API recorta la caja y limita los puntos (config/map.yaml).
-export const NEARBY_MIN_ZOOM = 13;
-export const POI_MIN_ZOOM = 15;
+// Criterio propio. Los puntos informativos solo salen al acercar: el mapa explorable se encuadra
+// como mucho a EXPLORE_FIT_MAX_ZOOM (un movil ve unos 1,5 km de ancho) y ahi solo hay resultados
+// numerados. Un paso de zoom mas (~800 m) muestra parques y demas lugares; otro (~400 m), tambien
+// los puntos utiles, que son muchos (en el centro de Madrid, mas de mil bancos). La API recorta la
+// caja y limita los puntos (config/map.yaml).
+export const NEARBY_MIN_ZOOM = 15;
+export const POI_MIN_ZOOM = 16;
+export const EXPLORE_FIT_MAX_ZOOM = NEARBY_MIN_ZOOM - 1;
 // espera tras dejar de mover el mapa antes de pedir los puntos
 export const NEARBY_DEBOUNCE_MS = 300;
 
@@ -159,14 +162,4 @@ export function nearbyFeatures(points: MapPoint[], excludeIds: string[]): Nearby
 export function pointInfo(p: Partial<NearbyProperties>): string {
     const label = p.kind && p.kind in KIND_STYLES ? KIND_STYLES[p.kind].label : "Lugar";
     return `${label}${p.name ? `: ${p.name}` : ""}${p.working === false ? " (fuera de servicio)" : ""}`;
-}
-
-// «Lugares a la vista» (equivalente con teclado de los puntos del mapa): los N mas cercanos al
-// centro de la vista pedida. Criterio propio: 8 caben en la pantalla de un movil sin desplazarse.
-export const NEARBY_LIST_SIZE = 8;
-
-export function closestPoints(points: MapPoint[], center: { lat: number; lon: number }, n: number): MapPoint[] {
-    const k = Math.cos((center.lat * Math.PI) / 180);
-    const d = (p: MapPoint) => ((p.coordinate.lon - center.lon) * k) ** 2 + (p.coordinate.lat - center.lat) ** 2;
-    return [...points].sort((a, b) => d(a) - d(b) || a.id.localeCompare(b.id)).slice(0, n);
 }

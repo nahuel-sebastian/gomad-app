@@ -10,21 +10,48 @@ afterEach(() => {
 });
 
 describe("Fuentes y aviso", () => {
-    it("lista fuentes en una tabla con licencias y fechas", async () => {
+    it("agrupa las fuentes en desplegables por categoría, cerrados al entrar", async () => {
         const { container } = renderAt("/fuentes");
-        expect(
-            screen.getByRole("heading", { level: 1, name: "Fuentes, licencias y aviso" }),
-        ).toBeInTheDocument();
-        const table = await screen.findByRole("table", { name: "Fuentes de datos" });
+        await screen.findByRole("table", { name: "Aire y tiempo" });
+        const groups = [...container.querySelectorAll<HTMLDetailsElement>("details.sources-group")];
+        const titles = groups.map((g) => g.querySelector(".sources-group__title")?.textContent);
+        expect(titles).toEqual([
+            "Deporte",
+            "Aire y tiempo",
+            "Rutas y mobiliario urbano",
+            "Mapa y territorio",
+            "Umbrales oficiales y criterio propio",
+        ]);
+        for (const group of groups) expect(group.open).toBe(false);
+        const air = groups[1].querySelector("summary")!;
+        expect(air).toHaveTextContent("3 fuentes");
+        // un fallo de recarga se ve sin abrir el desplegable
+        expect(air).toHaveTextContent("1 con aviso");
+        expect(groups[0].querySelector("summary")).not.toHaveTextContent("aviso");
+    });
+
+    it("al pulsar una categoría se despliegan sus fuentes", async () => {
+        const { user, container } = renderAt("/fuentes");
+        await screen.findByRole("table", { name: "Aire y tiempo" });
+        const group = container.querySelector<HTMLDetailsElement>("details.sources-group")!;
+        await user.click(group.querySelector("summary")!);
+        expect(group.open).toBe(true);
+        await user.click(group.querySelector("summary")!);
+        expect(group.open).toBe(false);
+    });
+
+    it("cada categoría lleva una tabla con licencias y fechas", async () => {
+        const { container } = renderAt("/fuentes");
+        const table = await screen.findByRole("table", { name: "Aire y tiempo" });
         const headers = within(table).getAllByRole("columnheader").map((h) => h.textContent);
         expect(headers).toEqual(["Fuente", "Publicador", "Licencia", "Última actualización"]);
         expect(table).toHaveTextContent("CC BY 4.0");
-        expect(table).toHaveTextContent("ODbL");
         expect(table).toHaveTextContent("Weather data by Open-Meteo.com");
         expect(table).toHaveTextContent("hace 12 min");
         expect(table).toHaveTextContent("Última recarga fallida: se muestra el dato anterior.");
-        expect(table).toHaveTextContent("Sin descargar todavía");
-        const sourceLinks = within(table).getAllByRole("link");
+        expect(screen.getByRole("table", { name: "Rutas y mobiliario urbano" })).toHaveTextContent("ODbL");
+        expect(screen.getByRole("table", { name: "Mapa y territorio" })).toHaveTextContent("Sin descargar todavía");
+        const sourceLinks = [...container.querySelectorAll<HTMLAnchorElement>(".sources-table a")];
         expect(sourceLinks).toHaveLength(9);
         for (const link of sourceLinks) {
             expect(link).toHaveAttribute("target", "_blank");
@@ -32,15 +59,28 @@ describe("Fuentes y aviso", () => {
             expect(link).toHaveClass("gomad-sources__link");
             expect(link).toHaveAccessibleName(/se abre en una pestaña nueva/);
         }
-        expect(table.querySelector('[data-label="Última actualización"]')).toHaveTextContent("hace 12 min");
         expect(table.querySelector('[data-label="Última actualización"]')).not.toHaveTextContent("Actualizado");
         await expectNoAxeViolations(container);
     });
 
+    it("una fuente sin categoría conocida sale en «Otras fuentes»", async () => {
+        vi.spyOn(sourcesApi, "getSources").mockResolvedValueOnce({
+            sources: [
+                {
+                    id: "fuente_nueva", name: "Fuente nueva", publisher: "Alguien", license: "CC BY 4.0",
+                    url: "https://example.org", last_refresh: null, last_failure: null,
+                },
+            ],
+        });
+        renderAt("/fuentes");
+        const table = await screen.findByRole("table", { name: "Otras fuentes" });
+        expect(table).toHaveTextContent("Fuente nueva");
+    });
+
     it("las referencias fijas y el criterio propio no salen como «sin descargar»", async () => {
         renderAt("/fuentes");
-        const table = await screen.findByRole("table", { name: "Fuentes de datos" });
-        const row = (name: RegExp) => within(table).getByRole("link", { name }).closest("tr")!;
+        await screen.findByRole("table", { name: "Aire y tiempo" });
+        const row = (name: RegExp) => screen.getByRole("link", { name }).closest("tr")!;
         expect(row(/Índice Nacional de Calidad del Aire/)).toHaveTextContent("Referencia oficial: no se descarga");
         expect(row(/Pesos por defecto/)).toHaveTextContent("Criterio propio: no se descarga");
         expect(row(/Pesos por defecto/)).not.toHaveTextContent("Sin descargar todavía");
@@ -83,7 +123,7 @@ describe("Fuentes y aviso", () => {
         const { user } = renderAt("/fuentes");
         expect(await screen.findByText("No se pudieron cargar las fuentes.")).toBeInTheDocument();
         await user.click(screen.getByRole("button", { name: "Reintentar" }));
-        expect(await screen.findByRole("table", { name: "Fuentes de datos" })).toBeInTheDocument();
+        expect(await screen.findByRole("table", { name: "Deporte" })).toBeInTheDocument();
     });
 
     it("ya no ofrece escenarios de ejemplo: la recomendación es real", () => {
@@ -94,7 +134,7 @@ describe("Fuentes y aviso", () => {
 
     it("ya no dice que la tabla de fuentes sea de ejemplo: llega del servidor", async () => {
         renderAt("/fuentes");
-        const table = await screen.findByRole("table", { name: "Fuentes de datos" });
+        const table = await screen.findByRole("table", { name: "Deporte" });
         expect(table.closest("section")).not.toHaveTextContent(/Lista de ejemplo/);
     });
 });

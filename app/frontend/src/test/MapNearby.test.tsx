@@ -6,9 +6,9 @@ import { KIND_STYLES, OUT_OF_SERVICE_COLOR } from "../components/mapIcons";
 import MapLegend from "../components/MapLegend";
 import { pinImage, pinImageSpec } from "../components/mapPinImage";
 import {
-    closestPoints,
+    EXPLORE_FIT_MAX_ZOOM,
+    FIT_MAX_ZOOM,
     nearbyFeatures,
-    NEARBY_LIST_SIZE,
     nearbyRequest,
     NEARBY_DEBOUNCE_MS,
     NEARBY_MIN_ZOOM,
@@ -66,7 +66,7 @@ describe("que pedir segun el zoom", () => {
     });
 });
 
-// --- Task 146: capa de puntos cercanos con clusters ---
+// --- Task 146: capa de puntos cercanos (sin grupos) ---
 describe("MapView explorable", () => {
     afterEach(() => {
         vi.restoreAllMocks();
@@ -106,9 +106,30 @@ describe("MapView explorable", () => {
         await waitFor(() => expect(nearbySource(container)).toHaveAttribute("data-count", "9"));
         expect(spy).toHaveBeenCalledTimes(1);
         expect(spy.mock.calls[0][0]).toEqual([BOUNDS.west, BOUNDS.south, BOUNDS.east, BOUNDS.north]);
-        expect(nearbySource(container)).toHaveAttribute("data-cluster", "true");
+        // sin grupos numerados: solo los iconos de cada punto
+        expect(nearbySource(container)).toHaveAttribute("data-cluster", "false");
         expect(container.querySelector('[data-layer="nearby-points"]')).not.toBeNull();
-        expect(container.querySelector('[data-layer="nearby-clusters"]')).not.toBeNull();
+        expect(container.querySelector('[data-layer="nearby-clusters"]')).toBeNull();
+        expect(container.querySelector('[data-layer="nearby-count"]')).toBeNull();
+    });
+
+    it("el encuadre inicial se queda por debajo del zoom de los puntos informativos: salen al acercar", async () => {
+        withWebGL();
+        render(<MapView markers={MARKERS} explore />);
+        await screen.findByTestId("maplibre");
+        const view = lastMapProps().initialViewState as { fitBoundsOptions: { maxZoom: number } };
+        expect(view.fitBoundsOptions.maxZoom).toBe(EXPLORE_FIT_MAX_ZOOM);
+        expect(EXPLORE_FIT_MAX_ZOOM).toBeLessThan(NEARBY_MIN_ZOOM);
+        expect(nearbyRequest(EXPLORE_FIT_MAX_ZOOM, BOUNDS)).toBeNull();
+        expect(nearbyRequest(EXPLORE_FIT_MAX_ZOOM + 1, BOUNDS)).not.toBeNull();
+    });
+
+    it("el mapa no explorable mantiene su encuadre", async () => {
+        withWebGL();
+        render(<MapView markers={MARKERS} />);
+        await screen.findByTestId("maplibre");
+        const view = lastMapProps().initialViewState as { fitBoundsOptions: { maxZoom: number } };
+        expect(view.fitBoundsOptions.maxZoom).toBe(FIT_MAX_ZOOM);
     });
 
     it("no repite como punto el destino que ya tiene pin numerado", async () => {
@@ -182,19 +203,6 @@ describe("MapView explorable", () => {
         expect(screen.getByRole("status")).toHaveTextContent("Fuente (fuera de servicio)");
     });
 
-    it("pulsar un grupo acerca el mapa", async () => {
-        withWebGL();
-        render(<MapView markers={MARKERS} explore />);
-        await screen.findByTestId("maplibre");
-        const target = fakeMap(13);
-        await act(async () => {
-            (lastMapProps().onClick as (e: unknown) => void)({
-                features: [{ properties: { cluster: true, point_count: 12 }, geometry: { type: "Point", coordinates: [-3.73, 40.3] } }],
-                target,
-            });
-        });
-        expect(target.easeTo).toHaveBeenCalledWith({ center: [-3.73, 40.3], zoom: 15 });
-    });
 });
 
 describe("imagenes de los pines para MapLibre", () => {
@@ -216,7 +224,8 @@ describe("leyenda del mapa", () => {
         vi.restoreAllMocks();
     });
 
-    it("lista los tipos visibles con icono, texto y recuento", () => {
+    it("lista los tipos visibles con icono, texto y recuento", async () => {
+        const user = userEvent.setup();
         const { container } = render(
             <MapLegend
                 markerKinds={["park"]}
@@ -225,7 +234,9 @@ describe("leyenda del mapa", () => {
                 truncated={false}
             />,
         );
-        expect(screen.getByText("Leyenda")).toBeInTheDocument();
+        const button = screen.getByRole("button", { name: "Leyenda del mapa" });
+        expect(button).toHaveAttribute("aria-haspopup", "dialog");
+        await user.click(button);
         const list = screen.getByRole("list", { name: "Tipos de lugar en el mapa" });
         const items = within(list).getAllByRole("listitem").map((li) => li.textContent);
         expect(items).toEqual([
@@ -233,9 +244,37 @@ describe("leyenda del mapa", () => {
             "Fuente: 2",
             "Banco: 1",
             "Fuente fuera de servicio: 1",
-            "Grupo de lugares (tócalo para acercar)",
         ]);
         expect(container.querySelectorAll(".map-legend__icon svg[aria-hidden='true']").length).toBe(4);
+    });
+
+    it("el boton abre la leyenda en una ventana y «Cerrar» la cierra", async () => {
+        const user = userEvent.setup();
+        render(<MapLegend markerKinds={["park"]} points={[]} zoom={null} truncated={false} />);
+        expect(screen.queryByRole("dialog")).toBeNull();
+        await user.click(screen.getByRole("button", { name: "Leyenda del mapa" }));
+        const dialog = screen.getByRole("dialog", { name: "Leyenda del mapa" });
+        expect(within(dialog).getByText("Parque o zona verde: 1")).toBeInTheDocument();
+        await user.click(within(dialog).getByRole("button", { name: "Cerrar" }));
+        expect(screen.queryByRole("dialog")).toBeNull();
+    });
+
+    it("con legendSlot el boton va fuera del mapa (junto a «Ajustar» en Resultados)", async () => {
+        withWebGL();
+        const slot = document.createElement("div");
+        document.body.appendChild(slot);
+        const { container } = render(<MapView markers={MARKERS} explore legendSlot={slot} />);
+        await screen.findByTestId("maplibre");
+        expect(within(slot).getByRole("button", { name: "Leyenda del mapa" })).toBeInTheDocument();
+        expect(container.querySelector(".map-panels .map-legend-button")).toBeNull();
+        slot.remove();
+    });
+
+    it("con legendSlot null (sin sitio todavia) no pinta la leyenda", async () => {
+        withWebGL();
+        render(<MapView markers={MARKERS} explore legendSlot={null} />);
+        await screen.findByTestId("maplibre");
+        expect(screen.queryByRole("button", { name: "Leyenda del mapa" })).toBeNull();
     });
 
     it("fuera de servicio con la etiqueta y el icono de su tipo", () => {
@@ -411,15 +450,21 @@ describe("tipo del pin de un resultado", () => {
     });
 });
 
-// --- Task 150: lugares a la vista con teclado (verificador) ---
-describe("lugares a la vista", () => {
+// --- Etiqueta del punto pegada al icono: al pasar el raton o al pulsar (sustituye a «Lugares a la vista») ---
+describe("etiqueta del punto en el mapa", () => {
     afterEach(() => {
         vi.restoreAllMocks();
     });
 
-    async function showNearby() {
+    const POINTS: MapPoint[] = [
+        { ...point("b", "bench"), name: "Plaza Mayor", coordinate: { lat: 40.301, lon: -3.731 } },
+        { ...point("f", "fountain", false), coordinate: { lat: 40.302, lon: -3.732 } },
+    ];
+
+    // mapa explorable con POINTS cargados en la capa
+    async function showPoints() {
         withWebGL();
-        const spy = vi.spyOn(mapPointsModule, "getMapPoints");
+        vi.spyOn(mapPointsModule, "getMapPoints").mockResolvedValue({ points: POINTS, truncated: false, clipped: false });
         const view = render(<MapView markers={MARKERS} explore />);
         await screen.findByTestId("maplibre");
         await act(async () => {
@@ -435,37 +480,186 @@ describe("lugares a la vista", () => {
                 },
             });
         });
-        await screen.findByText(`Lugares a la vista (${NEARBY_LIST_SIZE})`);
-        return { spy, ...view };
+        await waitFor(() =>
+            expect(view.container.querySelector('[data-source="nearby"]')).toHaveAttribute("data-count", "2"),
+        );
+        return view;
     }
 
-    it("closestPoints ordena por cercania al centro y corta en N", () => {
-        const near = { ...point("near", "park"), coordinate: { lat: 40.3001, lon: -3.73 } };
-        const far = { ...point("far", "bench"), coordinate: { lat: 40.31, lon: -3.73 } };
-        const mid = { ...point("mid", "aed"), coordinate: { lat: 40.303, lon: -3.73 } };
-        expect(closestPoints([far, near, mid], { lat: 40.3, lon: -3.73 }, 2).map((p) => p.id)).toEqual(["near", "mid"]);
+    function event(p: MapPoint | null) {
+        return {
+            features: p
+                ? [
+                      {
+                          properties: { id: p.id, kind: p.kind, name: p.name, working: p.working },
+                          geometry: { type: "Point", coordinates: [p.coordinate.lon, p.coordinate.lat] },
+                      },
+                  ]
+                : [],
+            point: { x: 10, y: 10 },
+        };
+    }
+
+    const hover = (p: MapPoint | null) => act(() => (lastMapProps().onMouseMove as (e: unknown) => void)(event(p)));
+    const tap = (p: MapPoint | null) => act(() => (lastMapProps().onClick as (e: unknown) => void)(event(p)));
+    const popup = (container: HTMLElement) => container.querySelector<HTMLElement>("[data-popup]");
+
+    it("ya no hay boton de «Lugares a la vista» ni recuadro visible abajo", async () => {
+        const { container } = await showPoints();
+        expect(screen.queryByRole("button", { name: /Lugares a la vista/ })).toBeNull();
+        expect(screen.getByRole("status")).toHaveClass("sr-only");
+        expect(popup(container)).toBeNull();
     });
 
-    it("se activa con teclado, resalta el lugar en el mapa y lo anuncia, sin peticiones extra", async () => {
-        const user = userEvent.setup();
-        const { spy } = await showNearby();
-        const list = screen.getByRole("list", { name: "Lugares a la vista" });
-        const buttons = within(list).getAllByRole("button");
-        expect(buttons).toHaveLength(NEARBY_LIST_SIZE);
-        // el mas cercano al centro de la vista (-3.7325, 40.3055) es el banco de ejemplo
-        expect(buttons[0]).toHaveTextContent("Banco");
-        const off = buttons.find((b) => b.textContent?.includes("fuera de servicio"));
-        expect(off).toHaveTextContent("Fuente (fuera de servicio)");
-        buttons[0].focus();
-        await user.keyboard("{Enter}");
-        expect(screen.getByRole("status")).toHaveTextContent("Banco");
-        expect(screen.getByRole("img", { name: "Banco, resaltado en el mapa" })).toHaveClass("map-marker--highlight");
-        expect(spy).toHaveBeenCalledTimes(1);
+    it("al pasar el raton sale pegada al icono (sus coordenadas) y se quita al salir", async () => {
+        const { container } = await showPoints();
+        expect(lastMapProps().interactiveLayerIds).toEqual(["nearby-points"]);
+        hover(POINTS[0]);
+        expect(popup(container)).toHaveTextContent("Banco: Plaza Mayor");
+        expect(popup(container)).toHaveClass("map-point-popup");
+        expect(popup(container)).toHaveAttribute("data-lon", "-3.731");
+        expect(popup(container)).toHaveAttribute("data-lat", "40.301");
+        expect(lastMapProps().cursor).toBe("pointer");
+        hover(POINTS[1]);
+        expect(popup(container)).toHaveTextContent("Fuente (fuera de servicio)");
+        hover(null);
+        expect(popup(container)).toBeNull();
+        hover(POINTS[0]);
+        act(() => (lastMapProps().onMouseLeave as () => void)());
+        expect(popup(container)).toBeNull();
+        expect(lastMapProps().cursor).toBeUndefined();
     });
 
-    it("axe sin violaciones con la lista de lugares abierta", async () => {
-        const { container } = await showNearby();
-        container.querySelectorAll("details").forEach((d) => d.setAttribute("open", ""));
+    it("al pulsar (con el dedo) se queda, se anuncia y se quita al pulsar fuera", async () => {
+        const { container } = await showPoints();
+        tap(POINTS[0]);
+        expect(popup(container)).toHaveTextContent("Banco: Plaza Mayor");
+        expect(screen.getByRole("status")).toHaveTextContent("Banco: Plaza Mayor");
+        // el raton que sale no la quita: esta fijada
+        act(() => (lastMapProps().onMouseLeave as () => void)());
+        hover(null);
+        expect(popup(container)).toHaveTextContent("Banco: Plaza Mayor");
+        tap(null);
+        expect(popup(container)).toBeNull();
+        expect(screen.getByRole("status")).toHaveTextContent("");
+    });
+
+    it("el mapa no explorable no escucha el raton", async () => {
+        withWebGL();
+        render(<MapView markers={MARKERS} />);
+        await screen.findByTestId("maplibre");
+        expect(lastMapProps().onMouseMove).toBeUndefined();
+    });
+
+    it("axe sin violaciones con la etiqueta visible", async () => {
+        const { container } = await showPoints();
+        hover(POINTS[0]);
         await expectNoAxeViolations(container);
+    });
+});
+
+// --- La leyenda cuenta lo mismo que se ve en el mapa ---
+describe("leyenda y mapa coinciden", () => {
+    afterEach(() => {
+        vi.restoreAllMocks();
+    });
+
+    const POINTS: MapPoint[] = [
+        { ...point("b1", "bench"), coordinate: { lat: 40.301, lon: -3.731 } },
+        { ...point("b2", "bench"), coordinate: { lat: 40.302, lon: -3.731 } },
+        { ...point("f1", "fountain"), coordinate: { lat: 40.303, lon: -3.731 } },
+    ];
+
+    async function showPoints() {
+        withWebGL();
+        vi.spyOn(mapPointsModule, "getMapPoints").mockResolvedValue({ points: POINTS, truncated: false, clipped: false });
+        const view = render(<MapView markers={MARKERS} explore />);
+        await screen.findByTestId("maplibre");
+        await act(async () => {
+            (lastMapProps().onMoveEnd as (e: unknown) => void)({
+                target: {
+                    getZoom: () => POI_MIN_ZOOM,
+                    getBounds: () => ({
+                        getWest: () => BOUNDS.west,
+                        getSouth: () => BOUNDS.south,
+                        getEast: () => BOUNDS.east,
+                        getNorth: () => BOUNDS.north,
+                    }),
+                },
+            });
+        });
+        await waitFor(() =>
+            expect(view.container.querySelector('[data-source="nearby"]')).toHaveAttribute("data-count", "3"),
+        );
+        return view;
+    }
+
+    // mapa simulado que solo pinta los puntos ids y ve los destinos de markerInView
+    function idle(ids: string[], markerInView: boolean) {
+        const queryRenderedFeatures = vi.fn(() => ids.map((id) => ({ properties: { id } })));
+        act(() =>
+            (lastMapProps().onIdle as (e: unknown) => void)({
+                target: {
+                    getLayer: () => ({}),
+                    queryRenderedFeatures,
+                    getBounds: () => ({ contains: () => markerInView }),
+                    getCanvas: () => ({ clientWidth: 400, clientHeight: 600 }),
+                },
+            }),
+        );
+        return queryRenderedFeatures;
+    }
+
+    async function legendItems(user: ReturnType<typeof userEvent.setup>) {
+        await user.click(screen.getByRole("button", { name: "Leyenda del mapa" }));
+        const list = screen.getByRole("list", { name: "Tipos de lugar en el mapa" });
+        const items = within(list).getAllByRole("listitem").map((li) => li.textContent);
+        await user.keyboard("{Escape}");
+        return items;
+    }
+
+    it("cuenta solo los puntos y destinos que el mapa pinta en pantalla", async () => {
+        const user = userEvent.setup();
+        await showPoints();
+        expect(await legendItems(user)).toEqual(["Parque o zona verde: 1", "Fuente: 1", "Banco: 2"]);
+        // un banco tapado (solapado o bajo la hoja) y el destino fuera de la vista
+        const query = idle(["b1", "f1"], false);
+        expect(query).toHaveBeenCalledWith([[0, 0], [400, 600]], { layers: ["nearby-points"] });
+        expect(await legendItems(user)).toEqual(["Fuente: 1", "Banco: 1"]);
+    });
+
+    it("un tipo cargado pero sin pintar no se da como «sin datos»", async () => {
+        const user = userEvent.setup();
+        await showPoints();
+        idle([], true);
+        await user.click(screen.getByRole("button", { name: "Leyenda del mapa" }));
+        const dialog = screen.getByRole("dialog", { name: "Leyenda del mapa" });
+        expect(dialog).toHaveTextContent("Sin datos en esta zona: Desfibrilador, Área canina, Juegos infantiles.");
+        expect(dialog).not.toHaveTextContent(/Sin datos en esta zona:.*(Fuente|Banco)/);
+    });
+
+    it("oculta los puntos de interes del mapa base y deja sus nombres de calles", async () => {
+        withWebGL();
+        render(<MapView markers={MARKERS} explore />);
+        await screen.findByTestId("maplibre");
+        const setLayoutProperty = vi.fn();
+        const target = {
+            getStyle: () => ({
+                layers: [
+                    { id: "poi_r20", "source-layer": "poi" },
+                    { id: "poi_transit", "source-layer": "poi" },
+                    { id: "highway-name-minor", "source-layer": "transportation_name" },
+                    { id: "background" },
+                ],
+            }),
+            setLayoutProperty,
+            getZoom: () => 14,
+            getBounds: () => ({ getWest: () => 0, getSouth: () => 0, getEast: () => 0, getNorth: () => 0 }),
+        };
+        act(() => (lastMapProps().onLoad as (e: unknown) => void)({ target }));
+        expect(setLayoutProperty.mock.calls).toEqual([
+            ["poi_r20", "visibility", "none"],
+            ["poi_transit", "visibility", "none"],
+        ]);
     });
 });

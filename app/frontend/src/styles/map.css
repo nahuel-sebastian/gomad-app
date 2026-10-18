@@ -53,8 +53,8 @@
 .map-marker {
     display: grid;
     place-items: center;
-    width: 1.75rem;
-    height: 1.75rem;
+    width: 1.5rem;
+    height: 1.5rem;
     border: 2px solid #ffffff;
     border-radius: 50%;
     background: var(--navy);
@@ -69,10 +69,10 @@
 .map-marker--selected {
     position: relative;
     z-index: 1;
-    width: 2.125rem;
-    height: 2.125rem;
+    width: 1.875rem;
+    height: 1.875rem;
     background: var(--green-dark);
-    font-size: 1rem;
+    font-size: 0.875rem;
 }
 
 .map-marker--origin {
@@ -115,43 +115,17 @@
     stroke-width: 0.8;
 }
 
-/* «Te has alejado…: buscar desde aqui» (Resultados) */
-.map-live-offer {
-    position: absolute;
-    z-index: 3;
-    bottom: 4rem;
-    left: 50%;
-    width: max-content;
-    max-width: calc(100% - 1.5rem);
-    transform: translateX(-50%);
-}
-
-.map-live-offer .button {
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
-}
-
-.map-live-offer__problem {
-    margin: 0;
-    padding: 0.5rem 0.75rem;
-    border: 1px solid var(--border);
-    border-radius: 0.5rem;
-    background: var(--surface);
-    color: var(--navy);
-    font-size: 0.875rem;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
-}
-
 /* Pines por tipo (C2): color e icono del tipo (mapIcons.ts) y el numero de la lista en una chapa */
 .map-marker--pin {
     position: relative;
-    width: 2.25rem;
-    height: 2.25rem;
+    width: 1.75rem;
+    height: 1.75rem;
     background: var(--pin-color, var(--navy));
 }
 
 .map-marker--pin svg {
-    width: 1.375rem;
-    height: 1.375rem;
+    width: 1rem;
+    height: 1rem;
     fill: #ffffff;
 }
 
@@ -159,98 +133,55 @@
 .map-marker--pin::after {
     content: "";
     position: absolute;
-    bottom: -0.5rem;
+    bottom: -0.4375rem;
     left: 50%;
     transform: translateX(-50%);
-    border-top: 0.4375rem solid #ffffff;
-    border-right: 0.375rem solid transparent;
-    border-left: 0.375rem solid transparent;
+    border-top: 0.375rem solid #ffffff;
+    border-right: 0.3125rem solid transparent;
+    border-left: 0.3125rem solid transparent;
 }
 
 .map-marker__number {
     position: absolute;
-    top: -0.5rem;
-    right: -0.5rem;
-    min-width: 1.25rem;
-    height: 1.25rem;
-    padding: 0 0.25rem;
+    top: -0.4375rem;
+    right: -0.4375rem;
+    min-width: 1rem;
+    height: 1rem;
+    padding: 0 0.1875rem;
     border: 1.5px solid #ffffff;
-    border-radius: 0.625rem;
+    border-radius: 0.5rem;
     background: var(--navy);
     color: #ffffff;
-    font-size: 0.75rem;
-    line-height: 1rem;
+    font-size: 0.625rem;
+    line-height: 0.8125rem;
     text-align: center;
 }
 
 .map-marker--pin.map-marker--selected {
-    width: 2.875rem;
-    height: 2.875rem;
+    width: 2.25rem;
+    height: 2.25rem;
     background: var(--pin-color, var(--green-dark));
     outline: 3px solid var(--navy);
     outline-offset: 1px;
 }
 
 .map-marker--pin.map-marker--selected svg {
-    width: 1.75rem;
-    height: 1.75rem;
+    width: 1.25rem;
+    height: 1.25rem;
 }
 
 .map-marker--pin.map-marker--selected .map-marker__number {
     background: var(--green-dark);
 }
 
-/* Leyenda del mapa (C2): plegada por defecto; icono + color + texto por tipo */
-/* columna arriba a la izquierda: leyenda y «Lugares a la vista» */
+/* arriba a la izquierda: boton de la leyenda */
 .map-panels {
     position: absolute;
     z-index: 2;
     top: 0.75rem;
     left: 0.75rem;
     display: flex;
-    flex-direction: column;
     align-items: flex-start;
-    gap: 0.5rem;
-    max-width: min(17rem, calc(100% - 5rem));
-}
-
-.map-legend {
-    max-width: 100%;
-    border: 1px solid var(--border);
-    border-radius: 0.5rem;
-    background: var(--surface);
-    color: var(--navy);
-    font-size: 0.8125rem;
-    box-shadow: 0 1px 6px rgba(0, 0, 0, 0.2);
-}
-
-.map-legend summary {
-    display: flex;
-    align-items: center;
-    min-height: 2.75rem;
-    padding: 0 0.75rem;
-    font-weight: 600;
-    cursor: pointer;
-}
-
-.map-legend summary:focus-visible {
-    outline: 2px solid var(--focus);
-    outline-offset: -3px;
-}
-
-.map-legend ul {
-    display: grid;
-    gap: 0.375rem;
-    max-height: 40vh;
-    margin: 0;
-    padding: 0 0.75rem 0.5rem;
-    overflow: auto;
-    list-style: none;
-}
-
-.map-legend li {
-    display: flex;
-    align-items: center;
     gap: 0.5rem;
 }
 
@@ -271,84 +202,35 @@
     fill: #ffffff;
 }
 
-.map-legend__icon--cluster {
-    background: var(--navy);
-}
-
 .map-legend__icon--live {
     background: var(--focus);
 }
 
-.map-legend__hint {
-    margin: 0;
-    padding: 0 0.75rem 0.625rem;
-    color: var(--muted);
+
+/* Etiqueta del punto cercano (raton o toque): pegada al icono, con la punta hacia el */
+.map-point-popup {
+    pointer-events: none;
 }
 
-/* «Lugares a la vista» (verificador): botones a 44 px con icono + tipo + nombre */
-.map-nearby ul {
-    gap: 0;
-}
-
-.map-nearby button {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    width: 100%;
-    min-height: 2.75rem;
-    padding: 0.25rem 0;
-    border: 0;
-    background: transparent;
-    color: var(--navy);
-    font: inherit;
-    text-align: left;
-    cursor: pointer;
-}
-
-.map-nearby button:focus-visible {
-    outline: 2px solid var(--focus);
-    outline-offset: 2px;
-}
-
-/* lugar elegido en la lista, resaltado en el mapa */
-.map-marker--highlight {
-    width: 2.5rem;
-    height: 2.5rem;
-    background: var(--pin-color, var(--navy));
-    outline: 3px solid var(--focus);
-    outline-offset: 2px;
-    cursor: default;
-}
-
-.map-marker--highlight svg {
-    width: 1.5rem;
-    height: 1.5rem;
-    fill: #ffffff;
-}
-
-/* Punto cercano pulsado (C2): nombre y tipo, abajo a la izquierda */
-.map-point-info {
-    position: absolute;
-    z-index: 2;
-    bottom: 1.5rem;
-    left: 0.75rem;
-    max-width: calc(100% - 1.5rem);
-    margin: 0;
-    padding: 0.375rem 0.625rem;
-    border: 1px solid var(--border);
+.map-point-popup .maplibregl-popup-content {
+    /* compacta pero legible en movil: 12 px (minimo comodo), peso medio */
+    max-width: min(14rem, 70vw);
+    padding: 0.25rem 0.5rem;
     border-radius: 0.5rem;
     background: var(--surface);
     color: var(--navy);
-    font-size: 0.875rem;
-    box-shadow: 0 1px 6px rgba(0, 0, 0, 0.2);
+    font: inherit;
+    font-size: 0.75rem;
+    font-weight: 500;
+    line-height: 1.25;
+    letter-spacing: 0.01em;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
 }
 
-/* vacio sigue en el arbol de accesibilidad (region viva), pero no se ve */
-.map-point-info--empty {
-    padding: 0;
-    border: 0;
-    box-shadow: none;
-    background: transparent;
+/* punta mas pequena que la de MapLibre (10 px) */
+.map-point-popup.maplibregl-popup-anchor-bottom .maplibregl-popup-tip {
+    border-width: 5px 5px 0;
+    border-top-color: var(--surface);
 }
 
 .map-view__attribution {
@@ -369,6 +251,8 @@
     .map-demo {
         --map-fit-top: 7.25rem;
         --map-fit-bottom: 11.75rem;
+        /* lo que tapa la hoja recogida: la leyenda no cuenta lo que queda debajo */
+        --map-covered-bottom: 164px;
     }
 
     /* la atribucion tiene que verse: encima de la hoja recogida */
@@ -376,16 +260,151 @@
         bottom: 168px;
     }
 
-    .map-demo .map-point-info {
-        bottom: 190px;
-    }
-
-    .map-demo .map-live-offer {
-        bottom: 236px;
-    }
-
     /* debajo de la barra «Volver/Ajustar» */
     .map-demo .map-panels {
         top: 7.25rem;
     }
+}
+
+/* Boton de icono del mapa: leyenda (sobre el mapa o junto a «Ajustar») */
+.map-dialog-button {
+    position: relative;
+    display: grid;
+    flex: 0 0 auto;
+    place-items: center;
+    width: 2.75rem;
+    height: 2.75rem;
+    padding: 0;
+    border: 1.5px solid var(--navy);
+    border-radius: var(--radius-sm);
+    background: var(--surface);
+    color: var(--navy);
+    cursor: pointer;
+    box-shadow: 0 1px 6px rgba(0, 0, 0, 0.12);
+}
+
+.map-dialog-button:hover {
+    background: var(--blue-tint);
+}
+
+.map-dialog-button:focus-visible {
+    outline: 3px solid var(--focus);
+    outline-offset: 2px;
+}
+
+/* tres filas: punto de color + raya */
+.map-legend-button__glyph {
+    display: grid;
+    gap: 0.1875rem;
+}
+
+.map-legend-button__glyph span {
+    position: relative;
+    width: 0.5rem;
+    height: 0.5rem;
+    border-radius: 50%;
+}
+
+.map-legend-button__glyph span::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 0.75rem;
+    width: 0.875rem;
+    height: 0.1875rem;
+    border-radius: 999px;
+    background: var(--navy);
+    transform: translateY(-50%);
+}
+
+/* las rayas sobresalen 1,125rem a la derecha: el margen centra el conjunto en el boton */
+.map-legend-button__glyph {
+    margin-right: 1.125rem;
+}
+
+/* Ventana de la leyenda (dialog modal, en la capa superior) */
+.map-dialog {
+    width: min(22rem, calc(100% - 2rem));
+    max-height: min(32rem, calc(100dvh - 4rem));
+    padding: 0;
+    border: 0;
+    border-radius: var(--radius);
+    background: var(--surface);
+    color: var(--navy);
+    font-size: 0.9375rem;
+    box-shadow: 0 12px 40px rgba(18, 57, 91, 0.3);
+}
+
+.map-dialog::backdrop {
+    background: rgba(18, 57, 91, 0.45);
+}
+
+.map-dialog__content {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    padding: 1rem 1.25rem 1.25rem;
+}
+
+.map-dialog__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+}
+
+.map-dialog__title {
+    margin: 0;
+    font-size: 1.125rem;
+    font-weight: 700;
+}
+
+.map-dialog__close {
+    display: grid;
+    flex: 0 0 auto;
+    place-items: center;
+    width: 2.75rem;
+    height: 2.75rem;
+    margin-right: -0.5rem;
+    border: 0;
+    border-radius: 50%;
+    background: transparent;
+    color: var(--navy);
+    cursor: pointer;
+}
+
+.map-dialog__close:hover {
+    background: var(--bg);
+}
+
+.map-dialog__close:focus-visible {
+    outline: 3px solid var(--focus);
+    outline-offset: -3px;
+}
+
+.map-legend ul {
+    display: grid;
+    gap: 0.625rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.map-legend li {
+    display: flex;
+    align-items: center;
+    gap: 0.625rem;
+}
+
+.map-legend__hint {
+    margin: 0;
+    padding: 0.625rem 0 0;
+    border-top: 1px solid var(--border);
+    color: var(--muted);
+    font-size: 0.875rem;
+}
+
+.map-legend__hint + .map-legend__hint {
+    padding-top: 0;
+    border-top: 0;
 }

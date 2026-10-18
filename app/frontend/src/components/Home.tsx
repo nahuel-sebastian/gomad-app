@@ -107,7 +107,7 @@ export default function Home() {
                     </p>
                 )}
 
-                <LocationPicker />
+                <LocationPicker highlight={!origin} />
 
                 {origin && (
                     <section className="panel" aria-labelledby="actividades-titulo">
@@ -159,7 +159,7 @@ export default function Home() {
 
                     <Link
                         to="/perfil"
-                        className="panel panel--action prefs gomad-action gomad-action-adjust-preferences">
+                        className={`panel panel--action prefs${origin ? "" : " prefs--compact"} gomad-action gomad-action-adjust-preferences`}>
                         <span className="surprise__tile" aria-hidden="true">
                             <Icon name="settings" />
                         </span>
