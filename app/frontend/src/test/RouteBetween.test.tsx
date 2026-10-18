@@ -139,6 +139,9 @@ describe("Ruta entre dos direcciones", () => {
         await user.click(screen.getByRole("button", { name: "Calcular ruta" }));
         await screen.findByRole("list", { name: "Resumen de la ruta" });
         expect(container.querySelector(".gomad-results .map-demo")).not.toBeNull();
+        // sin boton de leyenda en esta pantalla
+        expect(screen.queryByRole("button", { name: /Leyenda/i })).toBeNull();
+        expect(container.querySelector(".results-legend-slot")).toBeNull();
         const handle = screen.getByRole("button", { name: "Mostrar detalles de la ruta" });
         expect(handle).toHaveAttribute("aria-expanded", "false");
         await user.click(handle);

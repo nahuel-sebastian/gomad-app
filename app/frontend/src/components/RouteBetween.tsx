@@ -117,7 +117,6 @@ export default function RouteBetween() {
     const [route, setRoute] = useState<RouteState>({ status: "idle" });
     const [kind, setKind] = useState<"healthy" | "direct">("healthy");
     const [announcement, setAnnouncement] = useState("");
-    const [legendSlot, setLegendSlot] = useState<HTMLElement | null>(null);
     // cada intento con el mismo punto vuelve a montar el aviso para que se anuncie otra vez
     const [sameTry, setSameTry] = useState(0);
     const callRef = useRef(0);
@@ -269,9 +268,6 @@ export default function RouteBetween() {
                                     </PageHeading>
                                     <p className="view-subtitle">{`${done.from.label} → ${done.to.label}`}</p>
                                 </div>
-                                <div className="results-header-actions">
-                                    <div className="results-legend-slot" ref={setLegendSlot} />
-                                </div>
                             </div>
 
                             <div className="container results-body route-between__body">
@@ -382,7 +378,8 @@ export default function RouteBetween() {
                         origin={done.from.coordinate}
                         route={variant.geometry}
                         secondaryRoute={other?.geometry}
-                        legendSlot={legendSlot}
+                        // sin boton de leyenda en esta pantalla (null = no se pinta)
+                        legendSlot={null}
                         markers={[
                             {
                                 id: "trayecto-fin",
