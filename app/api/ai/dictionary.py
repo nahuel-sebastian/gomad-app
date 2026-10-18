@@ -19,7 +19,10 @@ REQUIRED = {"interpret": ["activities", "pass_by", "avoid", "avoid_direct", "neg
                           "max_duration_min", "default_activity"],
             "messages": ["medical", "out_of_catalog", "missing_amount", "which_activity", "too_long"],
             "oci": ["timeout_s", "language_code"],
-            "templates": ["summary", "score", "failed", "join_last"]}
+            "templates": ["summary", "score", "failed", "join_last"],
+            "route": ["search_radius_m", "candidates", "pass_by_radius_m", "default_destination", "tolerance",
+                      "avoid_traffic_max_share", "avoid_traffic_weights", "destination_kinds", "poi_kinds", "no_data",
+                      "labels", "endings", "texts"]}
 
 
 @dataclass
@@ -48,6 +51,14 @@ def validate_assistant_config(cfg):
             raise ValueError(f"assistant.yaml: {key} con valores fuera del contrato: {sorted(unknown)}")
     if it["default_activity"] not in ACTIVITIES:
         raise ValueError("assistant.yaml: default_activity fuera del contrato")
+    r = cfg["route"]
+    covered = set(r["destination_kinds"]) | set(r["poi_kinds"]) | set(r["no_data"])
+    if covered != set(PASS_BY):
+        raise ValueError(f"assistant.yaml: route no cubre cada pasar por: {sorted(set(PASS_BY) ^ covered)}")
+    if set(r["labels"]) != set(PASS_BY) | set(AVOID) or not set(r["endings"]) >= covered - set(r["no_data"]):
+        raise ValueError("assistant.yaml: faltan etiquetas o finales de route")
+    if r["default_destination"] not in r["destination_kinds"]:
+        raise ValueError("assistant.yaml: default_destination tiene que ser un destino")
 
 
 def _tokens(text):

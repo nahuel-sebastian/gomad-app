@@ -80,3 +80,14 @@ def test_config_is_valid(cfg):
     bad["interpret"]["pass_by"]["castle"] = ["castillo"]
     with pytest.raises(ValueError):
         validate_assistant_config(bad)
+
+
+def test_config_covers_every_pass_by(cfg):
+    bad = copy.deepcopy(cfg)
+    bad["route"]["poi_kinds"].remove("bench")
+    with pytest.raises(ValueError):
+        validate_assistant_config(bad)
+    bad = copy.deepcopy(cfg)
+    del bad["route"]["labels"]["hills"]
+    with pytest.raises(ValueError):
+        validate_assistant_config(bad)
