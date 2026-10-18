@@ -24,10 +24,22 @@ const VARIANTS = [
 // PDI que se resumen en la ruta (RF-13), en este orden
 const POI_ORDER: PoiType[] = ["fountain", "bench", "aed", "dog_area", "playground", "bin", "toilet", "outdoor_gym", "supermarket"];
 
-function poiSummary(variant: RouteVariant): string[] {
+const POI_ICONS: Record<PoiType, string> = {
+    fountain: "water",
+    bench: "bench",
+    aed: "ecg",
+    dog_area: "pets",
+    playground: "playground",
+    bin: "recycle",
+    toilet: "wc",
+    outdoor_gym: "outdoor_gym",
+    supermarket: "shopping_cart",
+};
+
+function poiSummary(variant: RouteVariant): { type: PoiType; label: string }[] {
     const counts = new Map<PoiType, number>();
     variant.pois.forEach((p) => counts.set(p.type, (counts.get(p.type) ?? 0) + 1));
-    return POI_ORDER.filter((t) => counts.has(t)).map((t) => poiCount(t, counts.get(t)!));
+    return POI_ORDER.filter((t) => counts.has(t)).map((t) => ({ type: t, label: poiCount(t, counts.get(t)!) }));
 }
 
 export default function RouteView() {
@@ -174,7 +186,7 @@ export default function RouteView() {
                                     <strong>{variant.green_pct === null ? "Sin datos" : `${Math.round(variant.green_pct)} %`}</strong>
                                 </li>
                                 <li>
-                                    <span>Junto a tráfico intenso</span>
+                                    <span className="route-metrics__label"><Icon name="traffic" />Junto a tráfico intenso</span>
                                     <strong>{variant.traffic_m > 0 ? formatDistance(variant.traffic_m) : "Ningún tramo"}</strong>
                                 </li>
                                 <li>
@@ -188,7 +200,7 @@ export default function RouteView() {
                                     <h2 className="panel__title">En el camino</h2>
                                     <ul role="list" className="route-pois" aria-label="En la ruta">
                                         {pois.length > 0 ? (
-                                            pois.map((p) => <li key={p}>{p}</li>)
+                                            pois.map((p) => <li key={p.type}><Icon name={POI_ICONS[p.type]} />{p.label}</li>)
                                         ) : (
                                             <li className="route-pois__empty">Sin fuentes, bancos ni desfibriladores registrados en esta ruta.</li>
                                         )}

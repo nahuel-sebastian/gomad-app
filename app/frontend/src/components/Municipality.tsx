@@ -24,13 +24,13 @@ const CATEGORY_ORDER: IndicatorCategory[] = [
 ];
 
 const CATEGORY_ICONS: Record<IndicatorCategory, string> = {
-    sport: "sports_soccer",
-    nature: "park",
-    mobility: "directions_bus",
-    health: "local_hospital",
+    sport: "soccer",
+    nature: "eco",
+    mobility: "navigation",
+    health: "hospital",
     education: "school",
-    connectivity: "signal_cellular_alt",
-    social: "diversity_3",
+    connectivity: "linked",
+    social: "social",
 };
 
 // la unidad solo si aporta algo: «Instalaciones deportivas: 5», no «5 instalaciones»
