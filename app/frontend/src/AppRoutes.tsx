@@ -10,6 +10,7 @@ import Recommendation from "./components/Recommendation";
 import Results from "./components/Results";
 import Sources from "./components/Sources";
 import RouteView from "./components/RouteView";
+import RouteBetween from "./components/RouteBetween";
 
 export default function AppRoutes() {
     return (
@@ -19,6 +20,7 @@ export default function AppRoutes() {
                 <Route path="resultados" element={<Results />} />
                 <Route path="resultados/:id" element={<Recommendation />} />
                 <Route path="ruta/:id" element={<RouteView />} />
+                <Route path="trayecto" element={<RouteBetween />} />
                 <Route path="municipios" element={<Municipalities />} />
                 <Route path="municipios/:ine_code" element={<Municipality />} />
                 <Route path="perfil" element={<Profile />} />
