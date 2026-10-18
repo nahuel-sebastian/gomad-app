@@ -1,4 +1,35 @@
-"""Ruta por distancia objetivo, circular o de ida (RF-22, fila 5)."""
+"""Ruta por distancia objetivo, circular o de ida, con puntos de paso opcionales (RF-22, fila 5).
+
+Interfaz publica (la usa la integracion con el asistente F6, services/assistant.py):
+
+    loop_route(g, origin, target_m, costs, cfg, *, loop=True, waypoints=(), snap_m=0.0,
+               traffic_threshold=0.5, clock=time.perf_counter) -> LoopRoute
+
+    g          routing.graph.Graph de la zona (GraphStore.locate devuelve zona, nodos y distancias de enganche)
+    origin     nodo de origen (int)
+    target_m   distancia objetivo en metros (> 0; si no, ValueError)
+    costs      coste saludable por tramo: edge_costs(g, pesos, routing["cost_floor"]) (el mismo de /route)
+    cfg        settings.load("routing")["loop"]
+    loop       True = vuelve al origen; False = solo ida
+    waypoints  nodos por los que pasar, en ese orden (p. ej. el parque o supermercado mas cercano)
+    snap_m     metros del punto real al nodo de origen; se suman (x 2 si es circular) a length_m
+    traffic_threshold  routing["traffic_display_threshold"], para summary["traffic_m"]
+
+    LoopRoute: edges (ids de tramo en orden), coordinates ([[lon, lat], ...] desde el nodo de origen; sin el
+    tramo de enganche), length_m, target_m, within_tolerance (|length_m - target_m| <= tolerance x target_m),
+    deviation_pct, waypoints (list[Waypoint(node, lon, lat, requested)] en orden de paso; requested=False =
+    elegido por el motor), summary (summarize(): distance_m, green_pct, traffic_m, fountains, benches, aeds),
+    warning (texto para la persona usuaria si no cumple; None si cumple), attempts.
+
+    Excepciones: RouteNotFound si un punto de paso no esta conectado con el origen por la red peatonal.
+    Si no hay ruta dentro de la tolerancia devuelve la mas cercana con within_tolerance=False y warning:
+    nunca finge que cumple. Determinista (sin azar). Los puntos de ruta (route_poi) a lo largo de
+    coordinates se sacan con services.route.PoiIndex, como en /route. No registra nada en logs.
+
+Metodo: subgrafo recortado alrededor del origen; tramos saludables encadenados origen -> puntos pedidos ->
+punto(s) automaticos a ~objetivo/3 elegidos por distancia de red y rumbo -> (origen); los tramos ya
+recorridos se penalizan (reuse_penalty) y se reintenta reescalando y girando el rumbo dentro de time_budget_s.
+"""
 import math
 import time
 from dataclasses import dataclass
