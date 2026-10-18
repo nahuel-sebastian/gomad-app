@@ -134,6 +134,8 @@ export default function Assistant() {
     const [activity, setActivity] = useState<AssistantParams["activity"]>("walk");
     const [distance, setDistance] = useState("5");
     const [duration, setDuration] = useState("");
+    // true si la persona ha escrito distancia o duracion a mano: una aclaracion no se las borra
+    const [amountTouched, setAmountTouched] = useState(false);
     const [loop, setLoop] = useState(true);
     const [passBy, setPassBy] = useState<PassBy[]>([]);
     const [avoid, setAvoid] = useState<Avoid[]>([]);
@@ -142,19 +144,24 @@ export default function Assistant() {
     const [route, setRoute] = useState<RouteState>({ status: "idle" });
     const lastParams = useRef<AssistantParams | null>(null);
 
-    const applyParams = (p: AssistantParams) => {
+    // partial: respuesta con aclaracion. Suma pasar por y evitar a lo marcado a mano y, sin cantidad, solo vacia
+    // la distancia si la persona no la habia escrito (asi el campo vacio casa con «Solo falta la distancia»)
+    const applyParams = (p: AssistantParams, partial = false) => {
         setActivity(p.activity);
-        setDistance(p.distance_km != null ? String(p.distance_km) : "");
-        setDuration(p.duration_min != null ? String(p.duration_min) : "");
+        if (p.distance_km != null || p.duration_min != null || !(partial && amountTouched)) {
+            setDistance(p.distance_km != null ? String(p.distance_km) : "");
+            setDuration(p.duration_min != null ? String(p.duration_min) : "");
+        }
         setLoop(p.loop ?? true);
-        setPassBy(p.pass_by ?? []);
-        setAvoid(p.avoid ?? []);
+        const merge = <T,>(current: T[], next: T[]) => (partial ? [...new Set([...current, ...next])] : next);
+        setPassBy((current) => merge(current, p.pass_by ?? []));
+        setAvoid((current) => merge(current, p.avoid ?? []));
     };
 
     const onInterpret = async (event: FormEvent) => {
         event.preventDefault();
         if (text.trim().length < 3) {
-            setInterpretation({ status: "clarification", text: "Escribe al menos 3 caracteres." });
+            setInterpretation({ status: "clarification", text: "Escribe un poco más. Por ejemplo: «5 km andando por un parque»." });
             return;
         }
         setInterpretation({ status: "loading" });
@@ -164,6 +171,8 @@ export default function Assistant() {
             if (result.rejection) {
                 setInterpretation({ status: "rejection", text: result.rejection });
             } else if (result.clarification) {
+                // puede traer tambien lo que si ha entendido: se apunta en el formulario
+                if (result.params) applyParams(result.params, true);
                 setInterpretation({ status: "clarification", text: result.clarification });
                 textRef.current?.focus();
             } else if (result.params) {
@@ -287,7 +296,7 @@ export default function Assistant() {
                     </p>
                 )}
                 {interpretation.status === "error" && (
-                    <ErrorMessage message="No se pudo interpretar ahora. Rellena los campos a mano." />
+                    <ErrorMessage message="Ahora no puedo interpretar el texto. Rellena los campos de abajo y pulsa «Calcular ruta»." />
                 )}
             </section>
 
@@ -314,9 +323,35 @@ export default function Assistant() {
                         </div>
                     </fieldset>
 
-                    <div className="assistant__measures">
-                        <NumberStepper id={`${textId}-km`} label="Distancia (km)" value={distance} setValue={setDistance} min={0.5} max={42} step={0.5} inputMode="decimal" className="gomad-field-assistant-distance" />
-                        <NumberStepper id={`${textId}-min`} label="Duración (min)" value={duration} setValue={setDuration} min={5} max={480} step={5} inputMode="numeric" className="gomad-field-assistant-duration" />
+                                        <div className="assistant__measures">
+                        <NumberStepper
+                            id={`${textId}-km`}
+                            label="Distancia (km)"
+                            value={distance}
+                            setValue={(value) => {
+                                setDistance(value);
+                                setAmountTouched(true);
+                            }}
+                            min={0.5}
+                            max={42}
+                            step={0.5}
+                            inputMode="decimal"
+                            className="gomad-field-assistant-distance"
+                        />
+                        <NumberStepper
+                            id={`${textId}-min`}
+                            label="Duración (min)"
+                            value={duration}
+                            setValue={(value) => {
+                                setDuration(value);
+                                setAmountTouched(true);
+                            }}
+                            min={5}
+                            max={480}
+                            step={5}
+                            inputMode="numeric"
+                            className="gomad-field-assistant-duration"
+                        />
                     </div>
 
                     <fieldset className="prefs-form__group">

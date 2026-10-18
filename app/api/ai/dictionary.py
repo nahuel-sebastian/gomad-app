@@ -14,10 +14,11 @@ AVOID = get_args(s.AssistantParams.model_fields["avoid"].annotation.__args__[0])
 ACTIVITIES = get_args(s.AssistantParams.model_fields["activity"].annotation)
 PUNCTUATION = set(",.;:!?¿¡")
 REQUIRED = {"interpret": ["activities", "pass_by", "avoid", "avoid_direct", "negations", "negation_window",
-                          "negation_breaks", "round_trip", "one_way", "whole_words", "clock_prefixes", "clock_numbers", "out_of_catalog", "medical", "distance_units",
+                          "negation_breaks", "round_trip", "one_way", "whole_words", "clock_prefixes", "clock_numbers", "out_of_catalog", "out_of_catalog_in_recommender", "medical", "distance_units",
                           "duration_units", "duration_phrases", "quantity_entity_types", "max_distance_km",
                           "max_duration_min", "default_activity"],
-            "messages": ["medical", "out_of_catalog", "missing_amount", "which_activity", "too_long"],
+            "messages": ["medical", "not_understood", "out_of_catalog_named", "out_of_catalog_where",
+                         "missing_amount", "which_activity", "too_long", "understood"],
             "oci": ["timeout_s", "language_code", "cooldown_s"],
             "templates": ["summary", "score", "failed", "join_last"],
             "route": ["search_radius_m", "candidates", "pass_by_radius_m", "default_destination",
@@ -51,6 +52,14 @@ def validate_assistant_config(cfg):
             raise ValueError(f"assistant.yaml: {key} con valores fuera del contrato: {sorted(unknown)}")
     if it["default_activity"] not in ACTIVITIES:
         raise ValueError("assistant.yaml: default_activity fuera del contrato")
+    if not set(it["out_of_catalog_in_recommender"]) <= set(it["out_of_catalog"]):
+        raise ValueError("assistant.yaml: out_of_catalog_in_recommender con actividades que no estan en out_of_catalog")
+    understood = cfg["messages"]["understood"]
+    missing = {"sentence", "activities", "round_trip", "one_way", "distance", "duration", "pass_by", "avoid",
+               "labels"} - set(understood)
+    if missing or set(understood["activities"]) != set(ACTIVITIES) \
+            or set(understood["labels"]) != set(PASS_BY) | set(AVOID):
+        raise ValueError(f"assistant.yaml: messages.understood incompleto: {sorted(missing) or 'activities'}")
     r = cfg["route"]
     covered = set(r["destination_kinds"]) | set(r["poi_kinds"]) | set(r["no_data"])
     if covered != set(PASS_BY):
@@ -151,8 +160,8 @@ def interpret_text(text, analysis, cfg):
     simple = lambda name: {name: {name: it[name]}}
     found = _matches(full, {"activity": it["activities"], "pass_by": it["pass_by"], "avoid": it["avoid"],
                             "avoid_direct": it["avoid_direct"], **simple("round_trip"), **simple("one_way"),
-                            **simple("out_of_catalog"), **simple("medical")}, set(it["whole_words"]))
-    groups = {}
+                            "out_of_catalog": it["out_of_catalog"], **simple("medical")}, set(it["whole_words"]))
+    groups, other = {}, []
     # lo que ya menciona el texto lo decide el texto (con sus negaciones): una frase de OCI suelta («supermercado»
     # de «sin pasar por supermercado») no lo deshace; OCI solo suma valores que el texto no menciona
     in_text = {(group, value) for start, _, group, value in found if start < len(base)}
@@ -169,23 +178,60 @@ def interpret_text(text, analysis, cfg):
         if group == "round_trip" and negated:
             group = "one_way"              # «no quiero volver»
         groups.setdefault("avoid" if group == "avoid_direct" else group, set()).add(value)
+        if group == "out_of_catalog":
+            other.append(value)            # en orden de aparicion: se nombra la primera
     if "medical" in groups:
         return _answer(rejection=messages["medical"])
-    if "out_of_catalog" in groups:
-        return _answer(rejection=messages["out_of_catalog"])
+    if other:
+        return _answer(rejection=_out_of_catalog(other[0], it, messages))
     activities = groups.get("activity", set())
-    if len(activities) > 1:
-        return _answer(clarification=messages["which_activity"])
     km, minutes = _amounts(base, analysis, it)
-    if km is None and minutes is None:
-        return _answer(clarification=messages["missing_amount"])
-    if (km or 0) > it["max_distance_km"] or (minutes or 0) > it["max_duration_min"]:
-        return _answer(clarification=messages["too_long"])
+    if not groups and km is None and minutes is None:
+        return _answer(clarification=messages["not_understood"])
+    too_long = (km or 0) > it["max_distance_km"] or (minutes or 0) > it["max_duration_min"]
+    if too_long:
+        km = minutes = None                # se pide otra cantidad; el resto de lo entendido se conserva
     params = s.AssistantParams(
-        activity=next(iter(activities)) if activities else it["default_activity"],
+        activity=next(iter(activities)) if len(activities) == 1 else it["default_activity"],
         distance_km=None if km is None else round(km, 2),
         duration_min=None if minutes is None or km is not None else max(1, round(minutes)),
         loop="round_trip" in groups or "one_way" not in groups,
         pass_by=[p for p in PASS_BY if p in groups.get("pass_by", set())],
         avoid=[a for a in AVOID if a in groups.get("avoid", set())])
-    return _answer(params=params)
+    # una sola pregunta cada vez, delante lo que ya se ha apuntado (va tambien en params para el formulario)
+    problem = ("which_activity" if len(activities) > 1 else "too_long" if too_long
+               else "missing_amount" if km is None and minutes is None else None)
+    if problem is None:
+        return _answer(params=params)
+    return _answer(params=params, clarification=_understood(groups, params, cfg) + messages[problem])
+
+
+def _out_of_catalog(activity, it, messages):
+    """Rechazo que nombra la actividad («... rutas para nadar») y, si la busca el recomendador, donde buscarla."""
+    text = messages["out_of_catalog_named"].format(activity=activity)
+    if activity in it["out_of_catalog_in_recommender"]:
+        text += messages["out_of_catalog_where"].format(activity=activity)
+    return text
+
+
+def _join(items, cfg):
+    return items[0] if len(items) == 1 else ", ".join(items[:-1]) + cfg["templates"]["join_last"] + items[-1]
+
+
+def _understood(groups, params, cfg):
+    """«He apuntado: caminar, 5 km, pasar por un parque. » con lo que dice el texto; vacio si no hay nada que listar."""
+    u = cfg["messages"]["understood"]
+    labels, items = u["labels"], []
+    if len(groups.get("activity", ())) == 1:
+        items.append(u["activities"][params.activity])
+    if params.distance_km is not None:
+        items.append(u["distance"].format(km=f"{params.distance_km:g}".replace(".", ",")))
+    elif params.duration_min is not None:
+        items.append(u["duration"].format(minutes=params.duration_min))
+    if "round_trip" in groups or "one_way" in groups:
+        items.append(u["round_trip"] if params.loop else u["one_way"])
+    if params.pass_by:
+        items.append(u["pass_by"].format(labels=_join([labels[p] for p in params.pass_by], cfg)))
+    if params.avoid:
+        items.append(u["avoid"].format(labels=_join([labels[a] for a in params.avoid], cfg)))
+    return u["sentence"].format(items=", ".join(items)) if items else ""

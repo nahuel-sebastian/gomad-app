@@ -34,7 +34,61 @@ describe("Asistente de rutas", () => {
         const { user } = renderAt("/asistente", { origin: SAMPLE_ORIGIN });
         await user.type(screen.getByLabelText("¿Qué ruta quieres?"), "5 km con fuentes");
         await user.click(screen.getByRole("button", { name: "Interpretar" }));
-        expect(await screen.findByText("No se pudo interpretar ahora. Rellena los campos a mano.")).toBeInTheDocument();
+        expect(
+            await screen.findByText("Ahora no puedo interpretar el texto. Rellena los campos de abajo y pulsa «Calcular ruta»."),
+        ).toBeInTheDocument();
+    });
+
+    it("con texto demasiado corto pide un poco mas con un ejemplo", async () => {
+        const spy = vi.spyOn(assistantApi, "interpret");
+        const { user } = renderAt("/asistente", { origin: SAMPLE_ORIGIN });
+        await user.type(screen.getByLabelText("¿Qué ruta quieres?"), "ok");
+        await user.click(screen.getByRole("button", { name: "Interpretar" }));
+        expect(
+            await screen.findByText("Escribe un poco más. Por ejemplo: «5 km andando por un parque».", { selector: ".notice" }),
+        ).toBeInTheDocument();
+        expect(spy).not.toHaveBeenCalled();
+    });
+
+    const CLARIFICATION =
+        "He apuntado: caminar, pasar por un área canina. Solo falta la distancia o el tiempo: por ejemplo, «5 km» o «45 minutos».";
+    const partial = () =>
+        vi.spyOn(assistantApi, "interpret").mockResolvedValueOnce({
+            params: { activity: "walk", distance_km: null, duration_min: null, loop: true, pass_by: ["dog_area"], avoid: [] },
+            clarification: CLARIFICATION,
+            rejection: null,
+        });
+
+    it("con aclaracion sin cantidad vacia la distancia por defecto si no la has tocado", async () => {
+        partial();
+        const { user } = renderAt("/asistente", { origin: SAMPLE_ORIGIN });
+        expect(screen.getByLabelText("Distancia (km)")).toHaveValue(5);
+        await user.type(screen.getByLabelText("¿Qué ruta quieres?"), "pasear con el perro");
+        await user.click(screen.getByRole("button", { name: "Interpretar" }));
+        expect(await screen.findByText(CLARIFICATION, { selector: ".notice" })).toBeInTheDocument();
+        expect(screen.getByLabelText("Distancia (km)")).toHaveValue(null);
+        expect(screen.getByLabelText("o duración (min)")).toHaveValue(null);
+    });
+
+    it("con aclaracion y params rellena lo entendido, conserva lo escrito a mano y anuncia la aclaracion", async () => {
+        const clarification = CLARIFICATION;
+        partial();
+        const { user } = renderAt("/asistente", { origin: SAMPLE_ORIGIN });
+        const distance = screen.getByLabelText("Distancia (km)");
+        await user.clear(distance);
+        await user.type(distance, "3");
+        const passBy = screen.getByRole("group", { name: "Pasar por" });
+        await user.click(within(passBy).getByRole("checkbox", { name: "Parque" }));
+        await user.click(within(screen.getByRole("group", { name: "Evitar" })).getByRole("checkbox", { name: "Cuestas" }));
+        await user.type(screen.getByLabelText("¿Qué ruta quieres?"), "pasear con el perro");
+        await user.click(screen.getByRole("button", { name: "Interpretar" }));
+        expect(await screen.findByText(clarification, { selector: ".notice" })).toBeInTheDocument();
+        expect(within(passBy).getByRole("checkbox", { name: "Área canina" })).toBeChecked();
+        expect(within(passBy).getByRole("checkbox", { name: "Parque" })).toBeChecked();
+        expect(within(screen.getByRole("group", { name: "Evitar" })).getByRole("checkbox", { name: "Cuestas" })).toBeChecked();
+        expect(screen.getByLabelText("Distancia (km)")).toHaveValue(3);
+        expect(screen.getByRole("status")).toHaveTextContent(clarification);
+        await waitFor(() => expect(screen.getByLabelText("¿Qué ruta quieres?")).toHaveFocus());
     });
 
     it("interpreta el texto, rellena los controles y solo envia el texto", async () => {
@@ -67,7 +121,7 @@ describe("Asistente de rutas", () => {
         const { user } = renderAt("/asistente", { origin: SAMPLE_ORIGIN });
         await user.type(screen.getByLabelText("¿Qué ruta quieres?"), "quiero dar un paseo");
         await user.click(screen.getByRole("button", { name: "Interpretar" }));
-        expect(await screen.findByText(/¿Qué distancia o cuánto tiempo/, { selector: ".notice" })).toBeInTheDocument();
+        expect(await screen.findByText(/Solo falta la distancia o el tiempo/, { selector: ".notice" })).toBeInTheDocument();
         await waitFor(() => expect(screen.getByLabelText("¿Qué ruta quieres?")).toHaveFocus());
     });
 

@@ -14,7 +14,18 @@ import { routeMock } from "./route";
 // sin LLM, DEC-03). Solo imita la forma de la respuesta.
 
 const MEDICAL = /m[eé]dic|tensi[oó]n|coraz[oó]n|asma|dolor|enfermedad|lesi[oó]n|medicaci[oó]n|pastilla|diabetes/;
-const OUT_OF_CATALOG = /\b(nadar|bici|bicicleta|patinar|esqu[ií]|escalar)\b/;
+// otra actividad -> como se nombra en el rechazo y si la busca «¿Qué te apetece hacer?» (como assistant.yaml)
+const OUT_OF_CATALOG: [RegExp, string, boolean][] = [
+    [/\b(nadar|piscina)\b/, "nadar", true],
+    [/\bbici/, "montar en bici", false],
+    [/\bpatin/, "patinar", false],
+    [/\besqu[ií]/, "esquiar", false],
+    [/\bescala/, "escalar", false],
+];
+const WALK_OR_RUN = /corr|running|trot|camin|andar|andando|pase/;
+const MISSING_AMOUNT = "Solo falta la distancia o el tiempo: por ejemplo, «5 km» o «45 minutos».";
+const NOT_UNDERSTOOD =
+    "No he entendido qué ruta buscas. Dime cuánto quieres andar o correr y por dónde; por ejemplo: «5 km andando por un parque con fuentes». También puedes rellenar los campos de abajo.";
 
 const PASS_BY_WORDS: [RegExp, PassBy][] = [
     [/parque/, "park"],
@@ -32,15 +43,17 @@ export function interpretMock(text: string): InterpretResponse {
             params: null,
             clarification: null,
             rejection:
-                "No puedo responder a eso: GoMad no da consejo médico. Consulta a tu centro de salud. Puedo ayudarte a planear una ruta a pie.",
+                "No puedo ayudarte con eso: GoMad no da consejo médico. Consulta a tu centro de salud. Sí puedo prepararte una ruta para caminar o correr.",
         };
     }
-    if (OUT_OF_CATALOG.test(t)) {
+    const other = OUT_OF_CATALOG.find(([re]) => re.test(t));
+    if (other) {
+        const [, name, inRecommender] = other;
+        const where = inRecommender ? ` Para buscar dónde ${name}, usa «¿Qué te apetece hacer?» en Mi entorno.` : "";
         return {
             params: null,
             clarification: null,
-            rejection:
-                "El asistente solo prepara rutas para caminar o correr. Para otras actividades, usa «¿Qué te apetece hacer?» en Mi entorno.",
+            rejection: `El asistente no prepara rutas para ${name}: solo para caminar o correr.${where}`,
         };
     }
     const km = /(\d+(?:[.,]\d+)?)\s*(km|kil[oó]metros?)/.exec(t);
@@ -48,13 +61,6 @@ export function interpretMock(text: string): InterpretResponse {
     const hours = /(\d+(?:[.,]\d+)?)\s*(h|horas?)\b/.exec(t);
     const distance = km ? Number(km[1].replace(",", ".")) : null;
     const duration = min ? Number(min[1]) : hours ? Math.round(Number(hours[1].replace(",", ".")) * 60) : null;
-    if (distance === null && duration === null) {
-        return {
-            params: null,
-            clarification: "¿Qué distancia o cuánto tiempo quieres andar o correr? Por ejemplo: «5 km» o «45 minutos».",
-            rejection: null,
-        };
-    }
     const params: AssistantParams = {
         activity: /corr|running|trot/.test(t) ? "run" : "walk",
         distance_km: distance !== null ? Math.min(42, distance) : null,
@@ -72,6 +78,13 @@ export function interpretMock(text: string): InterpretResponse {
             ...(/cuesta|pendiente|subida|llano/.test(t) ? (["hills"] as const) : []),
         ],
     };
+    if (distance === null && duration === null) {
+        // como el diccionario: sin nada del catalogo, no entendido; si no, lo entendido y que falta la cantidad
+        const understood = WALK_OR_RUN.test(t) || params.pass_by.length > 0 || params.avoid.length > 0;
+        return understood
+            ? { params, clarification: MISSING_AMOUNT, rejection: null }
+            : { params: null, clarification: NOT_UNDERSTOOD, rejection: null };
+    }
     return { params, clarification: null, rejection: null };
 }
 
