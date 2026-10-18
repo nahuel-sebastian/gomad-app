@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import type { AqiCategory } from "../api/types";
-import { aqiLabel, type Tone } from "../lib/labels";
+import { AQI_LEVEL, AQI_LEVELS, aqiLabel, type Tone } from "../lib/labels";
 import Icon from "./Icon";
 
 interface ChipProps {
@@ -19,12 +19,26 @@ export default function Chip({ tone, icon, children }: ChipProps) {
     );
 }
 
-// Pastilla del ICA con un tono legible por categoría y el texto del BOE
+// Pastilla del ICA: fondo con el color de la categoria oficial (codigo de colores del equipo),
+// texto con la categoria; el nivel queda para lectores y en el title
 export function AqiChip({ category }: { category: AqiCategory | null }) {
+    if (!category) {
+        return (
+            <span className="chip chip--aqi-nodata gomad-component gomad-aqi-chip">
+                <Icon name="air" />
+                Aire: sin datos
+            </span>
+        );
+    }
+    const level = AQI_LEVEL[category];
     return (
-        <span className={`chip chip--aqi-${category ?? "nodata"} gomad-component gomad-aqi-chip`}>
+        <span
+            className={`chip chip--aqi-${category} gomad-component gomad-aqi-chip`}
+            title={`Índice oficial de calidad del aire: ${aqiLabel(category)} (nivel ${level} de ${AQI_LEVELS})`}
+        >
             <Icon name="air" />
-            {category === "fair" ? "Aire razonablemente bueno" : category ? `Aire ${aqiLabel(category).toLowerCase()}` : "Aire: sin datos"}
+            Aire: {aqiLabel(category)}
+            <span className="sr-only"> (índice oficial, nivel {level} de {AQI_LEVELS})</span>
         </span>
     );
 }

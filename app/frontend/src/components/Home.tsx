@@ -31,7 +31,7 @@ function useMoment() {
 function momentText(municipality: string, hour: MomentHour): string {
     if (!hour) return "";
     const temp = hour.temperature_c === null ? "temperatura sin datos" : `${hour.temperature_c} °C`;
-    return `Ahora en ${municipality}: ${temp}, aire ${aqiLabel(hour.aqi_category).toLowerCase()}.`;
+    return `Ahora en ${municipality}: ${temp}, ${hour.aqi_category ? `aire ${aqiLabel(hour.aqi_category).toLowerCase()}` : "aire sin datos"}.`;
 }
 
 function MomentChips({ hour, failed }: { hour: MomentHour; failed: boolean }) {

@@ -27,6 +27,17 @@ export function aqiLabel(category: AqiCategory | null): string {
     return category ? AQI_LABELS[category] : "Sin datos";
 }
 
+// Nivel de cada categoria del ICA en la escala de 6
+export const AQI_LEVEL: Record<AqiCategory, number> = {
+    good: 1,
+    fair: 2,
+    moderate: 3,
+    poor: 4,
+    very_poor: 5,
+    extremely_poor: 6,
+};
+export const AQI_LEVELS = 6;
+
 export const DESTINATION_TYPE_LABELS: Record<DestinationSummary["type"], string> = {
     facility: "Instalación deportiva",
     park: "Parque",

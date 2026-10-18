@@ -127,18 +127,22 @@
   --chip-info-fg: #12395b;
   --chip-nodata-bg: #e9eef2;
   --chip-nodata-fg: #40566a;
-  --chip-aqi-good-bg: #c8edf8;
-  --chip-aqi-good-fg: #12395b;
-  --chip-aqi-fair-bg: #e7f2fb;
-  --chip-aqi-fair-fg: #12395b;
-  --chip-aqi-moderate-bg: #fff3c4;
-  --chip-aqi-moderate-fg: #6d4a00;
-  --chip-aqi-poor-bg: #fbe0de;
-  --chip-aqi-poor-fg: #8c2025;
-  --chip-aqi-very-poor-bg: #f3d9df;
-  --chip-aqi-very-poor-fg: #6e1630;
-  --chip-aqi-extremely-poor-bg: #efdef2;
-  --chip-aqi-extremely-poor-fg: #632271;
+  /* escala del ICA con el codigo de colores del equipo, en el estilo de las demas chips:
+     fondo suave (tinte del color) y texto oscuro del mismo tono (contraste >= 7:1) */
+  --chip-aqi-good-bg: #e3f2f8;
+  --chip-aqi-good-fg: #1e566d;
+  --chip-aqi-fair-bg: #e2f2e8;
+  --chip-aqi-fair-fg: #1c5a35;
+  --chip-aqi-moderate-bg: #fbf7c8;
+  --chip-aqi-moderate-fg: #5c571c;
+  --chip-aqi-poor-bg: #f7e3e4;
+  --chip-aqi-poor-fg: #8c242d;
+  --chip-aqi-very-poor-bg: #ebdedf;
+  --chip-aqi-very-poor-fg: #6e161d;
+  --chip-aqi-extremely-poor-bg: #f2e8f2;
+  --chip-aqi-extremely-poor-fg: #6b3c6c;
+  --chip-aqi-nodata-bg: #e7e8e8;
+  --chip-aqi-nodata-fg: #484c4f;
 }
 
 @layer base, responsive;
@@ -1032,8 +1036,8 @@
   }
 
   .chip--aqi-nodata {
-    background: var(--chip-nodata-bg);
-    color: var(--chip-nodata-fg);
+    background: var(--chip-aqi-nodata-bg);
+    color: var(--chip-aqi-nodata-fg);
   }
 
   .gomad-home {

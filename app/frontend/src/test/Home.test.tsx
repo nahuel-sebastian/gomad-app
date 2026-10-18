@@ -187,7 +187,7 @@ describe("Inicio", () => {
             name: "Ahora en tu zona",
         });
         await waitFor(() => expect(state).toHaveTextContent("22 °C"));
-        expect(state).toHaveTextContent(/Aire razonablemente buena/);
+        expect(state).toHaveTextContent("Aire: Razonablemente buena");
     });
 
     it("hace que toda la tarjeta de preferencias enlace al perfil y la compone como Sorpréndeme", () => {
