@@ -131,13 +131,14 @@
   --chip-aqi-good-fg: #12395b;
   --chip-aqi-fair-bg: #d5f0e6;
   --chip-aqi-fair-fg: #0f4a37;
-  /* escala del ICA con los colores del BOE (BOE-A-2020-10426) */
-  --aqi-1: #50f0e6;
-  --aqi-2: #50ccaa;
-  --aqi-3: #f0e641;
-  --aqi-4: #ff5050;
-  --aqi-5: #960032;
-  --aqi-6: #7d2181;
+  /* escala del ICA: buena, razonablemente buena, regular, desfavorable, muy y extremadamente desfavorable */
+  --aqi-1: rgb(56 162 206);
+  --aqi-2: rgb(50 161 94);
+  --aqi-3: rgb(241 229 73);
+  --aqi-4: rgb(200 52 65);
+  --aqi-5: rgb(110 22 29);
+  --aqi-6: rgb(162 91 164);
+  --aqi-nodata: rgb(85 89 93);
   --chip-aqi-moderate-bg: #fff3c4;
   --chip-aqi-moderate-fg: #6d4a00;
   --chip-aqi-poor-bg: #fbe0de;

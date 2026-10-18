@@ -20,7 +20,7 @@ export default function Chip({ tone, icon, children }: ChipProps) {
 }
 
 // Pastilla del ICA en lenguaje llano: como esta el aire, que supone y una escala de 6 niveles
-// con los colores del BOE; la categoria oficial queda en el texto para lectores y en el title
+// con los colores del equipo; la categoria oficial queda en el texto para lectores y en el title
 export function AqiChip({ category }: { category: AqiCategory | null }) {
     if (!category) {
         return (
