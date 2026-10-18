@@ -81,8 +81,8 @@ describe("Perfil", () => {
 
     it("ajusta los tres filtros por sus pasos con botones accesibles", async () => {
         const { user } = renderAt("/perfil");
-        expect(screen.getByRole("button", { name: "Aumentar tiempo disponible" }).querySelector(".icon-add_24dp_1F1F1F_FILL1_wght400_GRAD0_opsz24")).toBeInTheDocument();
-        expect(screen.getByRole("button", { name: "Disminuir tiempo disponible" }).querySelector(".icon-remove_24dp_1F1F1F_FILL1_wght400_GRAD0_opsz24")).toBeInTheDocument();
+        expect(screen.getByRole("button", { name: "Aumentar tiempo disponible" }).querySelector(".icon-add")).toBeInTheDocument();
+        expect(screen.getByRole("button", { name: "Disminuir tiempo disponible" }).querySelector(".icon-remove")).toBeInTheDocument();
         await user.click(screen.getByRole("button", { name: "Aumentar tiempo disponible" }));
         expect(screen.getByRole("slider", { name: "Tiempo disponible" })).toHaveAttribute("aria-valuetext", "50 minutos");
         expect(screen.getByRole("slider", { name: "Tiempo disponible" }).closest(".pref-slider")).toHaveTextContent("50 min");

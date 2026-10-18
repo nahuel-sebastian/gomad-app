@@ -164,7 +164,7 @@ export default function PreferencesForm({ inPanel = false, compact = false }: { 
                     <p className="muted">Cargando pesos…</p>
                 ) : (
                     <>
-                        <ul className="weight-options">
+                        <ul role="list" className="weight-options">
                             {FACTORS.map((f) => (
                                 <li key={f} className="weight-options__item">
                                     <fieldset className="weight-option">

@@ -652,20 +652,6 @@
   }
 }
 
-@media (min-width: 48rem) {
-  @layer responsive {
-    .gomad-preferences-dialog {
-      top: 0px;
-      right: 0px;
-      bottom: 0px;
-      left: auto;
-      width: min(27.5rem, 100%);
-      max-height: none;
-      border-radius: 20px 0px 0px 20px;
-    }
-  }
-}
-
 @media (max-width: 47.9375rem) {
   @layer responsive {
     .sources-table thead {
@@ -3022,13 +3008,6 @@
     width: 100%;
   }
 
-  .sheet-overlay {
-    position: fixed;
-    z-index: 80;
-    inset: 0px;
-    background: rgba(18, 57, 91, 0.45);
-  }
-
   .confirm-overlay {
     position: fixed;
     z-index: 100;
@@ -3068,34 +3047,6 @@
     gap: 0.75rem;
   }
 
-  .gomad-preferences-dialog {
-    position: fixed;
-    z-index: 90;
-    right: 0px;
-    bottom: 0px;
-    left: 0px;
-    display: flex;
-    flex-direction: column;
-    gap: 0.75rem;
-    max-height: 88dvh;
-    overflow: hidden;
-    padding: 1.25rem var(--gutter) calc(1.5rem + env(safe-area-inset-bottom));
-    border-radius: 20px 20px 0px 0px;
-    background: var(--surface);
-    box-shadow: rgba(18, 57, 91, 0.2) 0px -8px 24px;
-  }
-
-  .gomad-preferences-dialog:focus {
-    outline: none;
-  }
-
-  .sheet__header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 0.75rem;
-  }
-
   .sheet__title {
     font-size: 1.25rem;
     font-weight: 700;
@@ -3118,14 +3069,6 @@
 
   .gomad-preferences-form.panel {
     margin-bottom: 0;
-  }
-
-  .gomad-preferences-dialog > .prefs-form {
-    flex: 1 1 auto;
-  }
-
-  .gomad-preferences-dialog .gomad-preferences-form {
-    overflow-y: auto;
   }
 
   .prefs-form__footer {
