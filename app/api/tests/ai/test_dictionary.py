@@ -100,3 +100,23 @@ def test_oci_phrases_do_not_undo_negations(cfg):
     p = params("Quiero correr 10 km sin tráfico", cfg, Analysis(entities=[("10 km", "QUANTITY")],
                                                                   phrases=["10 km sin", "tráfico"]))
     assert p.avoid == ["traffic"] and p.distance_km == 10
+
+
+def test_super_is_a_whole_word(cfg):
+    assert params("5 km por la sierra superior", cfg).pass_by == []
+    assert params("5 km y que pase por el súper", cfg).pass_by == ["supermarket"]
+
+
+def test_clock_time_is_not_a_duration(cfg):
+    p = params("a las 20 h 5 km", cfg)
+    assert p.distance_km == 5 and p.duration_min is None
+    assert interpret_text("a las 20 h", None, cfg).clarification is not None
+
+
+@pytest.mark.parametrize("text,loop", [
+    ("5 km ida y vuelta", True), ("5 km y volver a casa", True), ("5 km circular", True), ("5 km de vuelta", True),
+    ("5 km solo ida", False), ("5 km sin volver", False), ("5 km hasta el parque", False),
+    ("5 km hasta el parque y volver", True),
+])
+def test_round_trip_words(cfg, text, loop):
+    assert params(text, cfg).loop is loop

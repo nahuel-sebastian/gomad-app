@@ -14,11 +14,11 @@ AVOID = get_args(s.AssistantParams.model_fields["avoid"].annotation.__args__[0])
 ACTIVITIES = get_args(s.AssistantParams.model_fields["activity"].annotation)
 PUNCTUATION = set(",.;:!?¿¡")
 REQUIRED = {"interpret": ["activities", "pass_by", "avoid", "avoid_direct", "negations", "negation_window",
-                          "negation_breaks", "one_way", "out_of_catalog", "medical", "distance_units",
+                          "negation_breaks", "round_trip", "one_way", "whole_words", "clock_prefixes", "out_of_catalog", "medical", "distance_units",
                           "duration_units", "duration_phrases", "quantity_entity_types", "max_distance_km",
                           "max_duration_min", "default_activity"],
             "messages": ["medical", "out_of_catalog", "missing_amount", "which_activity", "too_long"],
-            "oci": ["timeout_s", "language_code"],
+            "oci": ["timeout_s", "language_code", "cooldown_s"],
             "templates": ["summary", "score", "failed", "join_last"],
             "route": ["search_radius_m", "candidates", "pass_by_radius_m", "default_destination",
                       "avoid_traffic_max_share", "avoid_traffic_weights", "destination_kinds", "poi_kinds", "no_data",
@@ -65,13 +65,14 @@ def _tokens(text):
     return [(m.start(), m.group()) for m in re.finditer(r"\w+|[,.;:!?¿¡]", text)]
 
 
-def _matches(text, groups):
+def _matches(text, groups, whole=()):
     """[(inicio, fin, grupo, valor)] sin solapes: la palabra mas larga gana («parque infantil» frente a «parque»)."""
     found = []
     for group, mapping in groups.items():
         for value, words in mapping.items():
             for word in words:
-                for m in re.finditer(r"(?<!\w)" + re.escape(normalize(word)) + r"\w*", text):
+                tail = r"(?!\w)" if word in whole else r"\w*"
+                for m in re.finditer(r"(?<!\w)" + re.escape(normalize(word)) + tail, text):
                     found.append((m.start(), m.end(), group, value, len(word)))
     found.sort(key=lambda f: (-f[4], f[0]))
     taken, result = [], []
@@ -93,19 +94,31 @@ def _negated(tokens, start, it):
     return False
 
 
-def _quantity(text, units):
+def _clock_at(text, pos, prefixes, before):
+    """True si en pos empieza (before=False) o acaba (before=True) una expresion de hora («a las», «hasta las»)."""
+    for prefix in prefixes:
+        p = normalize(prefix)
+        if before and re.search(r"(?<!\w)" + re.escape(p) + r"\s*$", text[:pos]):
+            return True
+        if not before and re.match(re.escape(p) + r"(?!\w)", text[pos:]):
+            return True
+    return False
+
+
+def _quantity(text, units, clock_prefixes=()):
     alternatives = "|".join(sorted((re.escape(u) for u in units), key=len, reverse=True))
-    m = re.search(r"(\d+(?:[.,]\d+)?)\s*(" + alternatives + r")(?!\w)", text)
-    if not m:
-        return None
-    return float(m.group(1).replace(",", ".")) * units[m.group(2)]
+    for m in re.finditer(r"(\d+(?:[.,]\d+)?)\s*(" + alternatives + r")(?!\w)", text):
+        if _clock_at(text, m.start(), clock_prefixes, before=True):
+            continue                         # «a las 20 h»: una hora del dia, no una duracion
+        return float(m.group(1).replace(",", ".")) * units[m.group(2)]
+    return None
 
 
 def _duration(text, it):
     for phrase, minutes in sorted(it["duration_phrases"].items(), key=lambda kv: -len(kv[0])):
         if re.search(r"(?<!\w)" + re.escape(normalize(phrase)) + r"(?!\w)", text):
             return float(minutes)
-    return _quantity(text, it["duration_units"])
+    return _quantity(text, it["duration_units"], it["clock_prefixes"])
 
 
 def _amounts(text, analysis, it):
@@ -135,8 +148,8 @@ def interpret_text(text, analysis, cfg):
     tokens = _tokens(full)
     simple = lambda name: {name: {name: it[name]}}
     found = _matches(full, {"activity": it["activities"], "pass_by": it["pass_by"], "avoid": it["avoid"],
-                            "avoid_direct": it["avoid_direct"], **simple("one_way"), **simple("out_of_catalog"),
-                            **simple("medical")})
+                            "avoid_direct": it["avoid_direct"], **simple("round_trip"), **simple("one_way"),
+                            **simple("out_of_catalog"), **simple("medical")}, set(it["whole_words"]))
     groups = {}
     # lo que ya menciona el texto lo decide el texto (con sus negaciones): una frase de OCI suelta («supermercado»
     # de «sin pasar por supermercado») no lo deshace; OCI solo suma valores que el texto no menciona
@@ -149,6 +162,10 @@ def interpret_text(text, analysis, cfg):
             continue                       # «con cuestas»: no es evitar
         if group == "pass_by" and negated:
             continue                       # «sin pasar por el super»
+        if group == "one_way" and _clock_at(full, start, it["clock_prefixes"], before=False):
+            continue                       # «hasta las 9»: una hora, no «solo ida»
+        if group == "round_trip" and negated:
+            group = "one_way"              # «no quiero volver»
         groups.setdefault("avoid" if group == "avoid_direct" else group, set()).add(value)
     if "medical" in groups:
         return _answer(rejection=messages["medical"])
@@ -166,7 +183,7 @@ def interpret_text(text, analysis, cfg):
         activity=next(iter(activities)) if activities else it["default_activity"],
         distance_km=None if km is None else round(km, 2),
         duration_min=None if minutes is None or km is not None else max(1, round(minutes)),
-        loop="one_way" not in groups,
+        loop="round_trip" in groups or "one_way" not in groups,
         pass_by=[p for p in PASS_BY if p in groups.get("pass_by", set())],
         avoid=[a for a in AVOID if a in groups.get("avoid", set())])
     return _answer(params=params)

@@ -25,7 +25,10 @@ interpret:
   negations: [sin, ni, evitar, evitando, evita, "no", nada, lejos, poco, poca, menos]
   negation_window: 3             # palabras hacia atras en las que una negacion afecta a la palabra
   negation_breaks: [con, "y", pero, aunque, pasando]   # cortan el alcance de la negacion (tambien la puntuacion); «no» e «y» entre comillas: sin ellas YAML podria leer un booleano
-  one_way: [solo ida, de ida, sin volver, sin vuelta]
+  round_trip: [ida y vuelta, volver, circular, vuelta]   # loop = True (tambien por defecto); gana a one_way
+  one_way: [solo ida, de ida, sin volver, sin vuelta, hasta]   # loop = False
+  whole_words: [super]           # solo como palabra entera («sierra superior» no es un supermercado)
+  clock_prefixes: [a las, a la, sobre las, sobre la, desde las, desde la, hasta las, hasta la, para las, para la]   # «a las 20 h» es una hora, no una duracion
   out_of_catalog: [nadar, natacion, piscina, bici, patin, esqui, escalar, escalada, padel, tenis, futbol,
                    baloncesto, gimnasio]
   medical: [medic, tension, hipertens, corazon, cardiac, infarto, asma, dolor, duele, enfermedad, enfermo,
@@ -46,6 +49,7 @@ messages:
 oci:
   timeout_s: 3              # segundos de conexion y de lectura; despues, solo diccionario (criterio propio)
   language_code: es
+  cooldown_s: 300            # tras un fallo o tiempo agotado, 5 min sin llamar a OCI: solo diccionario (criterio propio)
 
 templates:                       # write_up: la explicacion solo usa datos del motor (RF-23)
   summary: "{summary}."

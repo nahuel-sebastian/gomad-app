@@ -2,6 +2,7 @@
 
 Implementa ai.base.AIProvider. Nunca decide rutas ni comprueba condiciones: eso lo hace el motor."""
 import logging
+import time
 
 from ai.dictionary import interpret_text
 from ai.oci_language import from_env
@@ -19,16 +20,20 @@ def _join(items, last):
 
 
 class RulesProvider:
-    def __init__(self, cfg, language=None):
+    def __init__(self, cfg, language=None, clock=time.monotonic):
         self.cfg = cfg
         self.language = language
+        self.clock = clock
+        self.paused_until = 0.0    # tras un fallo de OCI no se le vuelve a llamar hasta aqui (oci.cooldown_s)
 
     def _analysis(self, text):
-        if self.language is not None:
+        if self.language is not None and self.clock() >= self.paused_until:
             try:
                 return self.language.analyze(text)
             except Exception as e:     # caida, tiempo agotado o permisos: se sigue sin OCI (sin el texto en el log)
-                log.warning("asistente: OCI Language fallo (%s); se usa el diccionario", type(e).__name__)
+                self.paused_until = self.clock() + self.cfg["oci"]["cooldown_s"]
+                log.warning("asistente: OCI Language fallo (%s); diccionario durante %s s",
+                            type(e).__name__, self.cfg["oci"]["cooldown_s"])
         return recorded(text)
 
     def interpret(self, text):

@@ -55,3 +55,17 @@ def test_write_up_templates(cfg):
 def test_build_provider_without_credentials(cfg):
     provider = build_provider(cfg, {})
     assert provider.language is None
+
+
+def test_oci_failure_pauses_oci(cfg):
+    now = [1000.0]
+    language = FakeLanguage(error=TimeoutError("colgado"))
+    provider = RulesProvider(cfg, language, clock=lambda: now[0])
+    provider.interpret("5 km con fuentes")
+    provider.interpret("5 km con bancos")
+    assert len(language.texts) == 1                        # en pausa: directo al diccionario
+    now[0] += cfg["oci"]["cooldown_s"] + 1
+    language.error, language.analysis = None, Analysis()
+    assert provider.interpret("5 km con bancos").params.pass_by == ["bench"]
+    assert len(language.texts) == 2                        # pasada la pausa, se vuelve a probar OCI
+    assert cfg["own_criterion"] is True
