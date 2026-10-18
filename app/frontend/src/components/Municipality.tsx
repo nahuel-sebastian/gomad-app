@@ -5,6 +5,7 @@ import { ApiError } from "../data/errors";
 import { getMunicipality, listMunicipalities } from "../data/municipality";
 import { useAsync } from "../data/useAsync";
 import { formatNumber } from "../lib/format";
+import { normalize } from "../lib/text";
 import { CATEGORY_LABELS } from "../lib/labels";
 import { useAppState } from "../state/context";
 import ErrorMessage from "./ErrorMessage";
@@ -32,20 +33,30 @@ const CATEGORY_ICONS: Record<IndicatorCategory, string> = {
     social: "diversity_3",
 };
 
+// la unidad solo si aporta algo: «Instalaciones deportivas: 5», no «5 instalaciones»
+function valueText(indicator: Indicator): string {
+    const value = formatNumber(indicator.value ?? 0);
+    const unit = indicator.unit.trim();
+    if (!unit || normalize(indicator.label).includes(normalize(unit))) return value;
+    return `${value} ${unit}`;
+}
+
 function IndicatorValue({ indicator }: { indicator: Indicator }) {
-    const meta = [indicator.year, indicator.source.label].filter(Boolean).join(" · ");
     return (
         <dd className="gomad-component gomad-indicator-value">
             {indicator.value === null ? (
                 <strong className="indicator__nodata">Sin datos</strong>
             ) : (
-                <strong>
-                    {formatNumber(indicator.value)} {indicator.unit}
-                </strong>
+                <strong>{valueText(indicator)}</strong>
             )}
-            <small>{meta}</small>
         </dd>
     );
+}
+
+// fuentes de la tarjeta una sola vez al pie (RF-19), sin repetirlas en cada dato
+function sourcesText(items: Indicator[]): string {
+    const labels = items.map((i) => (i.year ? `${i.source.label}, ${i.year}` : i.source.label));
+    return [...new Set(labels)].join(" · ");
 }
 
 export default function Municipality() {
@@ -101,7 +112,8 @@ export default function Municipality() {
         <section className="container page muni gomad-component gomad-municipality" aria-labelledby="municipio-titulo">
             <Link to="/municipios" className="back-button gomad-action gomad-action-view-municipalities">
                 <Icon name="arrow_left" />
-                Todos los municipios
+                Volver
+                <span className="sr-only"> a todos los municipios</span>
             </Link>
 
             <PageHeading className="view-title" id="municipio-titulo" title={m?.name ?? "Municipio"}>
@@ -145,6 +157,9 @@ export default function Municipality() {
                                             </div>
                                         ))}
                                     </dl>
+                                    <p className="muni__sources">
+                                        {items.length > 1 ? "Fuentes" : "Fuente"}: {sourcesText(items)}
+                                    </p>
                                 </section>
                             );
                         })}
