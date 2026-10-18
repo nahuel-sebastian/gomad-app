@@ -123,10 +123,9 @@
     background: var(--pin-color, var(--navy));
 }
 
-.map-marker--pin svg {
-    width: 1rem;
-    height: 1rem;
-    fill: #ffffff;
+.map-marker--pin .icon {
+    color: #ffffff;
+    font-size: 1rem;
 }
 
 /* punta blanca hacia el lugar */
@@ -165,9 +164,8 @@
     outline-offset: 1px;
 }
 
-.map-marker--pin.map-marker--selected svg {
-    width: 1.25rem;
-    height: 1.25rem;
+.map-marker--pin.map-marker--selected .icon {
+    font-size: 1.25rem;
 }
 
 .map-marker--pin.map-marker--selected .map-marker__number {
@@ -196,10 +194,9 @@
     box-shadow: 0 0 0 1px var(--border);
 }
 
-.map-legend__icon svg {
-    width: 1rem;
-    height: 1rem;
-    fill: #ffffff;
+.map-legend__icon .icon {
+    color: #ffffff;
+    font-size: 0.875rem;
 }
 
 .map-legend__icon--live {

@@ -17,6 +17,7 @@ import { lineCoordinates } from "../lib/geometry";
 import MapLegend from "./MapLegend";
 import MapPin from "./MapPin";
 import { pinImage, PIN_HEIGHT, PIN_PIXEL_RATIO } from "./mapPinImage";
+import { KIND_ORDER, KIND_STYLES } from "./mapIcons";
 import type { MapViewProps } from "./MapView";
 import {
     boundsOf,
@@ -75,17 +76,46 @@ type StyleImageMap = {
     setMissingStyleImageResolver(resolver: (id: string) => void): unknown;
     hasImage(id: string): boolean;
     addImage(id: string, image: ImageData, options: { pixelRatio: number }): unknown;
+    updateImage?(id: string, image: ImageData): unknown;
+    isStyleLoaded?(): boolean;
 };
 
 // MapLibre pide cada imagen de pin la primera vez que la necesita (tambien tras setStyle). En
 // MapLibre 6 el evento «styleimagemissing» llega tarde para esa peticion: el icono no salia hasta
 // mover el mapa otra vez. El resolvedor si la resuelve en el momento.
-function registerPinImages(map: StyleImageMap) {
+function registerPinImages(map: StyleImageMap, fontReady: { current: boolean }) {
     map.setMissingStyleImageResolver((id) => {
         if (map.hasImage(id)) return;
-        const image = pinImage(id);
+        const image = pinImage(id, fontReady.current);
         if (image) map.addImage(id, image, { pixelRatio: PIN_PIXEL_RATIO });
     });
+}
+
+// Las imagenes deben estar en el estilo antes de que la capa nearby las solicite.
+// El resolvedor anterior sigue cubriendo cambios de estilo y peticiones posteriores.
+function preloadPinImages(map: StyleImageMap, fontReady: boolean) {
+    if (typeof map.hasImage !== "function" || typeof map.addImage !== "function") return;
+    for (const kind of KIND_ORDER) {
+        for (const id of [`pin-${kind}`, `pin-off-${kind}`]) {
+            if (map.hasImage(id)) continue;
+            const image = pinImage(id, fontReady);
+            if (image) map.addImage(id, image, { pixelRatio: PIN_PIXEL_RATIO });
+        }
+    }
+}
+
+function upgradeFontPinImages(map: StyleImageMap) {
+    if (typeof map.hasImage !== "function" || typeof map.addImage !== "function") return;
+    if (map.isStyleLoaded?.() === false) return;
+    for (const kind of KIND_ORDER) {
+        if (!KIND_STYLES[kind].fontGlyph) continue;
+        for (const id of [`pin-${kind}`, `pin-off-${kind}`]) {
+            const image = pinImage(id, true);
+            if (!image) continue;
+            if (map.hasImage(id)) map.updateImage?.(id, image);
+            else map.addImage(id, image, { pixelRatio: PIN_PIXEL_RATIO });
+        }
+    }
 }
 
 export default function MapCanvas(props: MapViewProps) {
@@ -112,6 +142,20 @@ export default function MapCanvas(props: MapViewProps) {
     // si el punto deja de estar en la capa (otra vista, menos zoom), su etiqueta tambien
     const shownTip = tip && nearbyPoints.some((p) => p.id === tip.id) ? tip : null;
     const imagesFor = useRef<unknown>(null);
+    const fontReady = useRef(false);
+    useEffect(() => {
+        let active = true;
+        if (!document.fonts?.load) return;
+        void document.fonts.load("12px icomoon").then((faces) => {
+            if (!active || faces.length === 0) return;
+            fontReady.current = true;
+            const map = imagesFor.current as StyleImageMap | null;
+            if (map) upgradeFontPinImages(map);
+        }).catch(() => {
+            // Los trazos originales mantienen visibles los puntos si falla la fuente.
+        });
+        return () => { active = false; };
+    }, []);
     const bounds = boundsOf(mapPoints(props));
     // al encuadrar, el mapa explorable se queda por debajo del zoom de los puntos informativos
     const fitMaxZoom = explore ? EXPLORE_FIT_MAX_ZOOM : FIT_MAX_ZOOM;
@@ -235,7 +279,7 @@ export default function MapCanvas(props: MapViewProps) {
                         const raw = map?.getMap?.() as unknown as StyleImageMap | undefined;
                         if (raw && imagesFor.current !== raw) {
                             imagesFor.current = raw;
-                            registerPinImages(raw);
+                            registerPinImages(raw, fontReady);
                         }
                         // la leyenda resume lo que hay: el lienzo no entra en el orden de
                         // tabulacion desde que existe (onLoad espera a estilo y teselas)
@@ -250,6 +294,7 @@ export default function MapCanvas(props: MapViewProps) {
                     }}
                     onLoad={(e) => {
                         hideBasePoiLayers(e.target as unknown as BaseStyleMap);
+                        preloadPinImages(e.target as unknown as StyleImageMap, fontReady.current);
                         refresh(e.target as unknown as ViewSource);
                     }}
                     onIdle={(e) => handleIdle(e.target as unknown as RenderedMap)}

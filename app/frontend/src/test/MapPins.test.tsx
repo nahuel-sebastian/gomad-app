@@ -21,17 +21,20 @@ function luminance(hex: string): number {
 const contrastWithWhite = (hex: string) => 1.05 / (luminance(hex) + 0.05);
 
 describe("iconos del mapa por tipo", () => {
-    it("cada tipo tiene etiqueta, color con contraste >= 4,5:1 frente al blanco y trazo", () => {
+    it("cada tipo tiene etiqueta, color con contraste >= 4,5:1 frente al blanco e icono", () => {
         expect(KIND_ORDER).toHaveLength(12);
         for (const kind of KIND_ORDER) {
             const style = KIND_STYLES[kind];
             expect(style.label).not.toBe("");
+            expect(style.icon).not.toBe("");
             expect(style.path).toMatch(/^M/);
             expect(contrastWithWhite(style.color)).toBeGreaterThanOrEqual(4.5);
         }
         expect(contrastWithWhite(OUT_OF_SERVICE_COLOR)).toBeGreaterThanOrEqual(4.5);
-        // el color no va solo: cada tipo tiene un icono distinto
-        expect(new Set(KIND_ORDER.map((k) => KIND_STYLES[k].path)).size).toBe(KIND_ORDER.length);
+        expect(KIND_STYLES.aed).toMatchObject({ icon: "ecg", fontGlyph: "\ue91e" });
+        expect(KIND_STYLES.bench).toMatchObject({ icon: "bench", fontGlyph: "\ue91a" });
+        expect(KIND_STYLES.playground).toMatchObject({ icon: "playground", fontGlyph: "\ue92c" });
+        expect(KIND_STYLES.trail).toMatchObject({ icon: "grass", fontGlyph: "\ue924" });
     });
 
     it("destinationKind usa el tipo del destino (la piscina la decide la API)", () => {
@@ -49,8 +52,7 @@ describe("MapPin", () => {
         const pin = screen.getByRole("img", { name: "2. Piscina Municipal (Piscina)" });
         expect(pin).toHaveClass("map-marker", "map-marker--pin");
         expect(pin).toHaveTextContent("2");
-        expect(container.querySelector("svg path")).toHaveAttribute("d", KIND_STYLES.pool.path);
-        expect(container.querySelector("svg")).toHaveAttribute("aria-hidden", "true");
+        expect(container.querySelector(".icon-pool")).toHaveAttribute("aria-hidden", "true");
         expect(pin.style.getPropertyValue("--pin-color")).toBe(KIND_STYLES.pool.color);
     });
 

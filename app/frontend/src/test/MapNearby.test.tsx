@@ -2,9 +2,10 @@ import { act, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { MapPoint, MapPointsResponse } from "../api/types";
-import { KIND_STYLES, OUT_OF_SERVICE_COLOR } from "../components/mapIcons";
+import { KIND_ORDER, KIND_STYLES, OUT_OF_SERVICE_COLOR } from "../components/mapIcons";
 import MapLegend from "../components/MapLegend";
 import { pinImage, pinImageSpec } from "../components/mapPinImage";
+import * as pinImages from "../components/mapPinImage";
 import {
     EXPLORE_FIT_MAX_ZOOM,
     FIT_MAX_ZOOM,
@@ -16,7 +17,7 @@ import {
 } from "../components/mapUtils";
 import MapView, { type MapMarker } from "../components/MapView";
 import * as mapPointsModule from "../data/mapPoints";
-import { fitBoundsMock, lastMapProps, withWebGL } from "./mapMock";
+import { easeToMock, fitBoundsMock, lastMapProps, withWebGL } from "./mapMock";
 import { expectNoAxeViolations } from "./render";
 
 vi.mock("react-map-gl/maplibre", async () => (await import("./mapMock")).mapLibreModule());
@@ -113,6 +114,58 @@ describe("MapView explorable", () => {
         expect(container.querySelector('[data-layer="nearby-points"]')).not.toBeNull();
         expect(container.querySelector('[data-layer="nearby-clusters"]')).toBeNull();
         expect(container.querySelector('[data-layer="nearby-count"]')).toBeNull();
+    });
+
+    it("al pulsar un destino registra las imágenes y muestra bancos y papeleras", async () => {
+        withWebGL();
+        const user = userEvent.setup();
+        const loaded = new Set<string>();
+        const addImage = vi.fn((id: string) => loaded.add(id));
+        vi.spyOn(pinImages, "pinImage").mockReturnValue({} as ImageData);
+        vi.spyOn(mapPointsModule, "getMapPoints").mockResolvedValue({
+            points: [point("b", "bench"), point("p", "bin")],
+            truncated: false,
+            clipped: false,
+        });
+        const { container } = render(<MapView markers={MARKERS} explore />);
+        await screen.findByTestId("maplibre");
+        await act(async () => {
+            (lastMapProps().onLoad as (e: unknown) => void)({
+                target: {
+                    getStyle: () => ({ layers: [] }),
+                    setLayoutProperty: vi.fn(),
+                    hasImage: (id: string) => loaded.has(id),
+                    addImage,
+                    ...fakeMap(EXPLORE_FIT_MAX_ZOOM),
+                },
+            });
+        });
+        expect(addImage).toHaveBeenCalledTimes(KIND_ORDER.length * 2);
+        expect(loaded).toContain("pin-bench");
+        expect(loaded).toContain("pin-bin");
+        await user.click(screen.getByRole("img", { name: /Resultado/ }));
+        expect(easeToMock).toHaveBeenCalledWith(expect.objectContaining({ zoom: POI_MIN_ZOOM }));
+        await moveTo(POI_MIN_ZOOM);
+        await waitFor(() => expect(nearbySource(container)).toHaveAttribute("data-count", "2"));
+    });
+
+    it("carga los puntos cercanos sin depender de la fuente de iconos", async () => {
+        withWebGL();
+        const originalFonts = Object.getOwnPropertyDescriptor(document, "fonts");
+        Object.defineProperty(document, "fonts", {
+            configurable: true,
+            value: { load: () => new Promise<FontFace[]>(() => {}) },
+        });
+        try {
+            const { container } = render(<MapView markers={MARKERS} explore />);
+            await screen.findByTestId("maplibre");
+            await moveTo(POI_MIN_ZOOM);
+            await waitFor(() => expect(nearbySource(container)).toHaveAttribute("data-count", "10"));
+            expect(container.querySelector('[data-layer="nearby-points"]')).not.toBeNull();
+        } finally {
+            if (originalFonts) Object.defineProperty(document, "fonts", originalFonts);
+            else Reflect.deleteProperty(document, "fonts");
+        }
     });
 
     it("el encuadre inicial se queda por debajo del zoom de los puntos informativos: salen al acercar", async () => {
@@ -218,6 +271,28 @@ describe("imagenes de los pines para MapLibre", () => {
     it("sin lienzo 2D no dibuja nada", () => {
         expect(pinImage("pin-park")).toBeNull();
     });
+
+    it("dibuja los cuatro iconos nuevos cuando la fuente está lista", () => {
+        const ctx = {
+            scale: vi.fn(), translate: vi.fn(), beginPath: vi.fn(), moveTo: vi.fn(), lineTo: vi.fn(), closePath: vi.fn(),
+            fill: vi.fn(), arc: vi.fn(), stroke: vi.fn(), fillText: vi.fn(),
+            getImageData: vi.fn(() => ({ width: 44, height: 54, data: new Uint8ClampedArray(9504) })),
+        };
+        vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockReturnValue(ctx as unknown as CanvasRenderingContext2D);
+        vi.stubGlobal("Path2D", class {});
+        try {
+            for (const [kind, glyph] of [["aed", "\ue91e"], ["bench", "\ue91a"], ["playground", "\ue92c"], ["trail", "\ue924"]] as const) {
+                expect(pinImage(`pin-${kind}`, true)).not.toBeNull();
+                expect(ctx.fillText).toHaveBeenLastCalledWith(glyph, 11, 11);
+            }
+            ctx.fillText.mockClear();
+            expect(pinImage("pin-bench")).not.toBeNull();
+            expect(ctx.fillText).not.toHaveBeenCalled();
+        } finally {
+            vi.restoreAllMocks();
+            vi.unstubAllGlobals();
+        }
+    });
 });
 
 // --- Task 147: leyenda accesible ---
@@ -255,7 +330,7 @@ describe("leyenda del mapa", () => {
             "Banco: 1",
             "Fuente fuera de servicio: 1",
         ]);
-        expect(container.querySelectorAll(".map-legend__icon svg[aria-hidden='true']").length).toBe(4);
+        expect(container.querySelectorAll(".map-legend__icon .icon[aria-hidden='true']").length).toBe(4);
     });
 
     it("el boton abre la leyenda en una ventana y «Cerrar» la cierra", async () => {
@@ -292,7 +367,7 @@ describe("leyenda del mapa", () => {
             <MapLegend markerKinds={[]} points={[point("b", "bench", false)]} zoom={null} truncated={false} />,
         );
         const item = screen.getByText("Banco fuera de servicio: 1");
-        expect(item.querySelector("path")).toHaveAttribute("d", KIND_STYLES.bench.path);
+        expect(item.querySelector(".icon-bench")).toBeInTheDocument();
         expect(container.textContent).not.toContain("Fuente fuera de servicio");
     });
 

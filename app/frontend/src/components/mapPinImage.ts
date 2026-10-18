@@ -6,8 +6,8 @@ import { KIND_STYLES, OUT_OF_SERVICE_COLOR } from "./mapIcons";
 // Nombres: pin-<tipo> y pin-off-<tipo> (fuera de servicio, en gris).
 
 // tamano en px CSS; se dibuja al doble para pantallas de alta densidad
-const PIN_WIDTH = 24;
-export const PIN_HEIGHT = 29;
+const PIN_WIDTH = 22;
+export const PIN_HEIGHT = 27;
 export const PIN_PIXEL_RATIO = 2;
 
 export function pinImageSpec(id: string): { kind: MapPointKind; color: string } | null {
@@ -18,7 +18,7 @@ export function pinImageSpec(id: string): { kind: MapPointKind; color: string } 
 }
 
 // Circulo del color del tipo con borde blanco, punta abajo e icono blanco; null sin lienzo 2D
-export function pinImage(id: string): ImageData | null {
+export function pinImage(id: string, fontReady = false): ImageData | null {
     const spec = pinImageSpec(id);
     if (!spec) return null;
     const r = PIN_PIXEL_RATIO;
@@ -38,9 +38,9 @@ export function pinImage(id: string): ImageData | null {
     const cy = radius + 2;
     // punta hacia el lugar
     ctx.beginPath();
-    ctx.moveTo(cx - 5, cy + radius - 3);
+    ctx.moveTo(cx - 4, cy + radius - 3);
     ctx.lineTo(cx, PIN_HEIGHT - 1);
-    ctx.lineTo(cx + 5, cy + radius - 3);
+    ctx.lineTo(cx + 4, cy + radius - 3);
     ctx.closePath();
     ctx.fillStyle = "#ffffff";
     ctx.fill();
@@ -51,10 +51,18 @@ export function pinImage(id: string): ImageData | null {
     ctx.lineWidth = 2;
     ctx.strokeStyle = "#ffffff";
     ctx.stroke();
-    const icon = 14;
-    ctx.translate(cx - icon / 2, cy - icon / 2);
-    ctx.scale(icon / 960, icon / 960);
     ctx.fillStyle = "#ffffff";
-    ctx.fill(new Path2D(KIND_STYLES[spec.kind].path));
+    const glyph = KIND_STYLES[spec.kind].fontGlyph;
+    if (fontReady && glyph) {
+        ctx.font = "11px icomoon";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText(glyph, cx, cy);
+    } else {
+        const icon = 11;
+        ctx.translate(cx - icon / 2, cy - icon / 2);
+        ctx.scale(icon / 960, icon / 960);
+        ctx.fill(new Path2D(KIND_STYLES[spec.kind].path));
+    }
     return ctx.getImageData(0, 0, canvas.width, canvas.height);
 }

@@ -65,7 +65,7 @@ function MomentChips({ hour, failed }: { hour: MomentHour; failed: boolean }) {
             {origin && !failed && hour && (
                 <>
                     <li>
-                        <Chip tone={hour.temperature_c === null ? "nodata" : "info"} icon="thermostat">
+                        <Chip tone={hour.temperature_c === null ? "nodata" : "info"} icon="temperature">
                             {hour.temperature_c === null ? "Temperatura: sin datos" : `${hour.temperature_c} °C`}
                         </Chip>
                     </li>
@@ -118,7 +118,7 @@ export default function Home() {
                     </p>
                 )}
 
-                <LocationPicker highlight={!origin} />
+                <LocationPicker />
 
                 {origin && (
                     <section className="panel" aria-labelledby="actividades-titulo">

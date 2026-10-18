@@ -319,7 +319,7 @@ export default function Assistant() {
             {needLocation && !origin && (
                 <>
                     <p className="notice notice--info">Antes, dinos dónde estás para calcular la ruta.</p>
-                    <LocationPicker highlight onPicked={() => setNeedLocation(false)} />
+                    <LocationPicker onPicked={() => setNeedLocation(false)} />
                 </>
             )}
 
