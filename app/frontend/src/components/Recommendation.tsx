@@ -51,18 +51,16 @@ export default function Recommendation() {
     return (
         <section className="detail-screen gomad-component gomad-recommendation" aria-labelledby="detail-title">
             <div className="detail-dialog">
-                <header className="detail-header">
-                    <Link to="/resultados" className="detail-header__back gomad-action gomad-action-back-to-results">
-                        Volver a resultados
-                    </Link>
-                    <p className="detail-header__count">
-                        Recomendación {index + 1} de {results.length}
-                    </p>
-                    <span />
-                </header>
-
                 <Hero variant={heroVariant} className="detail-media">
-                    <span className="detail-media__tag">{DESTINATION_TYPE_LABELS[item.destination.type]}</span>
+                    <Link to="/resultados" className="detail-media__back gomad-action gomad-action-back-to-results">
+                        <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" focusable="false">
+                            <path d="M15 5l-7 7 7 7" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+                        </svg>
+                        Volver
+                        <span className="sr-only">
+                            {" "}a resultados (recomendación {index + 1} de {results.length})
+                        </span>
+                    </Link>
                 </Hero>
 
                 <div className="detail-content">
