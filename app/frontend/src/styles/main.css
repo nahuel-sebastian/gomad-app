@@ -2892,8 +2892,41 @@
     font-weight: 600;
   }
 
+  .gomad-municipality {
+    max-width: none;
+    min-height: calc(100dvh - var(--header-height));
+    background: var(--surface);
+  }
+
+  .gomad-municipality > :not(.municipality-hero):not(.sr-only) {
+    width: min(100%, 56.25rem);
+    margin-inline: auto;
+  }
+
+  .gomad-municipality > .view-title {
+    padding-top: clamp(0.5rem, 2vw, 1rem);
+    font-size: clamp(1.7rem, 3vw, 2.8rem);
+    line-height: 1.08;
+  }
+
+  .gomad-municipality > .view-subtitle {
+    margin-top: -0.5rem;
+    font-size: 1rem;
+    line-height: 1.5;
+  }
+
   .muni__heading {
+    margin-top: 1rem;
     font-size: 1.25rem;
+  }
+
+  .municipality-hero {
+    width: 100vw;
+    height: clamp(15rem, 33vw, 23rem);
+    flex: 0 0 auto;
+    margin-top: -1.5rem;
+    margin-left: calc(50% - 50vw);
+    background: var(--navy);
   }
 
   /* los huecos los pone el gap (de .page y de la rejilla): sin el margin-bottom de .panel */
