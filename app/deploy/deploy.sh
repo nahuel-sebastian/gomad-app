@@ -57,6 +57,11 @@ echo "==> Comprobando configuración"
 [[ -f "$app_dir/deploy/.env" ]] || fail "falta app/deploy/.env (cópialo de app/deploy/.env.example; DOMAIN=:80 sin dominio)."
 # la cache de la prevision en vivo se monta con escritura; si no existe, Docker la crearia como root
 mkdir -p "$app_dir/data/live"
+# credenciales de OCI (fila 13): se montan en /oci:ro; si no existe, Docker la crearia como root y el scp fallaria.
+# Misma carpeta que el compose cuando OCI_DIR no esta en app/deploy/.env (aqui solo se mira el entorno)
+oci_dir="${OCI_DIR:-$HOME/.oci}"
+{ mkdir -p "$oci_dir" && chmod 700 "$oci_dir"; } \
+    || fail "no se puede preparar $oci_dir (¿es de root? arréglalo con: sudo chown -R \"\$USER\": \"$oci_dir\")."
 command -v docker >/dev/null || fail "no se encuentra docker."
 command -v curl >/dev/null || fail "no se encuentra curl."
 docker info >/dev/null 2>&1 || fail "docker no responde (¿estás en el grupo docker? abre una sesión nueva)."

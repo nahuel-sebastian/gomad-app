@@ -14,7 +14,7 @@ AVOID = get_args(s.AssistantParams.model_fields["avoid"].annotation.__args__[0])
 ACTIVITIES = get_args(s.AssistantParams.model_fields["activity"].annotation)
 PUNCTUATION = set(",.;:!?¿¡")
 REQUIRED = {"interpret": ["activities", "pass_by", "avoid", "avoid_direct", "negations", "negation_window",
-                          "negation_breaks", "round_trip", "one_way", "whole_words", "clock_prefixes", "out_of_catalog", "medical", "distance_units",
+                          "negation_breaks", "round_trip", "one_way", "whole_words", "clock_prefixes", "clock_numbers", "out_of_catalog", "medical", "distance_units",
                           "duration_units", "duration_phrases", "quantity_entity_types", "max_distance_km",
                           "max_duration_min", "default_activity"],
             "messages": ["medical", "out_of_catalog", "missing_amount", "which_activity", "too_long"],
@@ -94,14 +94,15 @@ def _negated(tokens, start, it):
     return False
 
 
-def _clock_at(text, pos, prefixes, before):
-    """True si en pos empieza una hora («hasta las 9», before=False: el prefijo seguido de un numero) o si pos va
-    justo detras de un prefijo de hora («a las» 20 h, before=True)."""
+def _clock_at(text, pos, prefixes, before, numbers=()):
+    """True si en pos empieza una hora («hasta las 9» o «hasta las nueve», before=False: el prefijo seguido de un
+    numero en cifra o en letra de numbers) o si pos va justo detras de un prefijo de hora («a las» 20 h, before=True)."""
+    hour = r"\d" + "".join("|" + re.escape(normalize(n)) + r"(?!\w)" for n in numbers)
     for prefix in prefixes:
         p = normalize(prefix)
         if before and re.search(r"(?<!\w)" + re.escape(p) + r"\s*$", text[:pos]):
             return True
-        if not before and re.match(re.escape(p) + r"\s*\d", text[pos:]):   # «hasta las 9», no «hasta la fuente»
+        if not before and re.match(re.escape(p) + r"\s*(?:" + hour + ")", text[pos:]):   # no «hasta la fuente»
             return True
     return False
 
@@ -163,8 +164,8 @@ def interpret_text(text, analysis, cfg):
             continue                       # «con cuestas»: no es evitar
         if group == "pass_by" and negated:
             continue                       # «sin pasar por el super»
-        if group == "one_way" and _clock_at(full, start, it["clock_prefixes"], before=False):
-            continue                       # «hasta las 9»: una hora, no «solo ida»
+        if group == "one_way" and _clock_at(full, start, it["clock_prefixes"], before=False, numbers=it["clock_numbers"]):
+            continue                       # «hasta las 9» o «hasta las nueve»: una hora, no «solo ida»
         if group == "round_trip" and negated:
             group = "one_way"              # «no quiero volver»
         groups.setdefault("avoid" if group == "avoid_direct" else group, set()).add(value)

@@ -46,4 +46,14 @@ describe("asistente contra la API", () => {
         expect((await interpret("5 km sin volver")).params?.loop).toBe(false);
         expect((await interpret("5 km hasta el parque")).params?.loop).toBe(false);
     });
+
+    it("los datos de ejemplo leen «de ida» como solo ida y «hasta» con hora como ida y vuelta", async () => {
+        expect((await interpret("5 km de ida")).params?.loop).toBe(false);
+        expect((await interpret("5 km de ida y vuelta")).params?.loop).toBe(true);
+        expect((await interpret("5 km hasta las 9")).params?.loop).toBe(true);
+        expect((await interpret("5 km hasta la 1")).params?.loop).toBe(true);
+        expect((await interpret("5 km hasta las nueve")).params?.loop).toBe(true);
+        expect((await interpret("5 km hasta la una")).params?.loop).toBe(true);
+        expect((await interpret("5 km hasta la fuente")).params?.loop).toBe(false);
+    });
 });
