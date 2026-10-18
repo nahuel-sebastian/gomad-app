@@ -1,8 +1,10 @@
 """POST /assistant/route (F6, fila 4): ruta saludable que pasa por los puntos pedidos y condiciones del motor.
 
 El motor elige los puntos (los mas cercanos de cada tipo), calcula la ruta y comprueba cada condicion con datos
-reales; la explicacion la redacta el proveedor con plantillas (written_by_ai = False). Lo que todavia no se puede
-comprobar (ruta circular por distancia, desnivel, supermercados) sale como condicion no cumplida con su motivo.
+reales; la explicacion la redacta el proveedor con plantillas (written_by_ai = False). La distancia o duracion
+objetivo se comprueba con la longitud real (±10 %, routing.yaml loop.tolerance): ida y vuelta, o solo ida sin
+puntos pedidos, con routing/loop.py (fila 5); solo ida con puntos pedidos, la ruta acaba en el ultimo punto pedido.
+Lo que no tiene datos (desnivel, supermercados) sale como condicion no cumplida con su motivo.
 La ubicacion nunca sale de aqui hacia terceros."""
 import math
 from collections import Counter
@@ -84,11 +86,12 @@ def _ending(point, rcfg):
 
 class _Plan:
     """Ruta sobre la red: coordenadas desde la salida, tramos, longitud, si vuelve a la salida, resultado de
-    loop_route (o None) y motivo si loop_route fallo, y como acaba (punto pedido, punto automatico o la salida)."""
+    loop_route (o None), como acaba (punto pedido, punto automatico o la salida) y si es una ruta de ida que acaba
+    en el ultimo punto pedido (su longitud se compara con el objetivo sin ajustarla)."""
 
-    def __init__(self, coords, edges, distance, closed, loop=None, loop_error=None, end=None, end_auto=False):
+    def __init__(self, coords, edges, distance, closed, loop=None, end=None, end_auto=False, to_points=False):
         self.coords, self.edges, self.distance, self.closed = coords, edges, distance, closed
-        self.loop, self.loop_error, self.end, self.end_auto = loop, loop_error, end, end_auto
+        self.loop, self.end, self.end_auto, self.to_points = loop, end, end_auto, to_points
 
 
 def _chain(g, origin_node, reachable, costs):
@@ -103,22 +106,23 @@ def _chain(g, origin_node, reachable, costs):
     return edges, current
 
 
-def _network_route(req, zone, origin_node, origin_snap, waypoints, rcfg, routing, target_m):
+def _network_route(req, zone, origin_node, origin_snap, waypoints, rcfg, routing, target_m, requested):
     g = zone.graph
     params = req.params
     weights = rcfg["avoid_traffic_weights"] if "traffic" in params.avoid else routing["default_route_weights"]
     costs = edge_costs(g, weights, routing["cost_floor"])
     reachable = [p for p in waypoints if p.node is not None]
     start = [req.origin.lon, req.origin.lat]
-    loop_error = None
-    if target_m is not None:
-        # fila 5: ruta por distancia objetivo, circular o de ida, por los puntos pedidos (en orden)
+    # solo ida con puntos pedidos: acaba en el ultimo punto pedido, sin relleno (decision de la persona usuaria)
+    to_points = not params.loop and requested and bool(reachable)
+    if target_m is not None and not to_points:
+        # fila 5: ruta por distancia objetivo, ida y vuelta o de ida, por los puntos (en orden)
         try:
             lr = loop_route(g, origin_node, target_m, costs, routing["loop"], loop=params.loop,
                             waypoints=[p.node for p in reachable], snap_m=origin_snap,
                             traffic_threshold=routing["traffic_display_threshold"])
-        except (ValueError, RouteNotFound) as e:
-            loop_error = str(e)
+        except (ValueError, RouteNotFound):
+            pass                          # se sigue con la ruta sin objetivo; la condicion dira target_failed
         else:
             coords = [start, *lr.coordinates, *([start] if params.loop else [])]
             last = lr.waypoints[-1] if lr.waypoints and not params.loop else None
@@ -142,7 +146,7 @@ def _network_route(req, zone, origin_node, origin_snap, waypoints, rcfg, routing
         distance += float(haversine_m(coords[-1][0], coords[-1][1], last.lon, last.lat))
         coords.append([last.lon, last.lat])
     distance += summarize(g, edges)["distance_m"]
-    return _Plan(_dedupe(coords), edges, distance, params.loop, loop_error=loop_error, end=last)
+    return _Plan(_dedupe(coords), edges, distance, params.loop, end=last, to_points=to_points)
 
 
 def assistant_route(req, repo, graphs, provider):
@@ -189,7 +193,8 @@ def assistant_route(req, repo, graphs, provider):
     else:
         zone, nodes, snaps = located
         g = zone.graph
-        plan = _network_route(req, zone, int(nodes[0]), float(snaps[0]), waypoints, rcfg, routing, target_m)
+        plan = _network_route(req, zone, int(nodes[0]), float(snaps[0]), waypoints, rcfg, routing, target_m,
+                              requested=default_key is None)
         coords = plan.coords
         summary = summarize(g, plan.edges, routing["traffic_display_threshold"])
         minutes = plan.distance / 1000 / speed * 60
@@ -221,7 +226,7 @@ def assistant_route(req, repo, graphs, provider):
                                     written_by_ai=False)
 
 
-def _target_condition(params, variant, target_m, plan, approximate, routing, texts):
+def _target_condition(params, variant, target_m, plan, approximate, end, routing, texts):
     tolerance = routing["loop"]["tolerance"]
     pct = f"{round(tolerance * 100)}"
     if params.distance_km is not None:
@@ -234,6 +239,16 @@ def _target_condition(params, variant, target_m, plan, approximate, routing, tex
         met_text = texts["duration_met"]
     if approximate:
         return s.Condition(condition=name, met=False, detail=texts["no_network"])
+    if plan.to_points:
+        # ruta de ida hasta el ultimo punto pedido: su longitud real frente al objetivo, sin ajustar nada
+        deviation = (variant.distance_m - target_m) / target_m
+        if abs(deviation) <= tolerance:
+            return s.Condition(condition=name, met=True,
+                               detail=met_text.format(actual=shown, deviation=fmt_number(100 * deviation, 0)))
+        wanted = _km(target_m) if params.distance_km is not None else texts["duration_as_km"].format(
+            minutes=fmt_minutes(params.duration_min), km=_km(target_m))
+        return s.Condition(condition=name, met=False, detail=texts["to_points_unmet"].format(
+            end=end, actual=_km(variant.distance_m), target=wanted))
     if plan.loop is not None:
         lr = plan.loop
         detail = met_text.format(actual=shown, deviation=fmt_number(lr.deviation_pct, 0)) if lr.within_tolerance \
@@ -245,7 +260,7 @@ def _target_condition(params, variant, target_m, plan, approximate, routing, tex
 def _conditions(params, variant, target_m, plan, approximate, found, visited, along, end, rcfg, routing, texts):
     out = []
     if target_m is not None:
-        out.append(_target_condition(params, variant, target_m, plan, approximate, routing, texts))
+        out.append(_target_condition(params, variant, target_m, plan, approximate, end, routing, texts))
     if params.loop:
         closed = plan.closed and not approximate
         out.append(s.Condition(condition=texts["loop"], met=closed,

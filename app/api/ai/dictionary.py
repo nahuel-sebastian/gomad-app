@@ -95,12 +95,13 @@ def _negated(tokens, start, it):
 
 
 def _clock_at(text, pos, prefixes, before):
-    """True si en pos empieza (before=False) o acaba (before=True) una expresion de hora («a las», «hasta las»)."""
+    """True si en pos empieza una hora («hasta las 9», before=False: el prefijo seguido de un numero) o si pos va
+    justo detras de un prefijo de hora («a las» 20 h, before=True)."""
     for prefix in prefixes:
         p = normalize(prefix)
         if before and re.search(r"(?<!\w)" + re.escape(p) + r"\s*$", text[:pos]):
             return True
-        if not before and re.match(re.escape(p) + r"(?!\w)", text[pos:]):
+        if not before and re.match(re.escape(p) + r"\s*\d", text[pos:]):   # «hasta las 9», no «hasta la fuente»
             return True
     return False
 

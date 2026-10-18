@@ -88,6 +88,8 @@ route:                           # /assistant/route; con distancia o duracion ob
     duration: "Duración de {target} (±{tolerance} %)"
     distance_met: "La ruta mide {actual} (desvío del {deviation} %)."
     duration_met: "La ruta dura {actual} (desvío del {deviation} %)."
+    to_points_unmet: "La ruta hasta {end} mide {actual}; pedías {target}."
+    duration_as_km: "{minutes} (≈{km})"
     target_failed: "No se ha podido ajustar la distancia por la red peatonal; la ruta sale de {actual}."
     loop: Ida y vuelta
     loop_met: Vuelve al punto de salida.

@@ -83,7 +83,7 @@ def test_round_trip_with_target_uses_loop_route(setup):
     assert res.explanation.startswith("Ruta saludable de ida y vuelta")
 
 
-def test_one_way_with_target_does_not_close(setup, monkeypatch):
+def test_one_way_without_points_uses_loop_route(setup, monkeypatch):
     seen = {}
     real = assistant.loop_route
 
@@ -92,11 +92,35 @@ def test_one_way_with_target_does_not_close(setup, monkeypatch):
         return real(*args, **kwargs)
 
     monkeypatch.setattr(assistant, "loop_route", spy)
-    res = ask(setup, distance_km=0.22, loop=False, pass_by=["park"])
-    assert seen["loop"] is False and seen["waypoints"] == [1]
+    res = ask(setup, distance_km=0.22, loop=False)            # sin puntos pedidos: punto automatico de loop_route
+    assert seen["loop"] is False and seen["waypoints"] == [1]  # el parque por defecto
     assert seen["traffic_threshold"] == settings.load("routing")["traffic_display_threshold"]
     assert res.route.geometry.coordinates[-1] != [ORIGIN["lon"], ORIGIN["lat"]]
     assert by_name(res)["Solo ida"].met and by_name(res)["Distancia de 0,22 km (±10 %)"].met
+
+
+def _no_loop_route(monkeypatch):
+    def boom(*a, **k):
+        raise AssertionError("solo ida con puntos pedidos: sin loop_route")
+
+    monkeypatch.setattr(assistant, "loop_route", boom)
+
+
+def test_one_way_with_points_ends_at_last_point_and_compares(setup, monkeypatch):
+    _no_loop_route(monkeypatch)
+    res = ask(setup, duration_min=30, loop=False, pass_by=["park"])
+    assert res.route.geometry.coordinates[-1] == PARK and res.route.distance_m == pytest.approx(220, abs=1)
+    duration = by_name(res)["Duración de 30 min (±10 %)"]
+    assert not duration.met
+    assert duration.detail == "La ruta hasta «Parque Uno» mide 0,22 km; pedías 30 min (≈2,25 km)."
+    assert "un punto elegido" not in res.explanation
+
+
+def test_one_way_with_points_within_tolerance(setup, monkeypatch):
+    _no_loop_route(monkeypatch)
+    res = ask(setup, distance_km=0.21, loop=False, pass_by=["park"])
+    distance = by_name(res)["Distancia de 0,21 km (±10 %)"]
+    assert distance.met and distance.detail.startswith("La ruta mide 0,22 km")
 
 
 def test_round_trip_without_target_returns_to_start(setup, monkeypatch):
@@ -132,8 +156,8 @@ def test_one_way_ending_at_automatic_point(setup, monkeypatch):
         return r
 
     monkeypatch.setattr(assistant, "loop_route", auto_end)
-    res = ask(setup, distance_km=0.3, loop=False, pass_by=["park"])
-    assert "un punto elegido" in res.explanation and "hasta «Parque Uno»" not in res.explanation
+    res = ask(setup, distance_km=0.3, loop=False)
+    assert "hasta un punto elegido" in res.explanation and "hasta «Parque Uno»" not in res.explanation
 
 
 def test_no_network_is_approximate(setup):

@@ -120,3 +120,13 @@ def test_clock_time_is_not_a_duration(cfg):
 ])
 def test_round_trip_words(cfg, text, loop):
     assert params(text, cfg).loop is loop
+
+
+@pytest.mark.parametrize("text", ["5 km hasta la fuente", "5 km hasta la plaza mayor"])
+def test_hasta_place_is_one_way(cfg, text):
+    assert params(text, cfg).loop is False
+
+
+def test_hasta_clock_time_is_not_one_way(cfg):
+    p = params("salir hasta las 9, 5 km", cfg)
+    assert p.loop is True and p.distance_km == 5 and p.duration_min is None
