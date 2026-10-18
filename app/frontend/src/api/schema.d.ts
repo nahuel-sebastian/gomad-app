@@ -415,7 +415,7 @@ export interface components {
              * Kind
              * @enum {string}
              */
-            kind: "facility" | "pool" | "park" | "recreation_area" | "trail" | "bathing_area" | "fountain" | "bench" | "aed" | "dog_area" | "playground";
+            kind: "facility" | "pool" | "park" | "recreation_area" | "trail" | "bathing_area" | "fountain" | "bench" | "bin" | "aed" | "dog_area" | "playground";
             /** Name */
             name: string | null;
             coordinate: components["schemas"]["Coordinate"];
@@ -922,7 +922,7 @@ export interface operations {
                 /** @description Caja visible del mapa: oeste,sur,este,norte (EPSG:4326) */
                 bbox: string;
                 /** @description Tipos de punto; por defecto, los de destino */
-                kinds?: ("facility" | "pool" | "park" | "recreation_area" | "trail" | "bathing_area" | "fountain" | "bench" | "aed" | "dog_area" | "playground")[];
+                kinds?: ("facility" | "pool" | "park" | "recreation_area" | "trail" | "bathing_area" | "fountain" | "bench" | "bin" | "aed" | "dog_area" | "playground")[];
             };
             header?: never;
             path?: never;

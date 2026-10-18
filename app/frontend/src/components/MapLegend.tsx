@@ -52,9 +52,9 @@ export default function MapLegend({
     const hints: string[] = [];
     if (zoom !== null && zoom < NEARBY_MIN_ZOOM) hints.push("Acerca el mapa para ver más lugares de la zona.");
     else if (zoom !== null && zoom < POI_MIN_ZOOM)
-        hints.push("Acerca más para ver fuentes, bancos, juegos, desfibriladores y áreas caninas (solo donde hay datos).");
+        hints.push("Acerca más para ver fuentes, bancos, papeleras, juegos, desfibriladores y áreas caninas (solo donde hay datos).");
     else if (zoom !== null) {
-        hints.push("Fuentes, bancos, juegos, desfibriladores y áreas caninas: solo donde hay datos.");
+        hints.push("Fuentes, bancos, papeleras, juegos, desfibriladores y áreas caninas: solo donde hay datos.");
         const loaded = new Set(loadedPoints.map((p) => p.kind));
         const missing = POI_KINDS.filter((k) => checkedPoiKinds.includes(k) && !loaded.has(k)).map(
             (k) => KIND_STYLES[k].label,
