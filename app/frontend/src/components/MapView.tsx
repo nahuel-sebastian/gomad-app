@@ -1,9 +1,11 @@
 import { Component, lazy, Suspense, useState, type ReactNode } from "react";
+import { createPortal } from "react-dom";
 import type { Coordinate, MapPointKind, RouteVariant } from "../api/types";
 import { lineCoordinates } from "../lib/geometry";
 // estilos del mapa tambien para el esquema sin WebGL (zoom)
 import "../styles/map.css";
 import { hasWebGL } from "./mapUtils";
+import MapLegend from "./MapLegend";
 
 export interface MapMarker {
     id: string;
@@ -39,7 +41,7 @@ const SIZE = 100;
 
 // Esquema SVG sin teselas: respaldo cuando no hay WebGL, mientras carga MapLibre
 // o si MapLibre falla
-function Schematic({ markers, selectedId, origin, route, secondaryRoute, live }: MapViewProps) {
+function Schematic({ markers, selectedId, origin, route, secondaryRoute, live, legendSlot }: MapViewProps) {
     const [zoom, setZoom] = useState(1);
     const main = lineCoordinates(route);
     const secondary = lineCoordinates(secondaryRoute);
@@ -62,6 +64,15 @@ function Schematic({ markers, selectedId, origin, route, secondaryRoute, live }:
     ];
     const path = (coords: [number, number][]) =>
         coords.map((c) => project(c).map((n) => n.toFixed(2)).join(",")).join(" ");
+    const legend = (
+        <MapLegend
+            markerKinds={markers.flatMap((marker) => marker.kind ? [marker.kind] : [])}
+            points={[]}
+            zoom={null}
+            truncated={false}
+            live={Boolean(live)}
+        />
+    );
 
     return (
         <div>
@@ -105,6 +116,7 @@ function Schematic({ markers, selectedId, origin, route, secondaryRoute, live }:
                 <button type="button" aria-label="Acercar mapa" disabled={zoom >= 4} onClick={() => setZoom((value) => Math.min(4, value * 2))}>+</button>
                 <button type="button" aria-label="Alejar mapa" disabled={zoom <= 1} onClick={() => setZoom((value) => Math.max(1, value / 2))}>−</button>
             </div>
+            {legendSlot ? createPortal(legend, legendSlot) : legendSlot === undefined && <div className="map-panels">{legend}</div>}
             <span className="map-view__note">Mapa simplificado (sin teselas)</span>
         </div>
     );

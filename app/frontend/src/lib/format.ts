@@ -10,6 +10,17 @@ const upTo1 = new Intl.NumberFormat("es-ES", {
     useGrouping: "always",
 });
 
+export function formatDestinationName(name: string): string {
+    if (!/[\p{L}]/u.test(name) || name !== name.toLocaleUpperCase("es-ES")) return name;
+    const lowercase = name.toLocaleLowerCase("es-ES");
+    const lowercaseWords = new Set(["a", "al", "de", "del", "e", "el", "en", "la", "las", "los", "o", "y"]);
+    return lowercase.replace(/\p{L}+/gu, (word, offset) =>
+        offset > 0 && lowercaseWords.has(word)
+            ? word
+            : word.charAt(0).toLocaleUpperCase("es-ES") + word.slice(1),
+    );
+}
+
 export function formatScore(value: number): string {
     return decimal1.format(value);
 }

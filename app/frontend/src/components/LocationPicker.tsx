@@ -1,4 +1,4 @@
-import { useId, useRef, useState, type FormEvent } from "react";
+import { useEffect, useId, useRef, useState, type FormEvent } from "react";
 import type { LocationCandidate } from "../api/types";
 import { currentLocation, searchLocation } from "../data/location";
 import { useAppState } from "../state/context";
@@ -24,10 +24,40 @@ export default function LocationPicker({ onPicked, highlight }: LocationPickerPr
     const statusRef = useRef(0);
     const [picked, setPicked] = useState("");
     const inputRef = useRef<HTMLInputElement>(null);
+    const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const [locating, setLocating] = useState(false);
     const [locateError, setLocateError] = useState("");
 
+    const cancelScheduledSearch = () => {
+        if (searchTimerRef.current !== null) clearTimeout(searchTimerRef.current);
+        searchTimerRef.current = null;
+    };
+
+    const runSearch = async (query: string, call: number) => {
+        setPicked("");
+        setLocateError("");
+        setSearch({ status: "loading" });
+        try {
+            const data = await searchLocation(query);
+            if (call === statusRef.current) setSearch({ status: "done", candidates: data.candidates });
+        } catch {
+            if (call === statusRef.current) setSearch({ status: "error" });
+        }
+    };
+
+    useEffect(() => {
+        const query = text.trim();
+        if (origin || query.length < 3) return;
+        const call = ++statusRef.current;
+        searchTimerRef.current = setTimeout(() => {
+            searchTimerRef.current = null;
+            void runSearch(query, call);
+        }, 300);
+        return cancelScheduledSearch;
+    }, [text, origin]);
+
     const pick = (candidate: LocationCandidate) => {
+        cancelScheduledSearch();
         statusRef.current += 1;
         setOrigin(candidate);
         setSearch({ status: "idle" });
@@ -38,6 +68,7 @@ export default function LocationPicker({ onPicked, highlight }: LocationPickerPr
     };
 
     const clear = () => {
+        cancelScheduledSearch();
         statusRef.current += 1;
         setOrigin(null);
         setText("");
@@ -49,6 +80,7 @@ export default function LocationPicker({ onPicked, highlight }: LocationPickerPr
 
     // GPS tras el gesto; la posicion solo se usa para esta busqueda (no se guarda)
     const locate = async () => {
+        cancelScheduledSearch();
         const call = ++statusRef.current;
         setSearch({ status: "idle" });
         setLocating(true);
@@ -66,24 +98,17 @@ export default function LocationPicker({ onPicked, highlight }: LocationPickerPr
         }
     };
 
-    const onSubmit = async (event: FormEvent) => {
+    const onSubmit = (event: FormEvent) => {
         event.preventDefault();
-        if (text.trim().length < 3) {
+        cancelScheduledSearch();
+        const query = text.trim();
+        if (query.length < 3) {
+            statusRef.current += 1;
             setSearch({ status: "done", candidates: [] });
             return;
         }
         const call = ++statusRef.current;
-        setPicked("");
-        setLocateError("");
-        setSearch({ status: "loading" });
-        try {
-            const data = await searchLocation(text.trim());
-            if (call === statusRef.current) {
-                setSearch({ status: "done", candidates: data.candidates });
-            }
-        } catch {
-            if (call === statusRef.current) setSearch({ status: "error" });
-        }
+        void runSearch(query, call);
     };
 
     let announcement = picked;
@@ -103,7 +128,7 @@ export default function LocationPicker({ onPicked, highlight }: LocationPickerPr
 
     return (
         <section
-            className={`panel location gomad-component gomad-location-picker${highlight ? " location--highlight" : ""}`}
+            className={`location gomad-component gomad-location-picker${highlight ? " location--highlight" : ""}`}
             aria-labelledby="ubicacion-titulo"
             id="ubicacion">
             <h2 className="panel__title" id="ubicacion-titulo">
@@ -141,22 +166,6 @@ export default function LocationPicker({ onPicked, highlight }: LocationPickerPr
                             <span aria-hidden="true">{origin ? "Borrar ubicación" : "Buscar"}</span>
                         </button>
                     </div>
-                    {announcement && (
-                        <p className={`location__status${picked ? " sr-only" : ""}`} role="status" aria-live="polite">
-                            {announcement}
-                        </p>
-                    )}
-                    {search.status === "done" && search.candidates.length > 0 && (
-                        <ul role="list" className="location__candidates" aria-label="Lugares encontrados">
-                            {search.candidates.map((c) => (
-                                <li key={`${c.ine_code}-${c.label}`}>
-                                    <button type="button" className="candidate gomad-action gomad-action-select-location" onClick={() => pick(c)}>
-                                        {c.label}
-                                    </button>
-                                </li>
-                            ))}
-                        </ul>
-                    )}
                 </div>
                 <div className="location__actions">
                     <button
@@ -169,6 +178,22 @@ export default function LocationPicker({ onPicked, highlight }: LocationPickerPr
                         <span>{locating ? "Buscando…" : "Usar ubicación"}</span>
                     </button>
                 </div>
+                {announcement && (
+                    <p className={`location__status${picked ? " sr-only" : ""}`} role="status" aria-live="polite">
+                        {announcement}
+                    </p>
+                )}
+                {search.status === "done" && search.candidates.length > 0 && (
+                    <ul role="list" className="location__candidates" aria-label="Lugares encontrados">
+                        {search.candidates.map((c) => (
+                            <li key={`${c.ine_code}-${c.label}`}>
+                                <button type="button" className="candidate gomad-action gomad-action-select-location" onClick={() => pick(c)}>
+                                    {c.label}
+                                </button>
+                            </li>
+                        ))}
+                    </ul>
+                )}
             </form>
         </section>
     );

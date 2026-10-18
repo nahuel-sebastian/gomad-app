@@ -6,7 +6,7 @@ import { BROWSER_LOCATION_LABEL } from "../data/geolocation";
 import { useLivePosition } from "../data/livePosition";
 import { recommend } from "../data/recommend";
 import { useAsync } from "../data/useAsync";
-import { formatDistance, formatHour, formatMinutes, formatScore } from "../lib/format";
+import { formatDestinationName, formatDistance, formatHour, formatMinutes, formatScore } from "../lib/format";
 import { DESTINATION_TYPE_LABELS, verdictFor } from "../lib/labels";
 import { buildRecommendRequest, preferencesKey } from "../lib/request";
 import { NO_SEARCH_NOTICE } from "../lib/texts";
@@ -33,7 +33,7 @@ function ResultCard({ item, index }: { item: Recommendation; index: number }) {
                 </span>
 
                 <span className="result-card__content">
-                    <span className="result-card__title">{item.destination.name}</span>
+                    <span className="result-card__title">{formatDestinationName(item.destination.name)}</span>
                     <span className="result-card__meta">
                         {DESTINATION_TYPE_LABELS[item.destination.type]} · {formatDistance(item.distance_m)} ·{" "}
                         {formatMinutes(item.duration_min)} a pie
@@ -403,7 +403,7 @@ export default function Results() {
                     markers={items.map((item, i) => ({
                         id: item.destination.id,
                         number: i + 1,
-                        name: item.destination.name,
+                        name: formatDestinationName(item.destination.name),
                         coordinate: item.destination.coordinate,
                         kind: destinationKind(item.destination.type),
                     }))}
