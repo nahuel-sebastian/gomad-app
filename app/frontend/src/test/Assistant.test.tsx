@@ -12,7 +12,7 @@ describe("Asistente de rutas", () => {
     it("tiene los tres bloques y el formulario sin IA", async () => {
         const { container } = renderAt("/asistente", { origin: SAMPLE_ORIGIN });
         expect(screen.getByRole("heading", { level: 1, name: "Asistente de rutas" })).toBeInTheDocument();
-        expect(screen.getByRole("heading", { level: 2, name: "Tu petición" })).toBeInTheDocument();
+        expect(screen.queryByRole("heading", { name: "Tu petición" })).toBeNull();
         expect(screen.getByRole("heading", { level: 2, name: "Lo que he entendido" })).toBeInTheDocument();
         expect(screen.getByRole("heading", { level: 2, name: "La ruta propuesta" })).toBeInTheDocument();
         expect(screen.getByLabelText("¿Qué ruta quieres?")).toBeInTheDocument();

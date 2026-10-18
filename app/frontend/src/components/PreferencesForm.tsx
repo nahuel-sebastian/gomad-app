@@ -29,7 +29,7 @@ const WEIGHT_OPTIONS = [
     { label: "Nada", percent: 0 },
     { label: "Poca", percent: 25 },
     { label: "Neutra", percent: 50 },
-    { label: "Bastante", percent: 75 },
+    { label: "Algo", percent: 75 },
     { label: "Mucha", percent: 100 },
 ] as const;
 

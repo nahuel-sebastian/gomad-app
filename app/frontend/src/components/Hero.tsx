@@ -29,7 +29,7 @@ type HeroProps = {
     className?: string;
     children?: ReactNode;
 } | {
-    variant: DestinationType | "municipality";
+    variant: DestinationType | "municipality" | "assistant";
     className?: string;
     children?: ReactNode;
 };
@@ -100,6 +100,8 @@ export default function Hero(props: HeroProps) {
                 <>
                     <MunicipalityScene />
                 </>
+            ) : variant === "assistant" ? (
+                <AssistantMapScene />
             ) : <HeroScene type={variant} />}
 
             {props.variant && props.variant !== "home" ? props.children : (
@@ -109,6 +111,49 @@ export default function Hero(props: HeroProps) {
                 </div>
             )}
         </section>
+    );
+}
+
+function AssistantMapScene() {
+    const streets = [
+        "M25 74 182 74 245 118 410 118 572 45",
+        "M0 151 137 151 216 104 378 104 600 169",
+        "M0 236 158 236 255 278 418 278 600 221",
+        "M76 0 76 320", "M169 0 169 320", "M268 0 268 320", "M393 0 393 320", "M511 0 511 320",
+        "M0 290 120 230 222 195 344 150 520 112 600 95",
+    ];
+    const routes = [
+        { color: "#cf5eaa", line: "M94 270 166 232 232 197 319 181 390 118 431 52", points: [[94, 270], [166, 232], [232, 197], [390, 118], [431, 52]] },
+        { color: "#83ab2c", line: "M319 181 383 201 476 165 537 82", points: [[383, 201], [476, 165], [537, 82]] },
+        { color: "#ef9b25", line: "M139 95 181 151 232 197 267 241 319 181 422 237 515 249", points: [[139, 95], [181, 151], [267, 241], [422, 237], [515, 249]] },
+        { color: "#db4a55", line: "M319 181 422 237 461 288 544 299", points: [[461, 288], [544, 299]] },
+        { color: "#405b9c", line: "M319 181 318 108 305 42 M319 181 236 152 196 90", points: [[318, 108], [305, 42], [236, 152], [196, 90]] },
+        { color: "#744c9f", line: "M319 181 274 112 273 29", points: [[274, 112], [273, 29]] },
+    ];
+
+    return (
+        <svg className="hero__scene" viewBox="0 0 600 320" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+            <rect width="600" height="320" fill="#f5f8f7" />
+            <path d="M0 191q52-27 105-8t94 0q60-22 118 4t103 13q80-20 180-4v54q-117-11-183 5t-110-11q-61-26-123-5t-101 0q-54-19-83 4Z" fill="#e7f0e9" />
+            <path d="M0 206q90-8 159 19t141 23q92-2 139-28t161-22" fill="none" stroke="#cce5e9" strokeWidth="20" opacity=".75" />
+            <g fill="none" stroke="#dbe5e7" strokeWidth="8" strokeLinecap="round" strokeLinejoin="round">
+                {streets.map((line) => <path key={line} d={line} />)}
+            </g>
+            <g fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                {streets.map((line) => <path key={`center-${line}`} d={line} />)}
+            </g>
+            <g fill="none" strokeLinecap="round" strokeLinejoin="round">
+                {routes.map((route) => <path key={route.color} d={route.line} stroke={route.color} strokeWidth="5" />)}
+            </g>
+            <g fill="#fff" stroke="#fff" strokeWidth="5">
+                {routes.flatMap((route) => route.points.map(([x, y]) => <circle key={`${route.color}-${x}-${y}`} cx={x} cy={y} r="5" />))}
+            </g>
+            <g>
+                {routes.flatMap((route) => route.points.map(([x, y]) => <circle key={`${route.color}-${x}-${y}`} cx={x} cy={y} r="4.5" fill={route.color} />))}
+            </g>
+            <circle cx="319" cy="181" r="15" fill="#fff" stroke="#173e69" strokeWidth="4" />
+            <circle cx="319" cy="181" r="8" fill="#173e69" />
+        </svg>
     );
 }
 
