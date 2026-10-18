@@ -149,6 +149,11 @@
       scroll-padding-bottom: calc(var(--bottom-nav-height) + 0.5rem);
     }
 
+    /* la barra de navegacion inferior es fija: el final de cada pagina queda por encima */
+    .page {
+      padding-bottom: calc(2.5rem + var(--bottom-nav-height));
+    }
+
     .location__candidates {
       position: static;
       max-height: min(20rem, 50dvh);
