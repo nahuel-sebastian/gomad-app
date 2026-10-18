@@ -10,24 +10,48 @@ import PageHeading from "./PageHeading";
 import SourceList from "./SourceList";
 
 function outdoorText(h: HourEvaluation) {
-    if (h.outdoor_ok === null) return "sin datos";
+    if (h.outdoor_ok === null) return "Sin datos";
     return h.outdoor_ok ? "Apta" : "No apta";
 }
 
-function bestHourCallout(item: Rec): string {
+function hourCallout(item: Rec): string | null {
     const now = item.hours[0];
-    if (item.destination.covered) {
-        return "A cubierto: puedes ir a cualquier hora, no depende del tiempo.";
-    }
     if (!item.best_hour) {
         return "No hay datos suficientes para elegir la mejor hora.";
     }
-    const best = formatHour(item.best_hour);
-    if (now && now.outdoor_ok === false && item.best_hour !== now.hour) {
-        const reason = (now.reasons[0] ?? "").replace(/\.$/, "");
-        return `Ahora no: ${reason.charAt(0).toLowerCase()}${reason.slice(1)}. Mejor a las ${best}.`;
+    if (now && now.outdoor_ok === false && !item.destination.covered) {
+        const reasons = now.reasons.join(" ").trim();
+        return `Ahora no: ${reasons.charAt(0).toLowerCase()}${reasons.slice(1)}`;
     }
-    return `La mejor hora para esta actividad es las ${best}.`;
+    return null;
+}
+
+function explanationPoints(explanation: string): string[] {
+    const summary = explanation.split(/(?:\.\s*)?Fuentes:\s*/i)[0];
+    return summary
+        .split(/\.\s+(?=[A-ZÁÉÍÓÚÑ¿])/)
+        .map((part) => part.trim().replace(/\.$/, ""))
+        .filter((part) => part && !/;\s*nota\s+\d[\d,.]*\s+sobre\s+10/i.test(part))
+        .flatMap((part) => {
+            const later = part.match(/^Ahora no: mejor a las (\d{1,2}:\d{2}) \((.+)\)$/i);
+            if (later) {
+                const ownCriterion = /\(umbral de criterio propio\)/i.test(later[2]);
+                const reason = later[2]
+                    .replace(/\s*\(umbral de criterio propio\)/i, "")
+                    .replace(/^lluvia: (\d+) % de probabilidad$/i, "Hay un $1 % de probabilidad de lluvia");
+                return [
+                    `Ahora conviene esperar. Mejor salir a las ${later[1]}.`,
+                    `${reason.charAt(0).toUpperCase()}${reason.slice(1)}.${ownCriterion ? " GoMAD aplica su propio umbral para esta recomendación." : ""}`,
+                ];
+            }
+            return [`${part.replace(/^Destaca por /, "Puntos fuertes: ")}.`];
+        });
+}
+
+function factorSubtitle(text: string): string {
+    const separator = text.indexOf(":");
+    const detail = (separator === -1 ? text : text.slice(separator + 1)).trim();
+    return detail.charAt(0).toLocaleUpperCase("es-ES") + detail.slice(1);
 }
 
 export default function Recommendation() {
@@ -44,9 +68,7 @@ export default function Recommendation() {
     const bestIndex = item.hours.findIndex((h) => h.hour === item.best_hour);
     const alternative = results.find((r) => r.indoor_alternative && r.destination.id !== id);
     const nowBad = now?.outdoor_ok === false && !item.destination.covered;
-    const detailHours = [now, bestIndex > 0 ? item.hours[bestIndex] : undefined].filter(
-        (h): h is HourEvaluation => h !== undefined,
-    );
+    const callout = hourCallout(item);
 
     return (
         <section className="detail-screen gomad-component gomad-recommendation" aria-labelledby="detail-title">
@@ -65,7 +87,7 @@ export default function Recommendation() {
 
                 <div className="detail-content">
                     <div className="detail-intro">
-                        <div>
+                        <div className="detail-intro__copy">
                             <p className="detail-kicker">{DESTINATION_TYPE_LABELS[item.destination.type]}</p>
                             <PageHeading id="detail-title">{item.destination.name}</PageHeading>
                             <p className="detail-meta">
@@ -75,31 +97,26 @@ export default function Recommendation() {
                         </div>
                         <div className={`detail-score detail-score--${verdict.tone}`}>
                             <strong aria-hidden="true">{formatScore(item.score)}</strong>
-                            <span aria-hidden="true">{verdict.text}</span>
                             <span className="sr-only">
                                 Nota {formatScore(item.score)} sobre 10, {verdict.text.toLowerCase()}
                             </span>
                         </div>
                     </div>
 
-                    <ul role="list" className="detail-tags" aria-label="Características del lugar">
-                        <li>
-                            {item.destination.covered === null
-                                ? "Cubierta: sin datos"
-                                : item.destination.covered
-                                  ? "Cubierta"
-                                  : "Exterior"}
-                        </li>
-                        {item.indoor_alternative && <li>Alternativa cubierta</li>}
-                        <li>{item.destination.municipality}</li>
-                    </ul>
+                    {item.indoor_alternative && (
+                        <ul role="list" className="detail-tags" aria-label="Características del lugar">
+                            <li>Alternativa cubierta</li>
+                        </ul>
+                    )}
 
                     {now && (
                         <dl className="detail-moment">
                             <div>
                                 <dt className="detail-moment__label">Ahora</dt>
                                 <dd>
-                                    <strong>{now.temperature_c === null ? "Sin datos" : `${now.temperature_c} °C`}</strong>
+                                    <strong className={`chip ${now.temperature_c === null ? "chip--nodata" : "chip--info"} detail-moment__value`}>
+                                        {now.temperature_c === null ? "Sin datos" : `${now.temperature_c} °C`}
+                                    </strong>
                                     <small>
                                         {now.feels_like_c === null
                                             ? "Sensación: sin datos"
@@ -117,7 +134,9 @@ export default function Recommendation() {
                             <div>
                                 <dt className="detail-moment__label">Lluvia</dt>
                                 <dd>
-                                    <strong>{now.precip_prob === null ? "Sin datos" : `${now.precip_prob} %`}</strong>
+                                    <strong className={`chip ${now.precip_prob === null ? "chip--nodata" : "chip--info"} detail-moment__value`}>
+                                        {now.precip_prob === null ? "Sin datos" : `${now.precip_prob} %`}
+                                    </strong>
                                     <small>Probabilidad</small>
                                 </dd>
                             </div>
@@ -127,16 +146,20 @@ export default function Recommendation() {
                     <section className="detail-section" aria-labelledby="por-que">
                         <p className="detail-section__eyebrow">La recomendación</p>
                         <h2 id="por-que">¿Por qué te recomendamos este lugar?</h2>
-                        <p className="detail-explanation">{item.explanation}</p>
+                        <ul role="list" className="detail-explanation" aria-label="Resumen de la recomendación">
+                            {explanationPoints(item.explanation).map((point) => (
+                                <li key={point}>{point}</li>
+                            ))}
+                        </ul>
                         <ul role="list" className="factor-list" aria-label="Nota por factor">
                             {item.factors.map((f) => (
                                 <li key={f.factor}>
                                     <div>
                                         <strong>{FACTOR_LABELS[f.factor]}</strong>
-                                        <span>{f.text}</span>
+                                        <span>{factorSubtitle(f.text)}</span>
                                     </div>
                                     {f.value === null ? (
-                                        <b className="factor-list__nodata">sin datos (no cuenta en la nota)</b>
+                                        <b className="factor-list__nodata">Sin datos</b>
                                     ) : (
                                         <b>
                                             <span aria-hidden="true">
@@ -154,9 +177,11 @@ export default function Recommendation() {
                     <section className="detail-section detail-section--hours" aria-labelledby="franja">
                         <p className="detail-section__eyebrow">Planifica tu salida</p>
                         <h2 id="franja">Mejor franja horaria</h2>
-                        <p className={`detail-callout${nowBad ? " detail-callout--warn" : ""}`}>
-                            {bestHourCallout(item)}
-                        </p>
+                        {callout && (
+                            <p className={`detail-callout${nowBad ? " detail-callout--warn" : ""}`}>
+                                {callout}
+                            </p>
+                        )}
                         {nowBad && alternative && (
                             <p className="detail-alt">
                                 <Link to={`/resultados/${encodeURIComponent(alternative.destination.id)}`} className="gomad-action gomad-action-open-covered-alternative">
@@ -184,9 +209,9 @@ export default function Recommendation() {
                                                 {formatHour(h.hour)}
                                                 {i === bestIndex && <span>Mejor hora</span>}
                                             </th>
-                                            <td>{h.score === null ? "sin datos" : formatScore(h.score)}</td>
-                                            <td>{h.temperature_c === null ? "sin datos" : `${h.temperature_c} °C`}</td>
-                                            <td>{h.precip_prob === null ? "sin datos" : `${h.precip_prob} %`}</td>
+                                            <td>{h.score === null ? "Sin datos" : formatScore(h.score)}</td>
+                                            <td>{h.temperature_c === null ? "Sin datos" : `${h.temperature_c} °C`}</td>
+                                            <td>{h.precip_prob === null ? "Sin datos" : `${h.precip_prob} %`}</td>
                                             <td>{aqiLabel(h.aqi_category)}</td>
                                             <td>{outdoorText(h)}</td>
                                         </tr>
@@ -194,14 +219,6 @@ export default function Recommendation() {
                                 </tbody>
                             </table>
                         </div>
-                        <ul role="list" className="detail-reasons" aria-label="Motivos por hora">
-                            {detailHours.map((h) => (
-                                <li key={h.hour}>
-                                    <strong>{h === now ? `Ahora (${formatHour(h.hour)})` : `A las ${formatHour(h.hour)}`}:</strong>{" "}
-                                    {h.reasons.join(" ")}
-                                </li>
-                            ))}
-                        </ul>
                     </section>
 
                     <section className="detail-section detail-section--location" aria-labelledby="fuentes-detalle">

@@ -93,6 +93,6 @@ describe("Ruta saludable", () => {
         renderAt(path, init);
         const sources = await screen.findByRole("list", { name: "Fuentes de la ruta" });
         expect(sources).toHaveTextContent("OpenStreetMap");
-        expect(sources).toHaveTextContent("criterio propio");
+        expect(sources).toHaveTextContent("Criterio propio");
     });
 });

@@ -141,13 +141,34 @@ describe("Detalle", () => {
         await expectNoAxeViolations(container);
     });
 
-    it("dice «sin datos (no cuenta en la nota)» en un factor null", async () => {
+    it("resume la explicación en puntos y deja las fuentes en su sección", async () => {
+        const [base] = await sampleResults();
+        const item: Recommendation = {
+            ...base,
+            explanation: "Ahora no: mejor a las 17:00 (lluvia: 58 % de probabilidad (umbral de criterio propio)). Parque de los Pinos, a 900 m (12 min a pie); nota 7,8 sobre 10. Destaca por cercanía y adecuación a la actividad. Fuentes: Previsión horaria (Open-Meteo) (18/10 a las 13:55).",
+        };
+        renderAt(pathFor(item), { origin: SAMPLE_ORIGIN, results: [item] });
+
+        const summary = screen.getByRole("list", { name: "Resumen de la recomendación" });
+        expect(within(summary).getAllByRole("listitem")).toHaveLength(3);
+        expect(summary).toHaveTextContent("Mejor salir a las 17:00");
+        expect(summary).toHaveTextContent("58 % de probabilidad de lluvia");
+        expect(summary).toHaveTextContent("GoMAD aplica su propio umbral");
+        expect(summary).toHaveTextContent("Puntos fuertes: cercanía y adecuación a la actividad");
+        expect(summary).not.toHaveTextContent("Fuentes:");
+        expect(summary).not.toHaveTextContent("Parque de los Pinos");
+    });
+
+    it("muestra subtítulos sin prefijo y «Sin datos» cuando falta la nota", async () => {
         const results = await sampleResults();
         const item = results.find((r) => r.factors.some((f) => f.value === null))!;
         renderAt(pathFor(item), { origin: SAMPLE_ORIGIN, results });
-        expect(
-            screen.getAllByText(/sin datos \(no cuenta en la nota\)/).length,
-        ).toBeGreaterThan(0);
+        const factors = screen.getByRole("list", { name: "Nota por factor" });
+        expect(within(factors).getByText("Sin datos", { selector: ".factor-list__nodata" })).toBeInTheDocument();
+        const proximity = item.factors.find((factor) => factor.factor === "proximity")!;
+        const proximityCard = within(factors).getByText("Cercanía y rapidez").closest("li")!;
+        expect(proximityCard).toHaveTextContent(proximity.text.replace(/^.*?:\s*/, "").replace(/^./, (first) => first.toUpperCase()));
+        expect(proximityCard).not.toHaveTextContent("Cercanía:");
     });
 
     it("pinta la linea horaria como tabla con la mejor hora en texto", async () => {
@@ -160,14 +181,30 @@ describe("Detalle", () => {
         expect(within(table).getAllByRole("rowheader").length).toBe(rows.length - 1);
     });
 
-    it("Carmen: «Ahora no» con la mejor hora y la alternativa cubierta", async () => {
+    it("usa «Sin datos» en la tabla y omite el aviso si ahora se puede salir", async () => {
+        const [base] = await sampleResults();
+        const item: Recommendation = {
+            ...base,
+            hours: [
+                { ...base.hours[0], score: null, temperature_c: null, precip_prob: null, aqi_category: null, outdoor_ok: true },
+                ...base.hours.slice(1),
+            ],
+        };
+        renderAt(pathFor(item), { origin: SAMPLE_ORIGIN, results: [item] });
+        const table = screen.getByRole("table", { name: /Nota por hora/ });
+        expect(within(table).getAllByText("Sin datos").length).toBeGreaterThanOrEqual(4);
+        expect(screen.queryByText(/La mejor hora para esta actividad/, { selector: ".detail-callout" })).not.toBeInTheDocument();
+    });
+
+    it("Carmen: el aviso explica el motivo y la mejor hora queda solo en la tabla", async () => {
         selectScenario("carmen");
         const results = await sampleResults("walk", { profile: "senior" });
         const outdoor = results.find((r) => !r.indoor_alternative)!;
         renderAt(pathFor(outdoor), { origin: SAMPLE_ORIGIN, results });
-        expect(
-            screen.getByText(/Ahora no:/, { selector: ".detail-callout" }),
-        ).toHaveTextContent("Mejor a las 20:30");
+        const callout = screen.getByText(/Ahora no:/, { selector: ".detail-callout" });
+        expect(callout).not.toHaveTextContent("Mejor a las");
+        expect(screen.getByRole("table", { name: /Nota por hora/ })).toHaveTextContent("Mejor hora");
+        expect(screen.queryByRole("list", { name: "Motivos por hora" })).not.toBeInTheDocument();
         expect(screen.getByRole("link", { name: /Alternativa cubierta/ })).toBeInTheDocument();
     });
 
@@ -182,7 +219,8 @@ describe("Detalle", () => {
         const results = await sampleResults();
         renderAt(pathFor(results[0]), { origin: SAMPLE_ORIGIN, results });
         const sources = screen.getByRole("list", { name: "Fuentes de los datos" });
-        expect(sources).toHaveTextContent(/Previsión horaria \(Open-Meteo\) · \d{2}\/\d{2} \d{2}:\d{2}/);
-        expect(sources).toHaveTextContent("criterio propio");
+        expect(sources).toHaveTextContent(/Previsión horaria \(Open-Meteo\): \d{2}\/\d{2} \d{2}:\d{2}/);
+        expect(within(sources).getByText("Previsión horaria (Open-Meteo):").tagName).toBe("STRONG");
+        expect(sources).toHaveTextContent("Criterio propio");
     });
 });

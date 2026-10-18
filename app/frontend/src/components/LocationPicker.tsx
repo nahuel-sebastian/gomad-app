@@ -103,7 +103,7 @@ export default function LocationPicker({ onPicked, highlight }: LocationPickerPr
 
     return (
         <section
-            className={`panel location gomad-component gomad-location-picker${highlight ? " location--highlight" : ""}`}
+            className={`location gomad-component gomad-location-picker${highlight ? " location--highlight" : ""}`}
             aria-labelledby="ubicacion-titulo"
             id="ubicacion">
             <h2 className="panel__title" id="ubicacion-titulo">
