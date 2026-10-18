@@ -175,7 +175,7 @@ export default function Assistant() {
                         value={text}
                         onChange={(e) => setText(e.target.value)}
                     />
-                    <button type="submit" className="button gomad-action gomad-action-interpret-request" disabled={interpretation.status === "loading"}>
+                    <button type="submit" className="button button--primary gomad-action gomad-action-interpret-request" disabled={interpretation.status === "loading"}>
                         Interpretar
                     </button>
                 </form>
