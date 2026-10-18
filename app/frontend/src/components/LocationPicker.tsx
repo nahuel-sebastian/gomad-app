@@ -13,10 +13,9 @@ type SearchState =
 interface LocationPickerProps {
     // se llama al elegir una ubicacion (p. ej. para seguir a resultados)
     onPicked?: (origin: LocationCandidate) => void;
-    highlight?: boolean;
 }
 
-export default function LocationPicker({ onPicked, highlight }: LocationPickerProps) {
+export default function LocationPicker({ onPicked }: LocationPickerProps) {
     const { origin, setOrigin } = useAppState();
     const [text, setText] = useState("");
     const [search, setSearch] = useState<SearchState>({ status: "idle" });
@@ -128,7 +127,7 @@ export default function LocationPicker({ onPicked, highlight }: LocationPickerPr
 
     return (
         <section
-            className={`location gomad-component gomad-location-picker${highlight ? " location--highlight" : ""}`}
+            className="location gomad-component gomad-location-picker"
             aria-labelledby="ubicacion-titulo"
             id="ubicacion">
             <h2 className="panel__title" id="ubicacion-titulo">

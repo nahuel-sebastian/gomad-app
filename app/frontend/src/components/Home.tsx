@@ -14,6 +14,17 @@ import LocationPicker from "./LocationPicker";
 
 type MomentHour = HourEvaluation | undefined;
 
+const ACTIVITY_ICONS: Record<string, string> = {
+    walk: "walk",
+    run: "running",
+    swim: "pool",
+    padel: "padel",
+    tennis: "tennis",
+    football: "soccer",
+    basketball: "basketball",
+    gym: "gym",
+};
+
 // Estado del momento (P-01): primera hora de la recomendacion de la zona
 function useMoment() {
     const { origin, preferences } = useAppState();
@@ -54,7 +65,7 @@ function MomentChips({ hour, failed }: { hour: MomentHour; failed: boolean }) {
             {origin && !failed && hour && (
                 <>
                     <li>
-                        <Chip tone={hour.temperature_c === null ? "nodata" : "info"} icon="thermostat">
+                        <Chip tone={hour.temperature_c === null ? "nodata" : "info"} icon="temperature">
                             {hour.temperature_c === null ? "Temperatura: sin datos" : `${hour.temperature_c} °C`}
                         </Chip>
                     </li>
@@ -107,7 +118,7 @@ export default function Home() {
                     </p>
                 )}
 
-                <LocationPicker highlight={!origin} />
+                <LocationPicker />
 
                 {origin && (
                     <section className="panel" aria-labelledby="actividades-titulo">
@@ -127,16 +138,19 @@ export default function Home() {
                         )}
                         {activities.data && (
                             <ul role="list" className="activities" aria-label="Actividades">
-                                {activities.data.activities.map((a: Activity) => (
-                                    <li key={a.id}>
-                                        <button type="button" className="activity gomad-action gomad-action-select-activity" onClick={() => go(a.id, a.label)}>
-                                            <span className="activity__icon" aria-hidden="true" data-icon={a.icon}>
-                                                {hasIcon(a.icon) && <Icon name={a.icon} />}
-                                            </span>
-                                            <span>{a.label}</span>
-                                        </button>
-                                    </li>
-                                ))}
+                                {activities.data.activities.map((a: Activity) => {
+                                    const iconName = ACTIVITY_ICONS[a.id] ?? a.icon;
+                                    return (
+                                        <li key={a.id}>
+                                            <button type="button" className="activity gomad-action gomad-action-select-activity" onClick={() => go(a.id, a.label)}>
+                                                <span className="activity__icon" aria-hidden="true" data-icon={iconName}>
+                                                    {hasIcon(iconName) && <Icon name={iconName} />}
+                                                </span>
+                                                <span>{a.label}</span>
+                                            </button>
+                                        </li>
+                                    );
+                                })}
                             </ul>
                         )}
                     </section>

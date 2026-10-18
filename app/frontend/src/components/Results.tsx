@@ -53,7 +53,7 @@ function ResultCard({ item, index }: { item: Recommendation; index: number }) {
                             </Chip>
                         ) : (
                             now && (
-                                <Chip tone={now.temperature_c === null ? "nodata" : now.outdoor_ok === false ? "bad" : "good"} icon="thermostat">
+                                <Chip tone={now.temperature_c === null ? "nodata" : now.outdoor_ok === false ? "bad" : "good"} icon="temperature">
                                     {now.temperature_c === null ? "Temperatura: sin datos" : `${now.temperature_c} °C ahora`}
                                 </Chip>
                             )

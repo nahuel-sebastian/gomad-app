@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { MapPointKind, MapPointsResponse } from "../api/types";
 import { POI_KINDS } from "./mapIcons";
-import { getMapPoints } from "../data/mapPoints";
+import { getMapPoints, mapPointKindAvailable } from "../data/mapPoints";
 import { nearbyRequest, NEARBY_DEBOUNCE_MS } from "./mapUtils";
 
 // lo que usa el hook del mapa de MapLibre (asi las pruebas pasan un objeto simple)
@@ -46,7 +46,7 @@ export function useNearbyPoints(enabled: boolean) {
                         if (id === sequence.current) {
                             setNearby(response);
                             setCheckedPoiKinds(
-                                response.truncated ? [] : request.kinds.filter((k) => POI_KINDS.includes(k)),
+                                response.truncated ? [] : request.kinds.filter((k) => POI_KINDS.includes(k) && mapPointKindAvailable(k)),
                             );
                         }
                     },
