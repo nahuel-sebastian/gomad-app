@@ -6,6 +6,7 @@ import { FOOTER_DISCLAIMER, NO_SEARCH_NOTICE } from "../lib/texts";
 import { useAppState } from "../state/context";
 import { AqiChip } from "./Chip";
 import Hero, { heroVariantForDestination } from "./Hero";
+import Icon from "./Icon";
 import PageHeading from "./PageHeading";
 import SourceList from "./SourceList";
 
@@ -115,6 +116,7 @@ export default function Recommendation() {
                                 <dt className="detail-moment__label">Ahora</dt>
                                 <dd>
                                     <strong className={`chip ${now.temperature_c === null ? "chip--nodata" : "chip--info"} detail-moment__value`}>
+                                        <Icon name="temperature" />
                                         {now.temperature_c === null ? "Sin datos" : `${now.temperature_c} °C`}
                                     </strong>
                                     <small>

@@ -1,4 +1,5 @@
 import type { MapPoint, MapPointKind } from "../api/types";
+import Icon from "./Icon";
 import MapDialog from "./MapDialog";
 import { KIND_ORDER, KIND_STYLES, OUT_OF_SERVICE_COLOR, POI_KINDS } from "./mapIcons";
 import { NEARBY_MIN_ZOOM, POI_MIN_ZOOM } from "./mapUtils";
@@ -19,12 +20,10 @@ interface MapLegendProps {
     checkedPoiKinds?: MapPointKind[];
 }
 
-function KindIcon({ color, path }: { color: string; path: string }) {
+function KindIcon({ color, icon }: { color: string; icon: string }) {
     return (
         <span className="map-legend__icon" style={{ background: color }}>
-            <svg viewBox="0 0 960 960" aria-hidden="true" focusable="false">
-                <path d={path} />
-            </svg>
+            <Icon name={icon} />
         </span>
     );
 }
@@ -83,13 +82,13 @@ export default function MapLegend({
                 <ul role="list" aria-label="Tipos de lugar en el mapa">
                     {kinds.map((kind) => (
                         <li key={kind}>
-                            <KindIcon color={KIND_STYLES[kind].color} path={KIND_STYLES[kind].path} />
+                            <KindIcon color={KIND_STYLES[kind].color} icon={KIND_STYLES[kind].icon} />
                             {`${KIND_STYLES[kind].label}: ${counts.get(kind)}`}
                         </li>
                     ))}
                     {KIND_ORDER.filter((k) => outOfService.has(k)).map((kind) => (
                         <li key={`off-${kind}`}>
-                            <KindIcon color={OUT_OF_SERVICE_COLOR} path={KIND_STYLES[kind].path} />
+                            <KindIcon color={OUT_OF_SERVICE_COLOR} icon={KIND_STYLES[kind].icon} />
                             {`${KIND_STYLES[kind].label} fuera de servicio: ${outOfService.get(kind)}`}
                         </li>
                     ))}

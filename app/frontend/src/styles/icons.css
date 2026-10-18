@@ -1,6 +1,6 @@
 @font-face {
   font-family: 'icomoon';
-  src: url('/icons/icomoon.woff') format('woff');
+  src: url('/icons/icomoon.woff?v=7715b245') format('woff');
   font-weight: normal;
   font-style: normal;
   font-display: block;
@@ -21,8 +21,103 @@
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
-
-.icon-add_24dp_1F1F1F_FILL1_wght400_GRAD0_opsz24:before {
+.icon-water:before {
+  content: "\e918";
+}
+.icon-bolt:before {
+  content: "\e919";
+}
+.icon-bench:before {
+  content: "\e91a";
+}
+.icon-bike:before {
+  content: "\e91b";
+}
+.icon-traffic:before {
+  content: "\e91c";
+}
+.icon-walk:before {
+  content: "\e91d";
+}
+.icon-ecg:before {
+  content: "\e91e";
+}
+.icon-outdoor_gym:before {
+  content: "\e91f";
+}
+.icon-explore:before {
+  content: "\e920";
+}
+.icon-gym:before {
+  content: "\e921";
+}
+.icon-forest:before {
+  content: "\e922";
+}
+.icon-legend:before {
+  content: "\e923";
+}
+.icon-grass:before {
+  content: "\e924";
+}
+.icon-social:before {
+  content: "\e925";
+}
+.icon-criteria:before {
+  content: "\e926";
+}
+.icon-linked:before {
+  content: "\e927";
+}
+.icon-hospital:before {
+  content: "\e928";
+}
+.icon-municipality:before {
+  content: "\e929";
+}
+.icon-nature:before {
+  content: "\e92a";
+}
+.icon-padel:before {
+  content: "\e92b";
+}
+.icon-playground:before {
+  content: "\e92c";
+}
+.icon-pool:before {
+  content: "\e92d";
+}
+.icon-rainy:before {
+  content: "\e92e";
+}
+.icon-recycle:before {
+  content: "\e92f";
+}
+.icon-school:before {
+  content: "\e930";
+}
+.icon-basketball:before {
+  content: "\e931";
+}
+.icon-soccer:before {
+  content: "\e932";
+}
+.icon-tennis:before {
+  content: "\e933";
+}
+.icon-running:before {
+  content: "\e934";
+}
+.icon-stadium:before {
+  content: "\e935";
+}
+.icon-temperature:before {
+  content: "\e936";
+}
+.icon-wc:before {
+  content: "\e937";
+}
+.icon-add:before {
   content: "\e900";
 }
 .icon-air:before {
@@ -37,7 +132,7 @@
 .icon-close:before {
   content: "\e904";
 }
-.icon-bike:before {
+.icon-bike1:before {
   content: "\e905";
 }
 .icon-eco:before {
@@ -79,7 +174,7 @@
 .icon-pets:before {
   content: "\e912";
 }
-.icon-remove_24dp_1F1F1F_FILL1_wght400_GRAD0_opsz24:before {
+.icon-remove:before {
   content: "\e913";
 }
 .icon-route:before {

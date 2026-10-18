@@ -1,5 +1,6 @@
 import type { CSSProperties } from "react";
 import type { MapPointKind } from "../api/types";
+import Icon from "./Icon";
 import { KIND_STYLES } from "./mapIcons";
 
 interface MapPinProps {
@@ -21,9 +22,7 @@ export default function MapPin({ kind, number, name, selected = false }: MapPinP
             style={{ "--pin-color": style.color } as CSSProperties}
             role="img"
             aria-label={label}>
-            <svg viewBox="0 0 960 960" aria-hidden="true" focusable="false">
-                <path d={style.path} />
-            </svg>
+            <Icon name={style.icon} />
             <span className="map-marker__number">{number}</span>
         </span>
     );

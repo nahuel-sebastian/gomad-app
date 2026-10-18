@@ -45,7 +45,18 @@ describe("Inicio", () => {
         expect(container.querySelector(".icon-random")).toBeInTheDocument();
         expect(container.querySelector(".icon-settings")).toBeInTheDocument();
         expect(container.querySelectorAll(".activity__icon")).toHaveLength(8);
-        expect(within(list).getByRole("button", { name: "Caminar" }).querySelector(".activity__icon")).toHaveAttribute("data-icon", "directions_walk");
+        for (const [label, icon] of [
+            ["Caminar", "walk"],
+            ["Correr", "running"],
+            ["Nadar", "pool"],
+            ["Pádel", "padel"],
+            ["Tenis", "tennis"],
+            ["Fútbol", "soccer"],
+            ["Baloncesto", "basketball"],
+            ["Gimnasio y cubierto", "gym"],
+        ]) {
+            expect(within(list).getByRole("button", { name: label }).querySelector(`.icon-${icon}`)).toBeInTheDocument();
+        }
         const nav = screen.getByRole("navigation", { name: "Principal" });
         expect(nav.querySelector(".icon-navigation")).toBeInTheDocument();
         expect(nav.querySelector(".icon-location_on")).toBeInTheDocument();
