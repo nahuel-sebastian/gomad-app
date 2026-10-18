@@ -50,8 +50,11 @@ export default function Assistant() {
 
     const applyParams = (p: AssistantParams) => {
         setActivity(p.activity);
-        setDistance(p.distance_km != null ? String(p.distance_km) : "");
-        setDuration(p.duration_min != null ? String(p.duration_min) : "");
+        // sin distancia ni duracion (respuesta con aclaracion) se conserva lo que ya hay en los campos
+        if (p.distance_km != null || p.duration_min != null) {
+            setDistance(p.distance_km != null ? String(p.distance_km) : "");
+            setDuration(p.duration_min != null ? String(p.duration_min) : "");
+        }
         setLoop(p.loop ?? true);
         setPassBy(p.pass_by ?? []);
         setAvoid(p.avoid ?? []);
@@ -60,7 +63,7 @@ export default function Assistant() {
     const onInterpret = async (event: FormEvent) => {
         event.preventDefault();
         if (text.trim().length < 3) {
-            setInterpretation({ status: "clarification", text: "Escribe al menos 3 caracteres." });
+            setInterpretation({ status: "clarification", text: "Escribe un poco más. Por ejemplo: «5 km andando por un parque»." });
             return;
         }
         setInterpretation({ status: "loading" });
@@ -70,6 +73,8 @@ export default function Assistant() {
             if (result.rejection) {
                 setInterpretation({ status: "rejection", text: result.rejection });
             } else if (result.clarification) {
+                // puede traer tambien lo que si ha entendido: se apunta en el formulario
+                if (result.params) applyParams(result.params);
                 setInterpretation({ status: "clarification", text: result.clarification });
                 textRef.current?.focus();
             } else if (result.params) {
@@ -190,7 +195,7 @@ export default function Assistant() {
                     </p>
                 )}
                 {interpretation.status === "error" && (
-                    <ErrorMessage message="No se pudo interpretar ahora. Rellena los campos a mano." />
+                    <ErrorMessage message="Ahora no puedo interpretar el texto. Rellena los campos de abajo y pulsa «Calcular ruta»." />
                 )}
             </section>
 
