@@ -60,16 +60,17 @@ def test_medical_wins_over_route(cfg):
 def test_out_of_catalog(cfg):
     res = interpret_text("10 km en bici", None, cfg)
     assert res.params is None and "caminar o correr" in res.rejection
-    assert res.rejection.startswith("Montar en bici no lo prepara el asistente")
+    assert res.rejection == "El asistente no prepara rutas para montar en bici: solo para caminar o correr."
     assert "¿Qué te apetece hacer?" not in res.rejection          # el recomendador no tiene bici
 
 
 def test_out_of_catalog_names_the_activity(cfg):
     res = interpret_text("nadar 2 km", None, cfg)
     assert res.params is None and res.clarification is None
-    assert res.rejection == ("Nadar no lo prepara el asistente: solo hace rutas para caminar o correr. "
+    assert res.rejection == ("El asistente no prepara rutas para nadar: solo para caminar o correr. "
                              "Para buscar dónde nadar, usa «¿Qué te apetece hacer?» en Mi entorno.")
-    assert interpret_text("5 km y luego al pádel", None, cfg).rejection.startswith("Jugar al pádel no lo prepara")
+    assert interpret_text("5 km y luego al pádel", None, cfg).rejection.startswith(
+        "El asistente no prepara rutas para jugar al pádel:")
 
 
 @pytest.mark.parametrize("text", ["hola", "quiero ir al cine", "asdf qwer", "una ruta tranquila", "a las 20 h"])
@@ -83,14 +84,16 @@ def test_not_understood(cfg, text):
 def test_missing_amount_keeps_what_was_understood(cfg):
     res = interpret_text("por un parque", None, cfg)
     assert res.params == s.AssistantParams(activity="walk", distance_km=None, duration_min=None, pass_by=["park"])
-    assert res.clarification == ("He apuntado: pasar por parque. Solo falta la distancia o el tiempo: "
+    assert res.clarification == ("He apuntado: pasar por un parque. Solo falta la distancia o el tiempo: "
                                  "por ejemplo, «5 km» o «45 minutos».")
     res = interpret_text("pasear con el perro", None, cfg)
     assert res.params.activity == "walk" and res.params.pass_by == ["dog_area"]
-    assert res.clarification.startswith("He apuntado: caminar, pasar por área canina. Solo falta")
+    assert res.clarification.startswith("He apuntado: caminar, pasar por un área canina. Solo falta")
+    res = interpret_text("quiero salir a andar sin tráfico", None, cfg)
+    assert res.clarification.startswith("He apuntado: caminar, evitar el tráfico. Solo falta")
     res = interpret_text("correr sin tráfico, solo ida, con fuentes y bancos", None, cfg)
     assert (res.params.activity, res.params.loop, res.params.avoid) == ("run", False, ["traffic"])
-    assert res.clarification.startswith("He apuntado: correr, solo ida, pasar por fuentes y bancos, evitar tráfico.")
+    assert res.clarification.startswith("He apuntado: correr, solo ida, pasar por fuentes y bancos, evitar el tráfico.")
 
 
 def test_ambiguous_asks(cfg):
@@ -98,7 +101,13 @@ def test_ambiguous_asks(cfg):
     assert res.params.activity == "walk" and res.clarification.startswith("He apuntado: caminar. Solo falta")
     res = interpret_text("correr o caminar 5 km por un parque", None, cfg)
     assert res.params.distance_km == 5 and res.params.pass_by == ["park"]
-    assert res.clarification.startswith("He apuntado: pasar por parque. ¿Quieres caminar o correr?")
+    assert res.clarification == ("He apuntado: 5 km, pasar por un parque. ¿Quieres caminar o correr? He dejado "
+                                 "marcado «Caminar»; cámbialo abajo, en «Actividad», si vas a correr.")
+    res = interpret_text("correr o caminar 1,5 km", None, cfg)
+    assert res.clarification.startswith("He apuntado: 1,5 km. ¿Quieres caminar o correr?")
+    res = interpret_text("correr o caminar media hora", None, cfg)
+    assert res.clarification.startswith("He apuntado: 30 minutos. ¿Quieres caminar o correr?")
+    assert interpret_text("correr o caminar", None, cfg).clarification.startswith("¿Quieres caminar o correr?")
     res = interpret_text("60 km andando", None, cfg)
     assert res.params.distance_km is None and res.params.activity == "walk"
     assert res.clarification.startswith("He apuntado: caminar. Como mucho") and "42 km" in res.clarification
@@ -194,6 +203,10 @@ def test_new_messages_are_required_in_config(cfg, section, key):
         validate_assistant_config(broken)
 
 
+def test_generic_out_of_catalog_message_is_gone(cfg):
+    assert "out_of_catalog" not in cfg["messages"]
+
+
 def test_understood_labels_cover_the_contract(cfg):
     broken = copy.deepcopy(cfg)
     del broken["messages"]["understood"]["activities"]["run"]
@@ -201,6 +214,10 @@ def test_understood_labels_cover_the_contract(cfg):
         validate_assistant_config(broken)
     broken = copy.deepcopy(cfg)
     broken["interpret"]["out_of_catalog_in_recommender"].append("volar")
+    with pytest.raises(ValueError):
+        validate_assistant_config(broken)
+    broken = copy.deepcopy(cfg)
+    del broken["messages"]["understood"]["labels"]["hills"]
     with pytest.raises(ValueError):
         validate_assistant_config(broken)
 
