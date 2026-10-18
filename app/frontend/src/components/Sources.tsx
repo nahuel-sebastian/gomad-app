@@ -3,6 +3,7 @@ import { getSources } from "../data/sources";
 import { useAsync } from "../data/useAsync";
 import { formatTimeAgo } from "../lib/format";
 import ErrorMessage from "./ErrorMessage";
+import Icon from "./Icon";
 import PageHeading from "./PageHeading";
 
 // Referencias oficiales de umbrales: se citan, no se descargan (app/config/sources.yaml)
@@ -53,6 +54,17 @@ const SOURCE_GROUPS: { title: string; ids: string[] }[] = [
     { title: "Umbrales oficiales y criterio propio", ids: ["boe_ica", "sanidad_calor"] },
 ];
 const OTHER_GROUP = "Otras fuentes";
+const SOURCE_GROUP_ICONS: Record<string, string> = {
+    Deporte: "gym",
+    "Parques y naturaleza": "nature",
+    "Aire y tiempo": "air",
+    "Rutas y mobiliario urbano": "route",
+    "Salud, educación y servicios": "hospital",
+    "Transporte y conectividad": "bike",
+    "Mapa y territorio": "municipality",
+    "Umbrales oficiales y criterio propio": "criteria",
+    [OTHER_GROUP]: "legend",
+};
 
 function groupOf(id: string) {
     if (id.startsWith("config:")) return "Umbrales oficiales y criterio propio";
@@ -147,6 +159,7 @@ export default function Sources() {
                                 return (
                                     <details key={g.title} className="sources-group gomad-component gomad-sources-group">
                                         <summary className="sources-group__summary gomad-action gomad-action-toggle-source-group">
+                                            <Icon name={SOURCE_GROUP_ICONS[g.title]} />
                                             <span className="sources-group__title">{g.title}</span>
                                             <span className="sources-group__meta">
                                                 {g.sources.length} {g.sources.length === 1 ? "fuente" : "fuentes"}

@@ -29,7 +29,7 @@ type HeroProps = {
     className?: string;
     children?: ReactNode;
 } | {
-    variant: DestinationType;
+    variant: DestinationType | "municipality" | "assistant";
     className?: string;
     children?: ReactNode;
 };
@@ -96,6 +96,12 @@ export default function Hero(props: HeroProps) {
                     strokeWidth="10"
                 />
             </svg>
+            ) : variant === "municipality" ? (
+                <>
+                    <MunicipalityScene />
+                </>
+            ) : variant === "assistant" ? (
+                <AssistantMapScene />
             ) : <HeroScene type={variant} />}
 
             {props.variant && props.variant !== "home" ? props.children : (
@@ -105,6 +111,113 @@ export default function Hero(props: HeroProps) {
                 </div>
             )}
         </section>
+    );
+}
+
+function AssistantMapScene() {
+    const streets = [
+        "M25 74 182 74 245 118 410 118 572 45",
+        "M0 151 137 151 216 104 378 104 600 169",
+        "M0 236 158 236 255 278 418 278 600 221",
+        "M76 0 76 320", "M169 0 169 320", "M268 0 268 320", "M393 0 393 320", "M511 0 511 320",
+        "M0 290 120 230 222 195 344 150 520 112 600 95",
+    ];
+    const routes = [
+        { color: "#cf5eaa", line: "M94 270 166 232 232 197 319 181 390 118 431 52", points: [[94, 270], [166, 232], [232, 197], [390, 118], [431, 52]] },
+        { color: "#83ab2c", line: "M319 181 383 201 476 165 537 82", points: [[383, 201], [476, 165], [537, 82]] },
+        { color: "#ef9b25", line: "M139 95 181 151 232 197 267 241 319 181 422 237 515 249", points: [[139, 95], [181, 151], [267, 241], [422, 237], [515, 249]] },
+        { color: "#db4a55", line: "M319 181 422 237 461 288 544 299", points: [[461, 288], [544, 299]] },
+        { color: "#405b9c", line: "M319 181 318 108 305 42 M319 181 236 152 196 90", points: [[318, 108], [305, 42], [236, 152], [196, 90]] },
+        { color: "#744c9f", line: "M319 181 274 112 273 29", points: [[274, 112], [273, 29]] },
+    ];
+
+    return (
+        <svg className="hero__scene" viewBox="0 0 600 320" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+            <rect width="600" height="320" fill="#f5f8f7" />
+            <path d="M0 191q52-27 105-8t94 0q60-22 118 4t103 13q80-20 180-4v54q-117-11-183 5t-110-11q-61-26-123-5t-101 0q-54-19-83 4Z" fill="#e7f0e9" />
+            <path d="M0 206q90-8 159 19t141 23q92-2 139-28t161-22" fill="none" stroke="#cce5e9" strokeWidth="20" opacity=".75" />
+            <g fill="none" stroke="#dbe5e7" strokeWidth="8" strokeLinecap="round" strokeLinejoin="round">
+                {streets.map((line) => <path key={line} d={line} />)}
+            </g>
+            <g fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                {streets.map((line) => <path key={`center-${line}`} d={line} />)}
+            </g>
+            <g fill="none" strokeLinecap="round" strokeLinejoin="round">
+                {routes.map((route) => <path key={route.color} d={route.line} stroke={route.color} strokeWidth="5" />)}
+            </g>
+            <g fill="#fff" stroke="#fff" strokeWidth="5">
+                {routes.flatMap((route) => route.points.map(([x, y]) => <circle key={`${route.color}-${x}-${y}`} cx={x} cy={y} r="5" />))}
+            </g>
+            <g>
+                {routes.flatMap((route) => route.points.map(([x, y]) => <circle key={`${route.color}-${x}-${y}`} cx={x} cy={y} r="4.5" fill={route.color} />))}
+            </g>
+            <circle cx="319" cy="181" r="15" fill="#fff" stroke="#173e69" strokeWidth="4" />
+            <circle cx="319" cy="181" r="8" fill="#173e69" />
+        </svg>
+    );
+}
+
+function MunicipalityScene() {
+    return (
+        <svg className="hero__scene" viewBox="0 0 600 320" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+            <defs>
+                <linearGradient id="municipality-sky" x2="0" y2="1">
+                    <stop stopColor="#78b5df" />
+                    <stop offset="1" stopColor="#deedf3" />
+                </linearGradient>
+                <linearGradient id="municipality-road" x2="0" y2="1">
+                    <stop stopColor="#89949a" />
+                    <stop offset="1" stopColor="#626e75" />
+                </linearGradient>
+            </defs>
+            <rect width="600" height="320" fill="url(#municipality-sky)" />
+            <g fill="#f7fbf7" opacity=".55">
+                <ellipse cx="76" cy="65" rx="42" ry="10" />
+                <ellipse cx="116" cy="62" rx="35" ry="8" />
+                <ellipse cx="507" cy="55" rx="50" ry="9" />
+            </g>
+            {/* Fachadas de Gran Vía, con la cúpula del edificio Metrópolis como centro. */}
+            <path d="M0 151 34 137 34 121 86 121 86 142 132 132 132 112 197 112 197 134 248 126 248 223H0Z" fill="#e3d6bc" />
+            <path d="M0 162 34 148 86 151 132 142 197 145 248 137" fill="none" stroke="#f9f1df" strokeWidth="7" />
+            <path d="M0 200h249M34 122v105M86 122v105M132 113v110M197 113v107" fill="none" stroke="#bba889" strokeWidth="3" />
+            <g fill="#4b6d80">
+                {[20, 47, 71, 108, 150, 174, 213, 235].map((x) => [163, 188, 213].map((y) => <rect key={`${x}-${y}`} x={x} y={y} width="8" height="13" rx="1" />))}
+            </g>
+            <path d="M438 129h39v-24h15v20h52v13h56v91H438Z" fill="#e8dbc3" />
+            <path d="M430 146h170M444 183h156M444 213h156" stroke="#f9f0dc" strokeWidth="6" />
+            <g fill="#5b7480">{[458, 483, 508, 533, 558, 583].map((x) => [159, 192].map((y) => <rect key={`${x}-${y}`} x={x} y={y} width="9" height="15" rx="1" />))}</g>
+            <path d="M287 224V118h28V96h15V79h60v17h16v22h27v106Z" fill="#eadcc1" stroke="#c8b392" strokeWidth="3" />
+            <path d="M317 96h87M301 119h119M287 174h146M287 208h146" stroke="#faf3e1" strokeWidth="8" />
+            <path d="M328 79q3-41 32-47 29 6 32 47Z" fill="#516e83" stroke="#e2cd9e" strokeWidth="4" />
+            <path d="M339 70q5-26 21-30 16 4 21 30" fill="none" stroke="#a5bcc0" strokeWidth="3" />
+            <path d="M354 31q-5-6-2-9 5 0 8 5 3-5 8-5 3 3-2 9Z" fill="#2d3f48" />
+            <g fill="#527182">{[301, 321, 344, 370, 394, 414].map((x) => [132, 154, 187].map((y) => <rect key={`${x}-${y}`} x={x} y={y} width="9" height="13" rx="1" />))}</g>
+            <g fill="#f8efdb">{[306, 328, 352, 378, 401].map((x) => <rect key={x} x={x} y="174" width="5" height="34" />)}</g>
+            {/* Bandera integrada en la fachada, con el mástil y las siete estrellas. */}
+            <g>
+                <path d="M386 119v43" stroke="#53594e" strokeWidth="2" />
+                <path d="M388 123q10-4 20 0t20 0v22q-10 4-20 0t-20 0Z" fill="#c90825" stroke="#a00821" strokeWidth="1" />
+                {[0, 1, 2, 3].map((i) => <path key={`top-${i}`} d="m0-2 .5 1.3H2L.8.2l.5 1.5L0 .9l-1.3.8.5-1.5L-2-.7h1.5Z" fill="#fff" transform={`translate(${394 + i * 9} 130)`} />)}
+                {[0, 1, 2].map((i) => <path key={`bottom-${i}`} d="m0-2 .5 1.3H2L.8.2l.5 1.5L0 .9l-1.3.8.5-1.5L-2-.7h1.5Z" fill="#fff" transform={`translate(${398 + i * 9} 138)`} />)}
+            </g>
+            <path d="M0 231q105-21 248-9 117-7 212 4 84-8 140 0v94H0Z" fill="#7e935e" />
+            <g fill="#477c5b">{[38, 83, 133, 183, 236, 470, 522, 573].map((x) => <circle key={x} cx={x} cy={221} r={x % 2 ? 20 : 16} />)}</g>
+            <g fill="#6b9b6a">{[38, 83, 133, 183, 236, 470, 522, 573].map((x) => <circle key={x} cx={x - 7} cy={212} r="10" />)}</g>
+            <path d="M0 247q159-10 294 0 148-5 306 0v73H0Z" fill="url(#municipality-road)" />
+            <path d="M0 252q159-11 294 0 148-6 306 0M0 274q194-12 296-4 133-7 304 3" fill="none" stroke="#ded7c4" strokeWidth="5" />
+            <g strokeLinejoin="round">
+                <path d="M88 278h8l8-10q2-3 6-3h22q4 0 7 3l7 10h5v8H88Z" fill="#e8f0e9" stroke="#3d5660" strokeWidth="2" />
+                <path d="m107 268-5 9h17v-9Zm15 0v9h18l-6-9Z" fill="#91b7c4" stroke="#496b78" strokeWidth="1" />
+                <path d="M88 279h7m50 0h6" stroke="#f4d294" strokeWidth="2" />
+                <circle cx="104" cy="286" r="5" fill="#263a43" /><circle cx="137" cy="286" r="5" fill="#263a43" />
+                <circle cx="104" cy="286" r="2" fill="#aebbc0" /><circle cx="137" cy="286" r="2" fill="#aebbc0" />
+                <path d="M448 280h8l9-11q2-3 6-3h22q4 0 7 3l8 11h5v8h-65Z" fill="#dbe8e4" stroke="#3d5660" strokeWidth="2" />
+                <path d="m468 269-6 10h18v-10Zm15 0v10h18l-7-10Z" fill="#8fb3c2" stroke="#496b78" strokeWidth="1" />
+                <path d="M448 281h7m51 0h7" stroke="#f4d294" strokeWidth="2" />
+                <circle cx="465" cy="288" r="5" fill="#263a43" /><circle cx="499" cy="288" r="5" fill="#263a43" />
+                <circle cx="465" cy="288" r="2" fill="#aebbc0" /><circle cx="499" cy="288" r="2" fill="#aebbc0" />
+            </g>
+        </svg>
     );
 }
 
