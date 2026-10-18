@@ -23,8 +23,12 @@ Interfaz publica (la usa la integracion con el asistente F6, services/assistant.
 
     Excepciones: RouteNotFound si un punto de paso no esta conectado con el origen por la red peatonal.
     Si no hay ruta dentro de la tolerancia devuelve la mas cercana con within_tolerance=False y warning:
-    nunca finge que cumple. Determinista (sin azar). Los puntos de ruta (route_poi) a lo largo de
-    coordinates se sacan con services.route.PoiIndex, como en /route. No registra nada en logs.
+    nunca finge que cumple. Determinista (sin azar). No registra nada en logs. El tiempo total (subgrafo
+    incluido) queda por debajo de time_budget_s salvo el primer intento, que siempre se hace.
+
+    loop_route NO saca los puntos de ruta (route_poi: fuentes, bancos, papeleras... que muestra el mapa);
+    summary solo trae los recuentos del grafo. Quien la integre los saca como /route:
+    services.route.PoiIndex(repo, [coordinates], routing["poi_radius_m"]).along(coordinates).
 
 Metodo: subgrafo recortado alrededor del origen; tramos saludables encadenados origen -> puntos pedidos ->
 punto(s) automaticos a ~objetivo/3 elegidos por distancia de red y rumbo -> (origen); los tramos ya
@@ -164,15 +168,20 @@ def _pick(estimate, want, bearings, prefer, exclude, cand_tol):
     return int(np.flatnonzero(ok)[np.argmin(gap[ok])])
 
 
-def _subgraph(g, origin, radius, costs, waypoints, margin):
+def _subgraph(g, origin, radius, costs, waypoints, margin, search_factors):
     sub = Subgraph(g, origin, radius, costs)
     if all(sub.contains(w) for w in waypoints):
         return sub
-    # punto pedido fuera del radio: se amplia hasta margin x su distancia de red (o no esta conectado)
+    # punto pedido fuera del radio: se busca a factor x su distancia en linea recta (un factor y, si no
+    # aparece, el siguiente) y el subgrafo se amplia hasta margin x su distancia de red
     xy = _xy(g.lon, g.lat, g.cos_lat0)
     straight = max(float(np.hypot(*(xy[w] - xy[origin]))) for w in waypoints)
-    dist = bounded_distances(g, origin, max(radius, 3 * straight))
-    far = max(float(dist[w]) for w in waypoints)
+    far = math.inf
+    for factor in search_factors:
+        dist = bounded_distances(g, origin, max(radius, factor * straight))
+        far = max(float(dist[w]) for w in waypoints)
+        if math.isfinite(far):
+            break
     if not math.isfinite(far):
         raise RouteNotFound("El punto de paso no está conectado con el origen por la red peatonal")
     return Subgraph(g, origin, max(radius, margin * far), costs)
@@ -185,9 +194,11 @@ def loop_route(g, origin, target_m, costs, cfg, *, loop=True, waypoints=(), snap
     t0 = clock()
     tol, penalty = cfg["tolerance"], cfg["reuse_penalty"]
     waypoints = [int(w) for w in waypoints]
-    edges_target = target_m - snap_m * (2 if loop else 1)
+    # un enganche enorme puede comerse el objetivo: sin tramos libres, ruta fuera de tolerancia con aviso
+    edges_target = max(0.0, target_m - snap_m * (2 if loop else 1))
     radius = target_m * (1 + tol) / (2 if loop else 1)
-    sub = _subgraph(g, origin, radius, costs, waypoints, cfg["radius_margin"])
+    sub = _subgraph(g, origin, radius, costs, waypoints, cfg["radius_margin"],
+                    cfg["waypoint_search_factors"])
     xy = _xy(g.lon, g.lat, g.cos_lat0)
     bearings = _bearings(xy, origin)
     from_origin = sub.length_from(origin)
@@ -200,12 +211,15 @@ def loop_route(g, origin, target_m, costs, cfg, *, loop=True, waypoints=(), snap
         used |= set(leg)
         anchor = w
     from_anchor = from_origin if anchor == origin else sub.length_from(anchor)
-    two_free = loop and not waypoints
+    two_free = loop and not waypoints and edges_target > 0
 
-    best, scale, attempts = None, cfg["initial_scale"], 0
+    best, scale, attempts, started = None, cfg["initial_scale"], 0, t0
     for i in range(cfg["max_attempts"]):
-        if i > 0 and clock() - t0 >= cfg["time_budget_s"]:
+        now = clock()
+        # no se empieza un intento que, durando como el anterior, pasaria del presupuesto (cuenta el subgrafo)
+        if i > 0 and (now - t0) + (now - started) > cfg["time_budget_s"]:
             break
+        started = now
         attempts += 1
         heading = cfg["initial_bearing_deg"] + (i // cfg["rescales_per_direction"]) * cfg["bearing_step_deg"]
         edges, legs_used, last, free, est, real = list(fixed), set(used), anchor, [], 0.0, 0.0

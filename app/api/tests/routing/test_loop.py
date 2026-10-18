@@ -180,3 +180,56 @@ def test_waypoints_longer_than_target_flagged(grid, cfg):
 def test_unreachable_waypoint_raises(grid, cfg):
     with pytest.raises(RouteNotFound):
         loop_route(grid, CENTER, 3000, costs_of(grid), cfg, waypoints=[ISOLATED[0]])
+
+
+def test_time_budget_counts_last_attempt_duration(grid, cfg):
+    # cada intento tarda 2 s y el presupuesto es 3 s: 2 s gastados + 2 s del siguiente pasarian de 3
+    cfg = {**cfg, "tolerance": 0.0001, "time_budget_s": 3.0}
+    ticks = iter([0.0, 0.0, 2.0, 4.0, 6.0, 8.0, 10.0, 12.0, 14.0, 16.0])
+    r = loop_route(grid, CENTER, 3000, costs_of(grid), cfg, clock=lambda: next(ticks))
+    assert r.attempts == 1 and r.edges and r.warning
+
+
+def test_time_budget_includes_setup(grid, cfg):
+    # el subgrafo ya gasto el presupuesto: un unico intento (siempre hay una ruta que devolver)
+    cfg = {**cfg, "tolerance": 0.0001, "time_budget_s": 3.0}
+    ticks = iter([0.0, 2.9, 3.0, 3.1, 3.2, 3.3, 3.4, 3.5, 3.6, 3.7])
+    r = loop_route(grid, CENTER, 3000, costs_of(grid), cfg, clock=lambda: next(ticks))
+    assert r.attempts == 1
+
+
+@pytest.fixture(scope="module")
+def detour(tmp_path_factory):
+    """0 y 1 a 100 m en linea recta, unidos solo por un rodeo de 900 m (norte 400, este 100, sur 400)."""
+    tmp = tmp_path_factory.mktemp("detour")
+    xs = [0, 100, 0, 100]
+    ys = [0, 0, 400, 400]
+    lon = [LON0 + x / 100 * STEP_LON for x in xs]
+    lat = [LAT0 + y / 100 * STEP_LAT for y in ys]
+    nodes = pd.DataFrame({"node": range(4), "osm_id": range(4), "lon": lon, "lat": lat})
+    edges = pd.DataFrame([(0, 2, 400.0), (2, 3, 100.0), (3, 1, 400.0)], columns=["u", "v", "length_m"])
+    for col, val in (("traffic", 0.0), ("green_pct", 0.0), ("near_fountain", False), ("near_bench", False),
+                     ("near_aed", False), ("highway", "footway")):
+        edges[col] = val
+    edges["geom"] = [LineString([(lon[u], lat[u]), (lon[v], lat[v])]).wkb for u, v in zip(edges.u, edges.v)]
+    nodes.to_parquet(tmp / "nodes.parquet")
+    edges.to_parquet(tmp / "edges.parquet")
+    return load_graph(tmp)
+
+
+def test_waypoint_behind_long_detour(detour, cfg):
+    r = loop_route(detour, 0, 200, costs_of(detour), cfg, waypoints=[1])
+    assert 1 in chain_nodes(detour, 0, r.edges)
+    assert r.within_tolerance is False and r.warning
+
+
+def test_waypoint_search_factors_in_config(cfg):
+    assert len(cfg["waypoint_search_factors"]) == 2
+
+
+@pytest.mark.parametrize("loop", [True, False])
+def test_huge_snap_flagged_without_error(grid, cfg, loop):
+    r = loop_route(grid, CENTER, 3000, costs_of(grid), cfg, loop=loop, snap_m=5000)
+    assert r.edges == [] and r.waypoints == []
+    assert r.within_tolerance is False and r.warning
+    assert r.length_m == pytest.approx(5000 * (2 if loop else 1))
