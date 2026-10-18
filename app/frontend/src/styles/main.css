@@ -2612,6 +2612,8 @@
     z-index: 2;
     top: var(--header-height);
     display: grid;
+    /* minmax(0, 1fr): la fila de 26 letras no puede ensanchar el bloque */
+    grid-template-columns: minmax(0, 1fr);
     gap: 0.5rem;
     margin-inline: calc(var(--gutter) * -1);
     padding: 0.5rem var(--gutter);
@@ -2621,20 +2623,26 @@
   .muni-finder__search {
     display: grid;
     gap: 0.375rem;
+    min-width: 0px;
     margin: 0px;
-    padding: 0.75rem 1rem;
+    padding: 0.625rem 0.75rem;
   }
 
+  .muni-index {
+    min-width: 0px;
+  }
+
+  /* todas las letras a la vista, sin deslizar: en movil salen en dos filas */
   .muni-index__list {
-    display: flex;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(1.75rem, 1fr));
     gap: 0.25rem;
-    overflow-x: auto;
-    scrollbar-width: thin;
   }
 
   .muni-index__letter {
-    min-width: var(--tap-min);
-    min-height: var(--tap-min);
+    width: 100%;
+    min-height: 2rem;
+    padding: 0px;
     border: 1px solid var(--border-strong);
     border-radius: var(--radius-sm);
     background: var(--surface);
@@ -2655,7 +2663,6 @@
     margin: 0px 0px 0.5rem;
     color: var(--navy);
     font-size: 1.25rem;
-    scroll-margin-top: 9rem;
   }
 
   .muni-all {

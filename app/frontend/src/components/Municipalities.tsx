@@ -1,4 +1,4 @@
-import { useId, useState } from "react";
+import { useId, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router";
 import { distanceM } from "../data/livePosition";
 import { listMunicipalities, type MunicipalityItem } from "../data/municipality";
@@ -34,6 +34,7 @@ export default function Municipalities() {
     const navigate = useNavigate();
     const [query, setQuery] = useState("");
     const inputId = useId();
+    const finderRef = useRef<HTMLDivElement>(null);
     const headingPrefix = useId();
     const q = normalize(query);
     const shown = (list.data ?? []).filter((m) => normalize(m.name).includes(q));
@@ -51,10 +52,13 @@ export default function Municipalities() {
             : [];
     const letterId = (letter: string) => `${headingPrefix}-${letter}`;
 
+    // la letra queda justo debajo del buscador fijo (scroll-padding de la pagina aparte)
     const goToLetter = (letter: string) => {
         const heading = document.getElementById(letterId(letter));
-        heading?.scrollIntoView?.({ block: "start" });
-        heading?.focus();
+        if (!heading) return;
+        const stuckBottom = finderRef.current?.getBoundingClientRect().bottom ?? 0;
+        window.scrollTo({ top: window.scrollY + heading.getBoundingClientRect().top - stuckBottom - 8 });
+        heading.focus({ preventScroll: true });
     };
 
     return (
@@ -67,7 +71,7 @@ export default function Municipalities() {
                 cuidarte. Sin rankings: cada municipio se ve por sí solo.
             </p>
 
-            <div className="muni-finder">
+            <div className="muni-finder" ref={finderRef}>
                 <form
                     className="panel muni-finder__search"
                     role="search"
