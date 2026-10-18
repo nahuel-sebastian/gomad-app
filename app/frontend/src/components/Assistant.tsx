@@ -11,6 +11,7 @@ import Hero from "./Hero";
 import Icon from "./Icon";
 import LocationPicker from "./LocationPicker";
 import MapView from "./MapView";
+import { useRouteNavigation } from "./RouteNavigation";
 import PageHeading from "./PageHeading";
 
 const PASS_BY: PassBy[] = ["park", "fountain", "bench", "supermarket", "dog_area", "playground"];
@@ -234,6 +235,8 @@ export default function Assistant() {
 
     const done = route.status === "done" ? route.data : null;
     const met = done ? done.conditions.filter((c) => c.met).length : 0;
+    // «Seguir mi ubicacion»: solo con ruta propuesta (y su mapa)
+    const nav = useRouteNavigation(done && origin ? done.route : null);
     const announcement =
         route.status === "loading"
             ? "Calculando la ruta…"
@@ -465,8 +468,12 @@ export default function Assistant() {
                                 origin={origin.coordinate}
                                 route={done.route.geometry}
                                 markers={[]}
+                                live={nav.live}
+                                follow={nav.follow}
+                                onUserMove={nav.onUserMove}
                             />
                         )}
+                        {nav.controls}
                     </>
                 )}
             </section>

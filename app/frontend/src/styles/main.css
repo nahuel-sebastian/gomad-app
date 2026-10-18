@@ -225,6 +225,10 @@
     .gomad-route-view > .muted {
       margin: 1rem var(--gutter) 0;
     }
+
+    .gomad-route-view > .route-nav {
+      margin: 0.75rem var(--gutter) 0;
+    }
   }
 }
 
@@ -248,6 +252,7 @@
     .gomad-route-view > .seg { grid-row: 3; }
     .gomad-route-view > .route-map { grid-column: 1; grid-row: 4; }
     .gomad-route-view > .route-legend { grid-column: 1; grid-row: 5; }
+    .gomad-route-view > .route-nav { grid-column: 1; grid-row: 6; }
     .gomad-route-view > .route-info { grid-column: 2; grid-row: 4 / span 2; }
   }
 }
@@ -2085,6 +2090,40 @@
     border-left-color: var(--green);
     background: var(--green-tint);
     color: var(--green-dark);
+  }
+
+  /* navegacion sobre la ruta («Seguir mi ubicacion», RouteNavigation) */
+  .route-between__nav {
+    padding-top: 0.5rem;
+  }
+
+  .route-nav {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .route-nav__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  .route-nav__actions .button {
+    min-height: var(--tap-min);
+  }
+
+  .route-nav__actions .button--quiet {
+    align-self: auto;
+  }
+
+  .route-nav__panel p,
+  p.route-nav__panel {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 0.5rem;
+    font-weight: 700;
   }
 
   .notice__actions {

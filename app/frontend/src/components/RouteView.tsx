@@ -14,6 +14,7 @@ import Icon from "./Icon";
 import { destinationKind } from "./mapIcons";
 import MapView from "./MapView";
 import PageHeading from "./PageHeading";
+import { useRouteNavigation } from "./RouteNavigation";
 import SourceList from "./SourceList";
 
 const VARIANTS = [
@@ -64,6 +65,9 @@ export default function RouteView() {
         [id, origin?.coordinate.lat, origin?.coordinate.lon, preferences.profile],
     );
 
+    // «Seguir mi ubicacion» (navegacion): solo al pulsar; mientras, el «Estas aqui» automatico de arriba
+    const nav = useRouteNavigation(route.data ? route.data[kind] : null);
+
     if (!origin || !item) {
         return <Navigate to="/" replace state={{ notice: NO_SEARCH_NOTICE }} />;
     }
@@ -86,7 +90,9 @@ export default function RouteView() {
                         <MapView
                             className="map-view--block"
                             explore
-                            live={live}
+                            live={nav.live ?? live}
+                            follow={nav.follow}
+                            onUserMove={nav.onUserMove}
                             origin={origin.coordinate}
                             route={variant.geometry}
                             secondaryRoute={other?.geometry}
@@ -107,6 +113,7 @@ export default function RouteView() {
                         <li><span className="route-legend__line" aria-hidden="true" />Ruta seleccionada</li>
                         <li><span className="route-legend__line route-legend__line--secondary" aria-hidden="true" />Ruta alternativa</li>
                     </ul>
+                    {nav.controls}
                 </>
             )}
 

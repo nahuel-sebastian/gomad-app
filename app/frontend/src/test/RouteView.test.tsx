@@ -7,6 +7,7 @@ import { selectScenario } from "../data/scenarios";
 import { buildRecommendRequest } from "../lib/request";
 import { DEFAULT_PREFERENCES } from "../state/context";
 import { expectNoAxeViolations, renderAt, SAMPLE_ORIGIN } from "./render";
+import { installFakeGeo } from "./geoMock";
 
 async function setup() {
     const data = await recommend(
@@ -111,5 +112,28 @@ describe("Ruta saludable", () => {
         const sources = await screen.findByRole("list", { name: "Fuentes de la ruta" });
         expect(sources).toHaveTextContent("OpenStreetMap");
         expect(sources).toHaveTextContent("Criterio propio");
+    });
+});
+
+describe("Ruta saludable: seguir mi ubicacion", () => {
+    let geo: ReturnType<typeof installFakeGeo> | null = null;
+    afterEach(() => {
+        geo?.restore();
+        geo = null;
+    });
+
+    it("no pide la ubicacion al entrar y al pulsar sigue la posicion", async () => {
+        geo = installFakeGeo();
+        const { path, init } = await setup();
+        const { container, user } = renderAt(path, init);
+        const button = await screen.findByRole("button", { name: "Seguir mi ubicación" });
+        expect(geo.raw.watchPosition).not.toHaveBeenCalled();
+        expect(geo.raw.getCurrentPosition).not.toHaveBeenCalled();
+        await user.click(button);
+        expect(geo.raw.watchPosition).toHaveBeenCalledOnce();
+        expect(screen.getByRole("button", { name: "Dejar de seguir" })).toHaveAttribute("aria-pressed", "true");
+        geo.emit(SAMPLE_ORIGIN.coordinate.lat, SAMPLE_ORIGIN.coordinate.lon);
+        expect(await screen.findByText(/^Te quedan /)).toBeInTheDocument();
+        await expectNoAxeViolations(container);
     });
 });

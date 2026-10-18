@@ -4,6 +4,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import * as routeApi from "../data/route";
 import { selectScenario } from "../data/scenarios";
 import { expectNoAxeViolations, renderAt } from "./render";
+import { installFakeGeo } from "./geoMock";
 
 afterEach(() => {
     vi.restoreAllMocks();
@@ -180,6 +181,34 @@ describe("Ruta entre dos direcciones", () => {
         await chooseBoth(user);
         await user.click(screen.getByRole("button", { name: "Calcular ruta" }));
         await screen.findByRole("list", { name: "Resumen de la ruta" });
+        await expectNoAxeViolations(container);
+    });
+});
+
+describe("Ruta entre dos direcciones: seguir mi ubicacion", () => {
+    let geo: ReturnType<typeof installFakeGeo> | null = null;
+    afterEach(() => {
+        geo?.restore();
+        geo = null;
+    });
+
+    it("no pide la ubicacion al entrar; al pulsar recoge la hoja y sigue la posicion", async () => {
+        geo = installFakeGeo();
+        const { container, user } = renderAt("/trayecto");
+        await chooseBoth(user);
+        await user.click(screen.getByRole("button", { name: "Calcular ruta" }));
+        const button = await screen.findByRole("button", { name: "Seguir mi ubicación" });
+        expect(geo.raw.watchPosition).not.toHaveBeenCalled();
+        expect(geo.raw.getCurrentPosition).not.toHaveBeenCalled();
+        // los controles van al principio de la hoja, antes del titulo
+        const heading = screen.getByRole("heading", { level: 1, name: "Ruta entre dos direcciones" });
+        expect(button.compareDocumentPosition(heading) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+        await user.click(screen.getByRole("button", { name: "Mostrar detalles de la ruta" }));
+        await user.click(button);
+        expect(geo.raw.watchPosition).toHaveBeenCalledOnce();
+        expect(screen.getByRole("button", { name: "Mostrar detalles de la ruta" })).toHaveAttribute("aria-expanded", "false");
+        geo.emit(40.2962, -3.6711);
+        expect(await screen.findByText(/^Te quedan /)).toBeInTheDocument();
         await expectNoAxeViolations(container);
     });
 });
