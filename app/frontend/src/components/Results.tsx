@@ -279,6 +279,10 @@ export default function Results() {
                     </button>
 
                     <div className="results-sheet__scroll">
+                        {/* fuera del condicional: con el panel «Ajustar» abierto el recalculo tambien se anuncia */}
+                        <p className="sr-only" role="status" aria-live="polite">
+                            {announcement}
+                        </p>
                         {isAdjusting ? (
                             <div className="container results-preferences">
                                 <div className="results-preferences__header">
@@ -310,10 +314,6 @@ export default function Results() {
                         </div>
 
                         <div className="container results-body">
-                            <p className="sr-only" role="status" aria-live="polite">
-                                {announcement}
-                            </p>
-
                             {first.status === "loading" && !first.data && (
                                 <ul role="list" className="results-skeleton" aria-hidden="true">
                                     <li />

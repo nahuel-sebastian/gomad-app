@@ -53,13 +53,13 @@ describe("anuncios y foco (I1, I8)", () => {
         await waitFor(() => expect(screen.getByRole("status")).toHaveTextContent(/Ruta calculada: [\d,]+ k?m, \d+ min/));
     });
 
-    it("el dialogo de preferencias anuncia los resultados recalculados", async () => {
+    it("el panel de preferencias anuncia los resultados recalculados", async () => {
         const { user } = renderAt("/resultados", WITH_SEARCH);
         await screen.findByRole("list", { name: "Resultados" });
         await user.click(screen.getByRole("button", { name: /Ajustar/ }));
-        const dialog = await screen.findByRole("dialog", { name: "Tus preferencias" });
-        await user.click(within(dialog).getByRole("button", { name: "Con personas mayores" }));
-        await waitFor(() => expect(within(dialog).getByRole("status")).toHaveTextContent(/\d+ resultados con tus preferencias/));
+        await screen.findByRole("heading", { name: "Tus preferencias" });
+        await user.click(screen.getByRole("button", { name: "Con personas mayores" }));
+        await waitFor(() => expect(screen.getByText(/^\d+ resultados actualizados$/)).toHaveAttribute("role", "status"));
     });
 
     it("Ver más lleva el foco al primer resultado nuevo", async () => {
