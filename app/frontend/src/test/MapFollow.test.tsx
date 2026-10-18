@@ -1,6 +1,7 @@
 import { act, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import MapView from "../components/MapView";
+import * as mapPointsModule from "../data/mapPoints";
 import { NAV_ZOOM } from "../data/navigation";
 import { toLineString } from "../lib/geometry";
 import { easeToMock, lastMapProps, mapZoom, withWebGL } from "./mapMock";
@@ -61,5 +62,33 @@ describe("MapView: seguir la ubicacion", () => {
         act(() => props.onDragStart({ type: "dragstart", originalEvent: new Event("mousedown") }));
         act(() => props.onZoomStart({ type: "zoomstart", originalEvent: new Event("wheel") }));
         expect(onUserMove).toHaveBeenCalledTimes(2);
+    });
+});
+
+describe("MapView: seguir la ubicacion sin enviarla", () => {
+    const view = {
+        getZoom: () => 17,
+        getBounds: () => ({ getWest: () => -3.731, getSouth: () => 40.305, getEast: () => -3.729, getNorth: () => 40.306 }),
+    };
+    const wait = () => act(() => new Promise((r) => setTimeout(r, 400)));
+
+    it("mientras sigue, los movimientos programados no piden puntos de la zona", async () => {
+        const spy = vi.spyOn(mapPointsModule, "getMapPoints");
+        await renderMap({ follow: true, live: P1, explore: true });
+        const props = lastMapProps() as Record<string, (e: unknown) => void>;
+        act(() => props.onMoveEnd({ type: "moveend", target: view }));
+        await wait();
+        expect(spy).not.toHaveBeenCalled();
+        // lo que mueve la persona si pide puntos, como siempre
+        act(() => props.onMoveEnd({ type: "moveend", target: view, originalEvent: new Event("mouseup") }));
+        await wait();
+        expect(spy).toHaveBeenCalledOnce();
+    });
+
+    it("los botones de zoom sueltan el seguimiento", async () => {
+        const onUserMove = vi.fn();
+        await renderMap({ follow: true, live: P1, onUserMove });
+        act(() => screen.getByRole("button", { name: "Alejar mapa" }).click());
+        expect(onUserMove).toHaveBeenCalledOnce();
     });
 });

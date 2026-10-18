@@ -147,3 +147,24 @@ describe("useNavigation", () => {
         expect(g.watchers.size).toBe(0);
     });
 });
+
+describe("progressAlong en rutas de ida y vuelta", () => {
+    // ida hasta B y vuelta al inicio: los dos tramos se solapan
+    const BACK: LonLat[] = [LINE[0], LINE[2], LINE[0]];
+
+    it("al salir no da la ruta por terminada", () => {
+        const p = progressAlong(BACK, { lat: LAT, lon: LON0 + KM_LON / 20 }, 0);
+        near(p.remaining_m, 1950);
+    });
+
+    it("a la vuelta sigue avanzando desde donde iba", () => {
+        const p = progressAlong(BACK, { lat: LAT, lon: LON0 + KM_LON / 4 }, 1700);
+        near(p.remaining_m, 250);
+        near(p.along_m, 1750);
+    });
+
+    it("lejos de lo esperado busca en toda la ruta", () => {
+        const p = progressAlong(LINE, { lat: LAT, lon: LON0 + KM_LON * 0.9 }, 0);
+        near(p.remaining_m, 100);
+    });
+});

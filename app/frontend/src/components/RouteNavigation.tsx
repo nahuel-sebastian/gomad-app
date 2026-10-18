@@ -26,6 +26,8 @@ interface NavState {
     arrived: boolean;
     // ya se ha pulsado alguna vez: desde entonces la region de estado tiene role="status"
     touched: boolean;
+    // ultimo avance calculado y la posicion de la que sale (el avance anterior acota la busqueda)
+    progress: { at: Coordinate; remaining_m: number; off_route_m: number; along_m: number } | null;
 }
 
 // clave por valor: la misma ruta vuelta a pedir no corta la navegacion
@@ -52,22 +54,30 @@ export function useRouteNavigation(
         stopped: false,
         arrived: false,
         touched: false,
+        progress: null,
     });
     let state = stored;
     if (stored.key !== key) {
         // otra ruta o variante: se deja de seguir y se reinicia la llegada
-        state = { ...stored, key, active: false, follow: true, stopped: stored.active, arrived: false };
+        state = { ...stored, key, active: false, follow: true, stopped: stored.active, arrived: false, progress: null };
         setState(state);
     }
 
     const nav = useNavigation(state.active);
     const following = state.active && nav.error === null;
     const coords = lineCoordinates(variant?.geometry);
-    const progress = following && nav.position && coords.length > 0 ? progressAlong(coords, nav.position) : null;
-
-    if (following && progress && progress.remaining_m <= ARRIVED_M && !state.arrived) {
-        state = { ...state, arrived: true };
-        setState(state);
+    let progress: NavState["progress"] = null;
+    if (following && nav.position && coords.length > 0) {
+        if (state.progress?.at === nav.position) {
+            progress = state.progress;
+        } else {
+            // solo con cada posicion nueva: el avance sigue desde el anterior (rutas de ida y vuelta)
+            progress = { at: nav.position, ...progressAlong(coords, nav.position, state.progress?.along_m ?? 0) };
+            // llegada: cerca del final y sobre la ruta (no a 300 m pasado el destino)
+            const arrivedNow = progress.remaining_m <= ARRIVED_M && progress.off_route_m <= OFF_ROUTE_M;
+            state = { ...state, progress, arrived: state.arrived || arrivedNow };
+            setState(state);
+        }
     }
     const arrived = following && state.arrived;
     const offRoute = !arrived && progress !== null && progress.off_route_m > OFF_ROUTE_M;
@@ -77,10 +87,10 @@ export function useRouteNavigation(
             // tras un error: se para y se vuelve a empezar (un solo intento por pulsacion)
             flushSync(() => setState((s) => ({ ...s, active: false })));
         }
-        setState((s) => ({ ...s, active: true, follow: true, stopped: false, arrived: false, touched: true }));
+        setState((s) => ({ ...s, active: true, follow: true, stopped: false, arrived: false, touched: true, progress: null }));
         options.onStart?.();
     };
-    const stop = () => setState((s) => ({ ...s, active: false, follow: true, stopped: true, arrived: false }));
+    const stop = () => setState((s) => ({ ...s, active: false, follow: true, stopped: true, arrived: false, progress: null }));
     const onUserMove = () => {
         if (following) setState((s) => (s.follow ? { ...s, follow: false } : s));
     };

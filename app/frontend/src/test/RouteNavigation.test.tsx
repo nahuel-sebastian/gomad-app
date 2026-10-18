@@ -3,6 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { RouteVariant } from "../api/types";
 import { useRouteNavigation } from "../components/RouteNavigation";
+import { toLineString } from "../lib/geometry";
 import { expectNoAxeViolations } from "./render";
 import { installFakeGeo, NAV_KM_LON, NAV_LAT, NAV_LON0, navVariant } from "./geoMock";
 
@@ -136,5 +137,26 @@ describe("useRouteNavigation", () => {
         const { geo: g, container } = await start();
         g.emit(NAV_LAT, NAV_LON0 + NAV_KM_LON / 2);
         await expectNoAxeViolations(container);
+    });
+});
+
+describe("useRouteNavigation: llegada", () => {
+    it("en una ruta de ida y vuelta no dice Has llegado al salir", async () => {
+        const back = navVariant({
+            // la vuelta va ~2 m al norte de la ida, como pasa con el GPS: al salir, la vuelta queda mas cerca
+            geometry: toLineString([[NAV_LON0, NAV_LAT], [NAV_LON0 + NAV_KM_LON, NAV_LAT], [NAV_LON0, NAV_LAT + 0.00002]]),
+            distance_m: 2000,
+            duration_min: 24,
+        });
+        const { geo: g } = await start(back);
+        g.emit(NAV_LAT + 0.000018, NAV_LON0 + NAV_KM_LON / 100);
+        expect(status()).toHaveTextContent(/^Siguiendo tu ubicación$/);
+        expect(screen.getByText(/^Te quedan 2,0 km/)).toBeInTheDocument();
+    });
+
+    it("lejos de la ruta pasado el final no dice Has llegado", async () => {
+        const { geo: g } = await start();
+        g.emit(NAV_LAT, NAV_LON0 + NAV_KM_LON * 1.3); // ~300 m mas alla del final
+        expect(status()).toHaveTextContent(/^Te has alejado de la ruta$/);
     });
 });

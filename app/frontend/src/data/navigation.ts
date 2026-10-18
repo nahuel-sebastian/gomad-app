@@ -21,46 +21,69 @@ export type NavigationError = "denied" | "insecure" | "unavailable";
 const EARTH_RADIUS_M = 6_371_008.8;
 const RAD = Math.PI / 180;
 
+// Ventana de busqueda alrededor del avance anterior (criterio propio): en rutas de ida y vuelta o
+// circulares los tramos se solapan y la proyeccion mas cercana podria saltar al final
+export const NAV_BACK_M = 50;
+export const NAV_AHEAD_M = 300;
+
 // Proyecta la posicion sobre la linea de la ruta. Proyeccion equirectangular alrededor de la
-// posicion (metros locales), suficiente a la escala de una ruta a pie.
+// posicion (metros locales), suficiente a la escala de una ruta a pie. Con `fromAlong` (metros ya
+// recorridos en la actualizacion anterior) solo busca entre NAV_BACK_M detras y NAV_AHEAD_M delante;
+// si ahi queda lejos de la linea (mas de OFF_ROUTE_M), busca en toda la ruta.
 export function progressAlong(
     route: LonLat[],
     position: Coordinate,
-): { remaining_m: number; off_route_m: number } {
-    if (route.length === 0) return { remaining_m: 0, off_route_m: Infinity };
+    fromAlong?: number,
+): { remaining_m: number; off_route_m: number; along_m: number } {
+    if (route.length === 0) return { remaining_m: 0, off_route_m: Infinity, along_m: 0 };
     const at = (c: LonLat): Coordinate => ({ lat: c[1], lon: c[0] });
-    if (route.length === 1) return { remaining_m: 0, off_route_m: distanceM(position, at(route[0])) };
+    if (route.length === 1) return { remaining_m: 0, off_route_m: distanceM(position, at(route[0])), along_m: 0 };
+
+    // metros recorridos al principio de cada vertice
+    const cumulative = [0];
+    for (let i = 0; i < route.length - 1; i++) {
+        cumulative.push(cumulative[i] + distanceM(at(route[i]), at(route[i + 1])));
+    }
+    const total = cumulative[cumulative.length - 1];
 
     const kx = Math.cos(position.lat * RAD) * EARTH_RADIUS_M * RAD;
     const ky = EARTH_RADIUS_M * RAD;
     const local = (c: LonLat) => ({ x: (c[0] - position.lon) * kx, y: (c[1] - position.lat) * ky });
 
-    let best = { index: 0, t: 0, d2: Infinity };
-    for (let i = 0; i < route.length - 1; i++) {
-        const a = local(route[i]);
-        const b = local(route[i + 1]);
-        const dx = b.x - a.x;
-        const dy = b.y - a.y;
-        const len2 = dx * dx + dy * dy;
-        // el origen (0, 0) es la posicion
-        const t = len2 === 0 ? 0 : Math.min(1, Math.max(0, -(a.x * dx + a.y * dy) / len2));
-        const px = a.x + t * dx;
-        const py = a.y + t * dy;
-        const d2 = px * px + py * py;
-        if (d2 < best.d2) best = { index: i, t, d2 };
-    }
-
-    const a = route[best.index];
-    const b = route[best.index + 1];
-    const projected: Coordinate = {
-        lat: a[1] + best.t * (b[1] - a[1]),
-        lon: a[0] + best.t * (b[0] - a[0]),
+    const nearest = (include: (i: number) => boolean) => {
+        let best: { index: number; t: number; d2: number } | null = null;
+        for (let i = 0; i < route.length - 1; i++) {
+            if (!include(i)) continue;
+            const a = local(route[i]);
+            const b = local(route[i + 1]);
+            const dx = b.x - a.x;
+            const dy = b.y - a.y;
+            const len2 = dx * dx + dy * dy;
+            // el origen (0, 0) es la posicion
+            const t = len2 === 0 ? 0 : Math.min(1, Math.max(0, -(a.x * dx + a.y * dy) / len2));
+            const px = a.x + t * dx;
+            const py = a.y + t * dy;
+            const d2 = px * px + py * py;
+            if (!best || d2 < best.d2) best = { index: i, t, d2 };
+        }
+        if (!best) return null;
+        const a = route[best.index];
+        const b = route[best.index + 1];
+        const projected: Coordinate = {
+            lat: a[1] + best.t * (b[1] - a[1]),
+            lon: a[0] + best.t * (b[0] - a[0]),
+        };
+        const along = cumulative[best.index] + distanceM(at(a), projected);
+        return { remaining_m: Math.max(0, total - along), off_route_m: distanceM(position, projected), along_m: along };
     };
-    let remaining = distanceM(projected, at(b));
-    for (let i = best.index + 1; i < route.length - 1; i++) {
-        remaining += distanceM(at(route[i]), at(route[i + 1]));
+
+    if (fromAlong !== undefined) {
+        const lo = fromAlong - NAV_BACK_M;
+        const hi = fromAlong + NAV_AHEAD_M;
+        const windowed = nearest((i) => cumulative[i + 1] >= lo && cumulative[i] <= hi);
+        if (windowed && windowed.off_route_m <= OFF_ROUTE_M) return windowed;
     }
-    return { remaining_m: remaining, off_route_m: distanceM(position, projected) };
+    return nearest(() => true)!;
 }
 
 function browserDeps(): LiveDeps & { secure: boolean; now: () => number } {

@@ -317,7 +317,12 @@ export default function MapCanvas(props: MapViewProps) {
                         refresh(e.target as unknown as ViewSource);
                     }}
                     onIdle={(e) => handleIdle(e.target as unknown as RenderedMap)}
-                    onMoveEnd={(e) => refresh(e.target as unknown as ViewSource)}
+                    onMoveEnd={(e) => {
+                        // siguiendo la ubicacion, la vista programada esta centrada en la persona: no se
+                        // piden los puntos de esa zona (la posicion no sale del navegador)
+                        if (follow && !e.originalEvent) return;
+                        refresh(e.target as unknown as ViewSource);
+                    }}
                     onDragStart={handleUserMove}
                     onZoomStart={handleUserMove}
                     interactiveLayerIds={explore ? NEARBY_LAYERS : undefined}
@@ -422,8 +427,8 @@ export default function MapCanvas(props: MapViewProps) {
                 </Map>
             )}
             <div className="map-zoom" role="group" aria-label="Zoom del mapa">
-                <button type="button" aria-label="Acercar mapa" onClick={() => mapRef.current?.zoomIn()} disabled={!padding}>+</button>
-                <button type="button" aria-label="Alejar mapa" onClick={() => mapRef.current?.zoomOut()} disabled={!padding}>−</button>
+                <button type="button" aria-label="Acercar mapa" onClick={() => { onUserMove?.(); mapRef.current?.zoomIn(); }} disabled={!padding}>+</button>
+                <button type="button" aria-label="Alejar mapa" onClick={() => { onUserMove?.(); mapRef.current?.zoomOut(); }} disabled={!padding}>−</button>
             </div>
             <div className="map-panels">
                 {legendSlot === undefined && mapButtons}
