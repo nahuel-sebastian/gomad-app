@@ -1,6 +1,6 @@
 import { Link, Navigate, useParams } from "react-router";
 import type { HourEvaluation, Recommendation as Rec } from "../api/types";
-import { formatDistance, formatHour, formatMinutes, formatScore } from "../lib/format";
+import { formatDestinationName, formatDistance, formatHour, formatMinutes, formatScore } from "../lib/format";
 import { aqiLabel, DESTINATION_TYPE_LABELS, FACTOR_LABELS, verdictFor } from "../lib/labels";
 import { FOOTER_DISCLAIMER, NO_SEARCH_NOTICE } from "../lib/texts";
 import { useAppState } from "../state/context";
@@ -89,7 +89,7 @@ export default function Recommendation() {
                     <div className="detail-intro">
                         <div className="detail-intro__copy">
                             <p className="detail-kicker">{DESTINATION_TYPE_LABELS[item.destination.type]}</p>
-                            <PageHeading id="detail-title">{item.destination.name}</PageHeading>
+                            <PageHeading id="detail-title">{formatDestinationName(item.destination.name)}</PageHeading>
                             <p className="detail-meta">
                                 {formatDistance(item.distance_m)} · {formatMinutes(item.duration_min)} a pie ·{" "}
                                 {item.destination.municipality}
@@ -185,7 +185,7 @@ export default function Recommendation() {
                         {nowBad && alternative && (
                             <p className="detail-alt">
                                 <Link to={`/resultados/${encodeURIComponent(alternative.destination.id)}`} className="gomad-action gomad-action-open-covered-alternative">
-                                    Alternativa cubierta: {alternative.destination.name}
+                                    Alternativa cubierta: {formatDestinationName(alternative.destination.name)}
                                 </Link>
                             </p>
                         )}

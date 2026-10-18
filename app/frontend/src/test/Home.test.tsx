@@ -146,8 +146,8 @@ describe("Inicio", () => {
         const option = await screen.findByRole("button", { name: "Getafe" });
         const count = screen.getByText("1 lugar encontrado.");
         expect(count.compareDocumentPosition(screen.getByLabelText("Escribe una dirección o un municipio")) & Node.DOCUMENT_POSITION_PRECEDING).toBeTruthy();
-        expect(count.parentElement).toHaveClass("location__search-wrap");
-        expect(option.closest(".location__candidates")?.parentElement).toHaveClass("location__search-wrap");
+        expect(count.parentElement).toHaveClass("location__form");
+        expect(option.closest(".location__candidates")?.parentElement).toHaveClass("location__form");
         await user.click(option);
         expect(screen.getByLabelText("Escribe una dirección o un municipio")).toHaveValue("Getafe");
         expect(screen.queryByText("Usaremos el centro de Getafe.")).not.toBeInTheDocument();
@@ -171,7 +171,14 @@ describe("Inicio", () => {
                 "No encontramos esa dirección. Prueba con el nombre del municipio.",
             ),
         ).toBeInTheDocument();
-        expect(screen.getByText("No encontramos esa dirección. Prueba con el nombre del municipio.").parentElement).toHaveClass("location__search-wrap");
+        expect(screen.getByText("No encontramos esa dirección. Prueba con el nombre del municipio.").parentElement).toHaveClass("location__form");
+    });
+
+    it("muestra opciones mientras se escribe sin pulsar Buscar", async () => {
+        const { user } = renderAt("/");
+        await user.type(screen.getByLabelText("Escribe una dirección o un municipio"), "Getafe");
+        const option = await screen.findByRole("button", { name: "Getafe" });
+        expect(option.closest(".location__candidates")?.parentElement).toHaveClass("location__form");
     });
 
     it("muestra el estado del momento con temperatura y aire en texto", async () => {

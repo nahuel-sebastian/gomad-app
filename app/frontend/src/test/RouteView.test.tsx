@@ -33,16 +33,33 @@ describe("Ruta saludable", () => {
     it("compara recomendada y directa con metricas, PDI y descripcion", async () => {
         const { item, path, init } = await setup();
         const { container } = renderAt(path, init);
+        const metrics = await screen.findByRole("list", { name: "Resumen de la ruta" });
+        expect(screen.getByRole("link", { name: "Volver" })).toHaveClass("back-button");
+        expect(screen.getByRole("link", { name: "Volver" }).closest(".route-page")).toHaveClass("route-page--ready");
         expect(
             screen.getByRole("heading", { level: 1, name: `Ruta a ${item.destination.name}` }),
         ).toBeInTheDocument();
         const group = screen.getByRole("group", { name: "Variante de ruta" });
+        const map = container.querySelector(".route-map")!;
+        const lineLegend = screen.getByRole("list", { name: "Leyenda del mapa" });
+        expect(within(lineLegend).getByText("Ruta seleccionada")).toBeInTheDocument();
+        expect(within(lineLegend).getByText("Ruta alternativa")).toBeInTheDocument();
+        const heading = screen.getByRole("heading", { level: 1, name: `Ruta a ${item.destination.name}` });
+        expect(map.compareDocumentPosition(lineLegend) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+        expect(lineLegend.compareDocumentPosition(heading) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+        expect(heading.compareDocumentPosition(group) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+        expect(container.querySelector(".route-legend-slot")).toContainElement(screen.getByRole("button", { name: "Leyenda del mapa" }));
+        expect(group).toHaveClass("seg--routes");
+        expect(within(group).getByText("Ruta recomendada").tagName).toBe("STRONG");
         expect(within(group).getByRole("radio", { name: /Ruta recomendada/ })).toBeChecked();
-        const metrics = await screen.findByRole("list", { name: "Resumen de la ruta" });
         expect(metrics).toHaveTextContent("Zonas verdes");
         expect(metrics).toHaveTextContent("64 %");
         expect(metrics).toHaveTextContent("Desnivel");
-        expect(metrics).toHaveTextContent("sin datos de desnivel");
+        expect(metrics).toHaveTextContent("Sin datos de desnivel");
+        expect(metrics.closest(".panel")).toBeNull();
+        const details = container.querySelector(".route-details.panel")!;
+        expect(details).toContainElement(screen.getByRole("heading", { name: "En el camino" }));
+        expect(details).toContainElement(screen.getByRole("heading", { name: "La ruta en texto" }));
         for (const icon of [".icon-route", ".icon-calendar_clock", ".icon-eco", ".icon-mountain"]) {
             expect(metrics.querySelector(icon)).toHaveAttribute("aria-hidden", "true");
         }
@@ -75,7 +92,7 @@ describe("Ruta saludable", () => {
             ),
         ).toBeInTheDocument();
         expect(screen.getByRole("list", { name: "Resumen de la ruta" })).toHaveTextContent(
-            "sin datos",
+            "Sin datos",
         );
     });
 

@@ -269,7 +269,7 @@ export default function MapCanvas(props: MapViewProps) {
                                 id="route-secondary-line"
                                 type="line"
                                 layout={{ "line-cap": "round", "line-join": "round" }}
-                                paint={{ "line-color": ROUTE_SECONDARY_COLOR, "line-width": 4, "line-dasharray": [2, 1.5] }}
+                                paint={{ "line-color": ROUTE_SECONDARY_COLOR, "line-width": 2.5, "line-dasharray": [2, 1.5] }}
                             />
                         </Source>
                     )}
@@ -279,7 +279,7 @@ export default function MapCanvas(props: MapViewProps) {
                                 id="route-main-line"
                                 type="line"
                                 layout={{ "line-cap": "round", "line-join": "round" }}
-                                paint={{ "line-color": ROUTE_MAIN_COLOR, "line-width": 6 }}
+                                paint={{ "line-color": ROUTE_MAIN_COLOR, "line-width": 4 }}
                             />
                         </Source>
                     )}

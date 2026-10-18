@@ -5,7 +5,7 @@ import { BROWSER_LOCATION_LABEL } from "../data/geolocation";
 import { useLivePosition } from "../data/livePosition";
 import { getRoute } from "../data/route";
 import { useAsync } from "../data/useAsync";
-import { formatDistance, formatMinutes } from "../lib/format";
+import { formatDestinationName, formatDistance, formatMinutes } from "../lib/format";
 import { poiCount } from "../lib/labels";
 import { NO_SEARCH_NOTICE } from "../lib/texts";
 import { useAppState } from "../state/context";
@@ -38,6 +38,7 @@ export default function RouteView() {
     const item = results.find((r) => r.destination.id === id);
     const [kind, setKind] = useState<"healthy" | "direct">("healthy");
     const [announcement, setAnnouncement] = useState("");
+    const [legendSlot, setLegendSlot] = useState<HTMLElement | null>(null);
     const route = useAsync(
         () =>
             origin && item
@@ -61,17 +62,50 @@ export default function RouteView() {
     const pois = variant ? poiSummary(variant) : [];
 
     return (
-        <section className="container page route-page gomad-component gomad-route-view" aria-labelledby="ruta-titulo">
+        <section className={`container page route-page gomad-component gomad-route-view${data && variant ? " route-page--ready" : ""}`} aria-labelledby="ruta-titulo">
             <Link to={`/resultados/${encodeURIComponent(id)}`} className="back-button gomad-action gomad-action-back-to-recommendation">
                 <Icon name="arrow_left" />
-                Volver al detalle
+                Volver
             </Link>
 
-            <PageHeading className="view-title" id="ruta-titulo">
-                {`Ruta a ${item.destination.name}`}
-            </PageHeading>
+            {data && variant && (
+                <>
+                    <div className="route-map">
+                        <MapView
+                            className="map-view--block"
+                            explore
+                            live={live}
+                            origin={origin.coordinate}
+                            route={variant.geometry}
+                            secondaryRoute={other?.geometry}
+                            legendSlot={legendSlot}
+                            markers={[
+                                {
+                                    id: item.destination.id,
+                                    number: 1,
+                                    name: formatDestinationName(item.destination.name),
+                                    coordinate: item.destination.coordinate,
+                                    kind: destinationKind(item.destination.type),
+                                },
+                            ]}
+                            selectedId={item.destination.id}
+                        />
+                    </div>
+                    <ul role="list" className="route-legend" aria-label="Leyenda del mapa">
+                        <li><span className="route-legend__line" aria-hidden="true" />Ruta seleccionada</li>
+                        <li><span className="route-legend__line route-legend__line--secondary" aria-hidden="true" />Ruta alternativa</li>
+                    </ul>
+                </>
+            )}
 
-            <fieldset className="seg">
+            <div className="route-heading">
+                <PageHeading className="view-title" id="ruta-titulo">
+                    {`Ruta a ${formatDestinationName(item.destination.name)}`}
+                </PageHeading>
+                <div className="route-legend-slot" ref={setLegendSlot} />
+            </div>
+
+            <fieldset className="seg seg--routes">
                 <legend className="sr-only">Variante de ruta</legend>
                 {VARIANTS.map((v) => (
                     <label key={v.kind} className={`seg__option gomad-option gomad-option-route-variant-${v.kind}`}>
@@ -87,7 +121,7 @@ export default function RouteView() {
                             }}
                         />
                         <span>
-                            {v.label}
+                            <strong>{v.label}</strong>
                             <small>{v.hint}</small>
                         </span>
                     </label>
@@ -125,39 +159,7 @@ export default function RouteView() {
                         </div>
                     )}
 
-                    <div className="route-layout">
-                        <div className="route-map">
-                            <MapView
-                                className="map-view--block"
-                                explore
-                                live={live}
-                                origin={origin.coordinate}
-                                route={variant.geometry}
-                                secondaryRoute={other?.geometry}
-                                markers={[
-                                    {
-                                        id: item.destination.id,
-                                        number: 1,
-                                        name: item.destination.name,
-                                        coordinate: item.destination.coordinate,
-                                        kind: destinationKind(item.destination.type),
-                                    },
-                                ]}
-                                selectedId={item.destination.id}
-                            />
-                            <ul role="list" className="route-legend" aria-label="Leyenda del mapa">
-                                <li>
-                                    <span className="route-legend__line" aria-hidden="true" />
-                                    Ruta elegida
-                                </li>
-                                <li>
-                                    <span className="route-legend__line route-legend__line--secondary" aria-hidden="true" />
-                                    La otra ruta
-                                </li>
-                            </ul>
-                        </div>
-
-                        <div className="route-info panel">
+                    <div className="route-info">
                             <ul role="list" className="route-metrics" aria-label="Resumen de la ruta">
                                 <li>
                                     <span className="route-metrics__label"><Icon name="route" />Distancia</span>
@@ -169,7 +171,7 @@ export default function RouteView() {
                                 </li>
                                 <li>
                                     <span className="route-metrics__label"><Icon name="eco" />Zonas verdes</span>
-                                    <strong>{variant.green_pct === null ? "sin datos" : `${Math.round(variant.green_pct)} %`}</strong>
+                                    <strong>{variant.green_pct === null ? "Sin datos" : `${Math.round(variant.green_pct)} %`}</strong>
                                 </li>
                                 <li>
                                     <span>Junto a tráfico intenso</span>
@@ -177,22 +179,27 @@ export default function RouteView() {
                                 </li>
                                 <li>
                                     <span className="route-metrics__label"><Icon name="mountain" />Desnivel</span>
-                                    <strong className="route-metrics__nodata">sin datos de desnivel</strong>
+                                    <strong className="route-metrics__nodata">Sin datos de desnivel</strong>
                                 </li>
                             </ul>
 
-                            <h2 className="panel__title">En el camino</h2>
-                            <ul role="list" className="route-pois" aria-label="En la ruta">
-                                {pois.length > 0 ? (
-                                    pois.map((p) => <li key={p}>{p}</li>)
-                                ) : (
-                                    <li>Sin fuentes, bancos ni desfibriladores registrados en esta ruta.</li>
-                                )}
-                            </ul>
+                            <div className="route-details panel">
+                                <section className="route-details__section">
+                                    <h2 className="panel__title">En el camino</h2>
+                                    <ul role="list" className="route-pois" aria-label="En la ruta">
+                                        {pois.length > 0 ? (
+                                            pois.map((p) => <li key={p}>{p}</li>)
+                                        ) : (
+                                            <li className="route-pois__empty">Sin fuentes, bancos ni desfibriladores registrados en esta ruta.</li>
+                                        )}
+                                    </ul>
+                                </section>
 
-                            <h2 className="panel__title">La ruta en texto</h2>
-                            <p className="route-description">{variant.description}</p>
-                        </div>
+                                <section className="route-details__section">
+                                    <h2 className="panel__title">La ruta en texto</h2>
+                                    <p className="route-description">{variant.description}</p>
+                                </section>
+                            </div>
                     </div>
 
                     <section className="route-sources" aria-labelledby="fuentes-ruta">
