@@ -53,12 +53,11 @@ templates:                       # write_up: la explicacion solo usa datos del m
   failed: " No cumple: {failed}."
   join_last: " y "
 
-route:                           # /assistant/route sin ruta circular (fila 4); la circular por distancia es de la fila 5
+route:                           # /assistant/route; con distancia o duracion objetivo usa routing/loop.py (fila 5; tolerancia en routing.yaml loop)
   search_radius_m: 2000          # radio alrededor de la salida para buscar cada punto de paso (criterio propio)
   candidates: 20                 # puntos por tipo que se piden para saltar los fuera de servicio
   pass_by_radius_m: 50           # «pasar por» un punto = la ruta pasa a menos de esto (criterio propio)
   default_destination: park      # sin puntos de paso, la ruta va al parque mas cercano (R1 del plan)
-  tolerance: 0.10                # distancia o duracion objetivo: ±10 % (RF-22)
   avoid_traffic_max_share: 0.10  # «evitar trafico» se cumple con <= 10 % del recorrido junto a trafico (criterio propio)
   avoid_traffic_weights: {traffic: 1.0, green: 0.5, fountains: 0.2}
   destination_kinds: [park]      # pasar por que son destinos (tabla destination)
@@ -83,12 +82,11 @@ route:                           # /assistant/route sin ruta circular (fila 4); 
   texts:
     distance: "Distancia de {target} (±{tolerance} %)"
     duration: "Duración de {target} (±{tolerance} %)"
-    distance_met: "La ruta mide {actual}."
-    duration_met: "La ruta dura {actual}."
-    target_unmet: "La ruta sale de {actual}: el ajuste a una distancia objetivo todavía no está disponible."
-    loop: Circular
+    distance_met: "La ruta mide {actual} (desvío del {deviation} %)."
+    duration_met: "La ruta dura {actual} (desvío del {deviation} %)."
+    target_failed: "No se ha podido ajustar la distancia por la red peatonal; la ruta sale de {actual}."
+    loop: Ida y vuelta
     loop_met: Vuelve al punto de salida.
-    loop_unmet: "La ruta circular todavía no está disponible: esta ruta es solo de ida y termina en {end}."
     one_way: Solo ida
     one_way_met: "Termina en {end}."
     pass_by: "Pasar por: {label}"
@@ -102,6 +100,8 @@ route:                           # /assistant/route sin ruta circular (fila 4); 
     no_network: "Sin red peatonal cargada en esta zona: no se puede comprobar."
     summary_one_way: "Ruta saludable de ida hasta {end}: {description}"
     summary_approximate: "Ruta aproximada hasta {end}: {description}"
-    summary_loop: "Ruta saludable circular: {description}"
-    summary_default: "Como no has pedido pasar por ningún sitio, la ruta va al parque más cercano, {end}: {description}"
-    summary_fallback: "No hay ninguno de los puntos pedidos cerca, así que la ruta va al parque más cercano, {end}: {description}"
+    summary_loop: "Ruta saludable de ida y vuelta: {description}"
+    default_none: "Como no has pedido pasar por ningún sitio, la ruta pasa por el parque más cercano, {end}."
+    default_fallback: "No hay ninguno de los puntos pedidos cerca, así que la ruta pasa por el parque más cercano, {end}."
+    end_auto: un punto elegido para ajustar la distancia
+    end_start: el punto de salida

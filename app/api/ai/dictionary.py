@@ -20,7 +20,7 @@ REQUIRED = {"interpret": ["activities", "pass_by", "avoid", "avoid_direct", "neg
             "messages": ["medical", "out_of_catalog", "missing_amount", "which_activity", "too_long"],
             "oci": ["timeout_s", "language_code"],
             "templates": ["summary", "score", "failed", "join_last"],
-            "route": ["search_radius_m", "candidates", "pass_by_radius_m", "default_destination", "tolerance",
+            "route": ["search_radius_m", "candidates", "pass_by_radius_m", "default_destination",
                       "avoid_traffic_max_share", "avoid_traffic_weights", "destination_kinds", "poi_kinds", "no_data",
                       "labels", "endings", "texts"]}
 
