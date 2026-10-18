@@ -75,3 +75,15 @@ describe("css muerto", () => {
         expect(css).not.toMatch(/\.filter-chip\b|\.results-filter-chips\b/);
     });
 });
+
+describe("barra de navegacion inferior", () => {
+    it("en movil las paginas dejan sitio a la barra inferior fija", () => {
+        // la barra inferior es fixed: sin este hueco tapa el ultimo boton (p. ej. «Buscar actividad en…»)
+        const mobile = css.split("@media (max-width: 47.9375rem)").slice(1);
+        expect(
+            mobile.some((block) =>
+                /\.page \{[^}]*padding-bottom:\s*calc\([^;]*var\(--bottom-nav-height\)/.test(block.split("\n}\n")[0]),
+            ),
+        ).toBe(true);
+    });
+});
