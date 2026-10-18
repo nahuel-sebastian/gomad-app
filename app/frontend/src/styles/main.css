@@ -2087,6 +2087,36 @@
     color: var(--green-dark);
   }
 
+  /* navegacion sobre la ruta («Seguir mi ubicacion», RouteNavigation) */
+  .route-nav {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .route-nav__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  .route-nav__actions .button {
+    min-height: var(--tap-min);
+  }
+
+  .route-nav__actions .button--quiet {
+    align-self: auto;
+  }
+
+  .route-nav__panel p,
+  p.route-nav__panel {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 0.5rem;
+    font-weight: 700;
+  }
+
   .notice__actions {
     display: flex;
     flex-wrap: wrap;
