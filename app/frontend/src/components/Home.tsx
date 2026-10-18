@@ -196,6 +196,18 @@ export default function Home() {
                             </span>
                         </Link>
                     )}
+
+                    <Link to="/trayecto" className="panel panel--action surprise route-between-link gomad-action gomad-action-open-route-between">
+                        <span className="surprise__tile" aria-hidden="true">
+                            <Icon name="route" />
+                        </span>
+                        <span className="surprise__text">
+                            <span className="panel__title">Ruta entre dos direcciones</span>
+                            <span className="muted">
+                                Escribe dónde empiezas y dónde acabas y te propongo la ruta más verde.
+                            </span>
+                        </span>
+                    </Link>
                 </div>
             </div>
         </>

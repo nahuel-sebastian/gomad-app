@@ -67,7 +67,7 @@ describe("Asistente de rutas", () => {
         await user.click(screen.getByRole("button", { name: "Interpretar" }));
         expect(await screen.findByText(CLARIFICATION, { selector: ".notice" })).toBeInTheDocument();
         expect(screen.getByLabelText("Distancia (km)")).toHaveValue(null);
-        expect(screen.getByLabelText("o duración (min)")).toHaveValue(null);
+        expect(screen.getByLabelText("Duración (min)")).toHaveValue(null);
     });
 
     it("con aclaracion y params rellena lo entendido, conserva lo escrito a mano y anuncia la aclaracion", async () => {
