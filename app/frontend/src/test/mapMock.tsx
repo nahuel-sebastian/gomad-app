@@ -28,6 +28,9 @@ export const setStyleMock = vi.fn();
 export const fitBoundsMock = vi.fn();
 export const zoomInMock = vi.fn();
 export const zoomOutMock = vi.fn();
+export const easeToMock = vi.fn();
+// zoom del mapa simulado (getZoom)
+export const mapZoom = { value: 14 };
 
 export function lastMapProps(): Props {
     return mapPropsMock.mock.lastCall?.[0] ?? {};
@@ -38,7 +41,14 @@ export function mapLibreModule() {
         mapPropsMock(props);
         // como MapLibre: el lienzo nace enfocable y onLoad no llega en jsdom
         const canvas = useRef<HTMLCanvasElement>(null);
-        useImperativeHandle(ref, () => ({ fitBounds: fitBoundsMock, zoomIn: zoomInMock, zoomOut: zoomOutMock, getCanvas: () => canvas.current }));
+        useImperativeHandle(ref, () => ({
+            fitBounds: fitBoundsMock,
+            zoomIn: zoomInMock,
+            zoomOut: zoomOutMock,
+            easeTo: easeToMock,
+            getZoom: () => mapZoom.value,
+            getCanvas: () => canvas.current,
+        }));
         useEffect(() => {
             const onError = props.onError as ((e: unknown) => void) | undefined;
             const onStyleData = props.onStyleData as ((e: unknown) => void) | undefined;
@@ -82,7 +92,12 @@ export function mapLibreModule() {
         </div>
     );
     const Layer = ({ id }: Props) => <div data-layer={String(id)} />;
-    return { default: Map, Map, Marker, Source, Layer };
+    const Popup = ({ children, longitude, latitude, className }: Props) => (
+        <div data-popup className={String(className)} data-lon={String(longitude)} data-lat={String(latitude)}>
+            {children as ReactNode}
+        </div>
+    );
+    return { default: Map, Map, Marker, Source, Layer, Popup };
 }
 
 // URL del worker que MapCanvas pasa a maplibre-gl (en jsdom no se carga maplibre-gl real)

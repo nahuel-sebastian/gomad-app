@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { Coordinate, MapPointKind, MapPointsResponse } from "../api/types";
+import type { MapPointKind, MapPointsResponse } from "../api/types";
 import { POI_KINDS } from "./mapIcons";
 import { getMapPoints } from "../data/mapPoints";
 import { nearbyRequest, NEARBY_DEBOUNCE_MS } from "./mapUtils";
@@ -14,8 +14,6 @@ export interface ViewSource {
 // solo cuenta la respuesta de la ultima vista. Con enabled false no hace nada.
 export function useNearbyPoints(enabled: boolean) {
     const [nearby, setNearby] = useState<MapPointsResponse | null>(null);
-    // centro de la caja de la ultima respuesta aplicada (ordena «Lugares a la vista»)
-    const [center, setCenter] = useState<Coordinate | null>(null);
     // tipos de punto util que comprobo la respuesta aplicada (vacio si estaba truncada): solo de
     // ellos se puede decir «sin datos en esta zona»
     const [checkedPoiKinds, setCheckedPoiKinds] = useState<MapPointKind[]>([]);
@@ -46,8 +44,6 @@ export function useNearbyPoints(enabled: boolean) {
                 getMapPoints(request.bbox, request.kinds).then(
                     (response) => {
                         if (id === sequence.current) {
-                            const [w, s, e, n] = request.bbox;
-                            setCenter({ lat: (s + n) / 2, lon: (w + e) / 2 });
                             setNearby(response);
                             setCheckedPoiKinds(
                                 response.truncated ? [] : request.kinds.filter((k) => POI_KINDS.includes(k)),
@@ -76,5 +72,5 @@ export function useNearbyPoints(enabled: boolean) {
         [],
     );
 
-    return { nearby, zoom, center, checkedPoiKinds, refresh };
+    return { nearby, zoom, checkedPoiKinds, refresh };
 }

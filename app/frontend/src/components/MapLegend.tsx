@@ -1,4 +1,5 @@
 import type { MapPoint, MapPointKind } from "../api/types";
+import MapDialog from "./MapDialog";
 import { KIND_ORDER, KIND_STYLES, OUT_OF_SERVICE_COLOR, POI_KINDS } from "./mapIcons";
 import { NEARBY_MIN_ZOOM, POI_MIN_ZOOM } from "./mapUtils";
 
@@ -27,7 +28,8 @@ function KindIcon({ color, path }: { color: string; path: string }) {
 }
 
 // Leyenda del mapa (C2): cada tipo con icono + color + texto y cuantos hay a la vista (nunca
-// solo color, CLAUDE.md §2.10), y una pista de zoom. Plegada por defecto para no tapar el mapa.
+// solo color, CLAUDE.md §2.10), y una pista de zoom. Un boton de icono la abre en una ventana
+// (MapDialog), asi no tapa el mapa.
 export default function MapLegend({
     markerKinds,
     points,
@@ -60,39 +62,46 @@ export default function MapLegend({
     if (kinds.length === 0 && !live && hints.length === 0) return null;
 
     return (
-        <details className="map-legend">
-            <summary>Leyenda</summary>
-            <ul role="list" aria-label="Tipos de lugar en el mapa">
-                {kinds.map((kind) => (
-                    <li key={kind}>
-                        <KindIcon color={KIND_STYLES[kind].color} path={KIND_STYLES[kind].path} />
-                        {`${KIND_STYLES[kind].label}: ${counts.get(kind)}`}
-                    </li>
+        <MapDialog
+            label="Leyenda del mapa"
+            title="Leyenda del mapa"
+            action="gomad-action-open-map-legend"
+            className="map-legend gomad-map-legend"
+            icon={
+                // icono de leyenda: un punto de color por tipo y una raya de texto
+                <span className="map-legend-button__glyph" aria-hidden="true">
+                    {KIND_ORDER.slice(0, 3).map((k) => (
+                        <span key={k} style={{ background: KIND_STYLES[k].color }} />
+                    ))}
+                </span>
+            }>
+            <>
+                <ul role="list" aria-label="Tipos de lugar en el mapa">
+                    {kinds.map((kind) => (
+                        <li key={kind}>
+                            <KindIcon color={KIND_STYLES[kind].color} path={KIND_STYLES[kind].path} />
+                            {`${KIND_STYLES[kind].label}: ${counts.get(kind)}`}
+                        </li>
+                    ))}
+                    {KIND_ORDER.filter((k) => outOfService.has(k)).map((kind) => (
+                        <li key={`off-${kind}`}>
+                            <KindIcon color={OUT_OF_SERVICE_COLOR} path={KIND_STYLES[kind].path} />
+                            {`${KIND_STYLES[kind].label} fuera de servicio: ${outOfService.get(kind)}`}
+                        </li>
+                    ))}
+                    {live && (
+                        <li>
+                            <span className="map-legend__icon map-legend__icon--live" aria-hidden="true" />
+                            Estás aquí (en tiempo real)
+                        </li>
+                    )}
+                </ul>
+                {hints.map((hint) => (
+                    <p key={hint} className="map-legend__hint">
+                        {hint}
+                    </p>
                 ))}
-                {KIND_ORDER.filter((k) => outOfService.has(k)).map((kind) => (
-                    <li key={`off-${kind}`}>
-                        <KindIcon color={OUT_OF_SERVICE_COLOR} path={KIND_STYLES[kind].path} />
-                        {`${KIND_STYLES[kind].label} fuera de servicio: ${outOfService.get(kind)}`}
-                    </li>
-                ))}
-                {points.length > 0 && (
-                    <li>
-                        <span className="map-legend__icon map-legend__icon--cluster" aria-hidden="true" />
-                        Grupo de lugares (tócalo para acercar)
-                    </li>
-                )}
-                {live && (
-                    <li>
-                        <span className="map-legend__icon map-legend__icon--live" aria-hidden="true" />
-                        Estás aquí (en tiempo real)
-                    </li>
-                )}
-            </ul>
-            {hints.map((hint) => (
-                <p key={hint} className="map-legend__hint">
-                    {hint}
-                </p>
-            ))}
-        </details>
+            </>
+        </MapDialog>
     );
 }

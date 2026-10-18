@@ -1,11 +1,12 @@
 import { setWorkerUrl } from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 import workerUrl from "maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url";
-import { useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties } from "react";
-import type { MapPoint } from "../api/types";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import Map, {
     Layer,
     Marker,
+    Popup,
     Source,
     type ErrorEvent,
     type MapLayerMouseEvent,
@@ -15,21 +16,19 @@ import "../styles/map.css";
 import { lineCoordinates } from "../lib/geometry";
 import MapLegend from "./MapLegend";
 import MapPin from "./MapPin";
-import { KIND_STYLES, OUT_OF_SERVICE_COLOR } from "./mapIcons";
-import NearbyList from "./NearbyList";
-import { pinImage, PIN_PIXEL_RATIO } from "./mapPinImage";
+import { pinImage, PIN_HEIGHT, PIN_PIXEL_RATIO } from "./mapPinImage";
 import type { MapViewProps } from "./MapView";
 import {
     boundsOf,
-    closestPoints,
+    EXPLORE_FIT_MAX_ZOOM,
     FALLBACK_STYLE,
     FIT_MAX_ZOOM,
     fitPadding,
     MAP_ATTRIBUTION,
     mapPoints,
-    NEARBY_LIST_SIZE,
     nearbyFeatures,
     pointInfo,
+    POI_MIN_ZOOM,
     TILE_STYLE_URL,
     type NearbyProperties,
     type Padding,
@@ -46,28 +45,28 @@ setWorkerUrl(workerUrl);
 // MapLibre no lee variables CSS: mismos valores que --green-dark y --muted de main.css
 const ROUTE_MAIN_COLOR = "#135c3a";
 const ROUTE_SECONDARY_COLOR = "#55677a";
-// grupos de puntos cercanos: --navy de main.css
-const CLUSTER_COLOR = "#12395b";
-const NEARBY_LAYERS = ["nearby-clusters", "nearby-points"];
+const NEARBY_LAYERS = ["nearby-points"];
 
 type StyleImageMap = {
-    on(type: "styleimagemissing", listener: (e: { id: string }) => void): unknown;
+    setMissingStyleImageResolver(resolver: (id: string) => void): unknown;
     hasImage(id: string): boolean;
     addImage(id: string, image: ImageData, options: { pixelRatio: number }): unknown;
 };
 
-// MapLibre pide cada imagen de pin la primera vez que la necesita (tambien tras setStyle)
+// MapLibre pide cada imagen de pin la primera vez que la necesita (tambien tras setStyle). En
+// MapLibre 6 el evento «styleimagemissing» llega tarde para esa peticion: el icono no salia hasta
+// mover el mapa otra vez. El resolvedor si la resuelve en el momento.
 function registerPinImages(map: StyleImageMap) {
-    map.on("styleimagemissing", (e) => {
-        if (map.hasImage(e.id)) return;
-        const image = pinImage(e.id);
-        if (image) map.addImage(e.id, image, { pixelRatio: PIN_PIXEL_RATIO });
+    map.setMissingStyleImageResolver((id) => {
+        if (map.hasImage(id)) return;
+        const image = pinImage(id);
+        if (image) map.addImage(id, image, { pixelRatio: PIN_PIXEL_RATIO });
     });
 }
 
 export default function MapCanvas(props: MapViewProps) {
-    const { markers, selectedId, origin, route, secondaryRoute, onSelect, explore = false, live } = props;
-    const { nearby, zoom, center, checkedPoiKinds, refresh } = useNearbyPoints(explore);
+    const { markers, selectedId, origin, route, secondaryRoute, onSelect, explore = false, live, legendSlot } = props;
+    const { nearby, zoom, checkedPoiKinds, refresh } = useNearbyPoints(explore);
     // los destinos que ya tienen pin numerado no se repiten como punto cercano
     const markerKey = markers.map((m) => m.id).join("|");
     const nearbyPoints = useMemo(() => {
@@ -80,22 +79,18 @@ export default function MapCanvas(props: MapViewProps) {
         () => new globalThis.Map((nearby?.points ?? []).map((p) => [p.id, p.kind] as const)),
         [nearby],
     );
-    // mismo objeto mientras no cambien los puntos: MapLibre no recalcula los grupos en cada render
+    // mismo objeto mientras no cambien los puntos: MapLibre no recalcula la capa en cada render
     const nearbyData = useMemo(() => nearbyFeatures(nearbyPoints, []), [nearbyPoints]);
+    // anuncio para lectores de pantalla del punto pulsado
     const [info, setInfo] = useState("");
-    const listed = useMemo(
-        () => (center ? closestPoints(nearbyPoints, center, NEARBY_LIST_SIZE) : []),
-        [nearbyPoints, center],
-    );
-    // lugar elegido en «Lugares a la vista»: se resalta en el mapa y se anuncia
-    const [highlight, setHighlight] = useState<MapPoint | null>(null);
-    const highlighted = highlight && nearbyPoints.some((p) => p.id === highlight.id) ? highlight : null;
-    const pick = (p: MapPoint) => {
-        setHighlight(p);
-        setInfo(`${pointInfo(p)}. Resaltado en el mapa.`);
-    };
+    // etiqueta pegada al icono con tipo y nombre: al pasar el raton, o fija al pulsar (con el dedo)
+    const [tip, setTip] = useState<{ id: string; text: string; lon: number; lat: number; pinned: boolean } | null>(null);
+    // si el punto deja de estar en la capa (otra vista, menos zoom), su etiqueta tambien
+    const shownTip = tip && nearbyPoints.some((p) => p.id === tip.id) ? tip : null;
     const imagesFor = useRef<unknown>(null);
     const bounds = boundsOf(mapPoints(props));
+    // al encuadrar, el mapa explorable se queda por debajo del zoom de los puntos informativos
+    const fitMaxZoom = explore ? EXPLORE_FIT_MAX_ZOOM : FIT_MAX_ZOOM;
     const mapRef = useRef<MapRef>(null);
     // clave por valor: un array nuevo con los mismos puntos no reencuadra
     const boundsKey = JSON.stringify(bounds);
@@ -109,20 +104,25 @@ export default function MapCanvas(props: MapViewProps) {
     const [creationError, setCreationError] = useState<Error | null>(null);
     const styleLoaded = useRef(false);
 
-    const handleClick = (e: MapLayerMouseEvent) => {
+    const tipFor = (e: MapLayerMouseEvent, pinned: boolean) => {
         const feature = e.features?.[0];
-        if (!feature) {
-            setInfo("");
-            return;
-        }
-        const properties = (feature.properties ?? {}) as Partial<NearbyProperties> & { cluster?: boolean };
-        const geometry = feature.geometry as { type: string; coordinates?: [number, number] };
-        if (properties.cluster && geometry.coordinates) {
-            // un grupo: acercar para separarlo
-            e.target.easeTo({ center: geometry.coordinates, zoom: e.target.getZoom() + 2 });
-            return;
-        }
-        setInfo(pointInfo(properties));
+        const geometry = feature?.geometry as { type: string; coordinates?: [number, number] } | undefined;
+        if (!feature || !geometry?.coordinates) return null;
+        const properties = (feature.properties ?? {}) as Partial<NearbyProperties>;
+        const [lon, lat] = geometry.coordinates;
+        return { id: String(properties.id), text: pointInfo(properties), lon, lat, pinned };
+    };
+
+    const handleClick = (e: MapLayerMouseEvent) => {
+        const next = tipFor(e, true);
+        setTip(next);
+        setInfo(next?.text ?? "");
+    };
+
+    const handleMouseMove = (e: MapLayerMouseEvent) => {
+        const next = tipFor(e, false);
+        if (next) setTip(next);
+        else setTip((current) => (current?.pinned ? current : null));
     };
 
     const handleError = (e: ErrorEvent) => {
@@ -145,12 +145,26 @@ export default function MapCanvas(props: MapViewProps) {
             return;
         }
         fittedKey.current = boundsKey;
-        mapRef.current?.fitBounds(bounds, { padding, maxZoom: FIT_MAX_ZOOM, duration: 0 });
-    }, [boundsKey, bounds, padding]);
+        mapRef.current?.fitBounds(bounds, { padding, maxZoom: fitMaxZoom, duration: 0 });
+    }, [boundsKey, bounds, padding, fitMaxZoom]);
 
     if (creationError) {
         throw creationError;
     }
+
+    // boton de la leyenda: sobre el mapa o en legendSlot (portal)
+    const mapButtons = (
+        <>
+            <MapLegend
+            markerKinds={markers.flatMap((m) => (m.kind ? [apiKinds.get(m.id) ?? m.kind] : []))}
+            points={nearbyPoints}
+            zoom={explore ? zoom : null}
+            truncated={explore && (nearby?.truncated ?? false)}
+            live={Boolean(live)}
+                checkedPoiKinds={explore ? checkedPoiKinds : []}
+            />
+        </>
+    );
 
     return (
         <div className="map-canvas" ref={containerRef}>
@@ -163,7 +177,7 @@ export default function MapCanvas(props: MapViewProps) {
                             imagesFor.current = raw;
                             registerPinImages(raw);
                         }
-                        // la lista es el equivalente completo: el lienzo no entra en el orden de
+                        // la leyenda resume lo que hay: el lienzo no entra en el orden de
                         // tabulacion desde que existe (onLoad espera a estilo y teselas)
                         map?.getCanvas().setAttribute("tabindex", "-1");
                     }}
@@ -178,8 +192,11 @@ export default function MapCanvas(props: MapViewProps) {
                     onMoveEnd={(e) => refresh(e.target as unknown as ViewSource)}
                     interactiveLayerIds={explore ? NEARBY_LAYERS : undefined}
                     onClick={explore ? handleClick : undefined}
+                    onMouseMove={explore ? handleMouseMove : undefined}
+                    onMouseLeave={explore ? () => setTip((current) => (current?.pinned ? current : null)) : undefined}
+                    cursor={shownTip && !shownTip.pinned ? "pointer" : undefined}
                     initialViewState={
-                        bounds ? { bounds, fitBoundsOptions: { padding, maxZoom: FIT_MAX_ZOOM } } : undefined
+                        bounds ? { bounds, fitBoundsOptions: { padding, maxZoom: fitMaxZoom } } : undefined
                     }
                     style={{ width: "100%", height: "100%" }}>
                     {lineCoordinates(secondaryRoute).length > 1 && (
@@ -203,74 +220,36 @@ export default function MapCanvas(props: MapViewProps) {
                         </Source>
                     )}
                     {explore && nearby && (
-                        <Source
-                            id="nearby"
-                            type="geojson"
-                            data={nearbyData}
-                            cluster
-                            clusterMaxZoom={16}
-                            clusterRadius={44}>
-                            <Layer
-                                id="nearby-clusters"
-                                type="circle"
-                                filter={["has", "point_count"]}
-                                paint={{
-                                    "circle-color": CLUSTER_COLOR,
-                                    "circle-radius": ["step", ["get", "point_count"], 15, 20, 19, 100, 23],
-                                    "circle-stroke-color": "#ffffff",
-                                    "circle-stroke-width": 2,
-                                }}
-                            />
-                            <Layer
-                                id="nearby-count"
-                                type="symbol"
-                                filter={["has", "point_count"]}
-                                layout={{
-                                    "text-field": ["get", "point_count_abbreviated"],
-                                    "text-font": ["Noto Sans Bold"],
-                                    "text-size": 13,
-                                    "text-allow-overlap": true,
-                                }}
-                                paint={{ "text-color": "#ffffff" }}
-                            />
+                        // sin grupos: los puntos cercanos no son destinos y un numero se confundia con
+                        // los pines numerados; los iconos que se pisan se ocultan y salen al acercar
+                        <Source id="nearby" type="geojson" data={nearbyData}>
                             <Layer
                                 id="nearby-points"
                                 type="symbol"
-                                filter={["!", ["has", "point_count"]]}
                                 layout={{
                                     "icon-image": ["get", "icon"],
                                     "icon-anchor": "bottom",
-                                    "icon-allow-overlap": true,
+                                    "icon-allow-overlap": false,
                                 }}
                             />
                         </Source>
                     )}
+                    {shownTip && (
+                        // solo a la vista: al pulsar, el mismo texto se anuncia en la region de estado
+                        <Popup
+                            longitude={shownTip.lon}
+                            latitude={shownTip.lat}
+                            anchor="bottom"
+                            offset={PIN_HEIGHT + 2}
+                            closeButton={false}
+                            closeOnClick={false}
+                            className="map-point-popup">
+                            <span aria-hidden="true">{shownTip.text}</span>
+                        </Popup>
+                    )}
                     {origin && (
                         <Marker longitude={origin.lon} latitude={origin.lat}>
                             <span className="map-marker map-marker--origin" />
-                        </Marker>
-                    )}
-                    {highlighted && (
-                        <Marker
-                            longitude={highlighted.coordinate.lon}
-                            latitude={highlighted.coordinate.lat}
-                            anchor="bottom">
-                            <span
-                                className="map-marker map-marker--highlight"
-                                style={
-                                    {
-                                        "--pin-color":
-                                            highlighted.working === false
-                                                ? OUT_OF_SERVICE_COLOR
-                                                : KIND_STYLES[highlighted.kind].color,
-                                    } as CSSProperties
-                                }
-                                role="img"
-                                aria-label={`${pointInfo(highlighted)}, resaltado en el mapa`}>
-                                <svg viewBox="0 0 960 960" aria-hidden="true" focusable="false">
-                                    <path d={KIND_STYLES[highlighted.kind].path} />
-                                </svg>
-                            </span>
                         </Marker>
                     )}
                     {live && (
@@ -291,6 +270,15 @@ export default function MapCanvas(props: MapViewProps) {
                                 // que el clic no llegue al mapa
                                 e.originalEvent.stopPropagation();
                                 onSelect?.(m.id);
+                                // mapa explorable: acercar al destino hasta ver los puntos informativos
+                                const map = mapRef.current;
+                                if (explore && map) {
+                                    map.easeTo({
+                                        center: [m.coordinate.lon, m.coordinate.lat],
+                                        zoom: Math.max(map.getZoom(), POI_MIN_ZOOM),
+                                        padding: padding ?? undefined,
+                                    });
+                                }
                             }}>
                             {m.kind ? (
                                 <MapPin kind={apiKinds.get(m.id) ?? m.kind} number={m.number} name={m.name} selected={m.id === selectedId} />
@@ -308,22 +296,15 @@ export default function MapCanvas(props: MapViewProps) {
                 <button type="button" aria-label="Alejar mapa" onClick={() => mapRef.current?.zoomOut()} disabled={!padding}>−</button>
             </div>
             <div className="map-panels">
-                <MapLegend
-                    markerKinds={markers.flatMap((m) => (m.kind ? [apiKinds.get(m.id) ?? m.kind] : []))}
-                    points={nearbyPoints}
-                    zoom={explore ? zoom : null}
-                    truncated={explore && (nearby?.truncated ?? false)}
-                    live={Boolean(live)}
-                    checkedPoiKinds={explore ? checkedPoiKinds : []}
-                />
-                {explore && <NearbyList points={listed} onPick={pick} />}
+                {legendSlot === undefined && mapButtons}
             </div>
             {explore && (
-                <p className={`map-point-info${info ? "" : " map-point-info--empty"}`} role="status">
+                <p className="sr-only map-point-info" role="status">
                     {info}
                 </p>
             )}
             <p className="map-view__attribution">{MAP_ATTRIBUTION}</p>
+            {legendSlot && createPortal(mapButtons, legendSlot)}
         </div>
     );
 }

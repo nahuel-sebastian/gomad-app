@@ -84,7 +84,7 @@ describe("tablas (I2, I3)", () => {
 
     it("la tabla de fuentes mantiene sus roles aunque el CSS la apile", async () => {
         renderAt("/fuentes");
-        const table = await screen.findByRole("table", { name: "Fuentes de datos" });
+        const table = await screen.findByRole("table", { name: "Aire y tiempo" });
         expect(table).toHaveAttribute("role", "table");
         expect(within(table).getAllByRole("row")[1]).toHaveAttribute("role", "row");
         expect(within(table).getAllByRole("cell")[0]).toHaveAttribute("role", "cell");

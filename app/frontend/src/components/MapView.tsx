@@ -1,7 +1,7 @@
 import { Component, lazy, Suspense, useState, type ReactNode } from "react";
 import type { Coordinate, MapPointKind, RouteVariant } from "../api/types";
 import { lineCoordinates } from "../lib/geometry";
-// estilos del mapa tambien para el esquema sin WebGL (zoom, «Buscar desde aqui»)
+// estilos del mapa tambien para el esquema sin WebGL (zoom)
 import "../styles/map.css";
 import { hasWebGL } from "./mapUtils";
 
@@ -30,8 +30,9 @@ export interface MapViewProps {
     explore?: boolean;
     // posicion en tiempo real (C2); no entra en el encuadre: moverse no reencuadra el mapa
     live?: Coordinate | null;
-    // contenido superpuesto al mapa (p. ej. «Buscar desde aqui»), fuera del lienzo
-    overlay?: ReactNode;
+    // donde va el boton de la leyenda: sin la prop, sobre el mapa; con
+    // un elemento, ahi (portal, p. ej. junto a «Ajustar» en Resultados); null = sin sitio, no se pinta
+    legendSlot?: HTMLElement | null;
 }
 
 const SIZE = 100;
@@ -144,7 +145,6 @@ export default function MapView(props: MapViewProps) {
             ) : (
                 schematic
             )}
-            {props.overlay}
         </div>
     );
 }

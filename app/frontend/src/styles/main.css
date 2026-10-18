@@ -3297,3 +3297,191 @@
     align-self: flex-start;
   }
 }
+
+/* Inicio sin ubicacion: el buscador manda y las preferencias quedan en segundo plano */
+@layer responsive {
+  .gomad-home .location--highlight .panel__title {
+    font-size: 1.375rem;
+  }
+
+  .gomad-home .location--highlight .location__search {
+    min-height: 3.25rem;
+    border-color: var(--navy);
+  }
+
+  .gomad-home .location--highlight .gomad-action-use-location {
+    min-height: 3.25rem;
+  }
+
+  .home__secondary > .prefs--compact {
+    align-items: center;
+    padding: 0.75rem 1rem;
+    border: 1px solid var(--border);
+    box-shadow: none;
+  }
+
+  .prefs--compact .surprise__tile {
+    width: 2.25rem;
+    height: 2.25rem;
+  }
+
+  .prefs--compact .panel__title {
+    font-size: 1rem;
+    font-weight: 600;
+  }
+
+  .home__secondary .prefs--compact .muted {
+    font-size: 0.875rem;
+  }
+}
+
+/* Fuentes: desplegables por categoria */
+@layer responsive {
+  .sources-groups {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .sources-group {
+    border: 1px solid var(--border-strong);
+    border-radius: 10px;
+    background: var(--surface);
+  }
+
+  .sources-group__summary {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      "title chevron"
+      "meta chevron";
+    align-items: center;
+    column-gap: 0.75rem;
+    min-height: var(--tap-min);
+    padding: 0.75rem 1rem;
+    border-radius: 10px;
+    cursor: pointer;
+    list-style: none;
+  }
+
+  .sources-group__summary::-webkit-details-marker {
+    display: none;
+  }
+
+  /* chevron: borde girado, apunta abajo cerrado y arriba abierto */
+  .sources-group__summary::after {
+    content: "";
+    grid-area: chevron;
+    width: 0.625rem;
+    height: 0.625rem;
+    margin-right: 0.25rem;
+    border-right: 2px solid var(--navy);
+    border-bottom: 2px solid var(--navy);
+    transform: translateY(-25%) rotate(45deg);
+    transition: transform var(--transition);
+  }
+
+  .sources-group[open] > .sources-group__summary::after {
+    transform: translateY(25%) rotate(-135deg);
+  }
+
+  .sources-group__summary:hover {
+    background: var(--bg);
+  }
+
+  .sources-group__summary:focus-visible {
+    outline: 3px solid var(--focus);
+    outline-offset: 2px;
+  }
+
+  .sources-group[open] > .sources-group__summary {
+    border-bottom: 1px solid var(--border);
+    border-radius: 10px 10px 0 0;
+  }
+
+  .sources-group__title {
+    grid-area: title;
+    color: var(--navy);
+    font-weight: 700;
+  }
+
+  .sources-group__meta {
+    grid-area: meta;
+    color: var(--muted);
+    font-size: 0.875rem;
+  }
+
+  .sources-group__warning {
+    color: var(--warn-fg);
+    font-weight: 600;
+  }
+
+  .sources-group__body {
+    padding: 0 1rem 0.5rem;
+  }
+
+  .sources-group__body .sources-table tr:last-child,
+  .sources-group__body .sources-table tr:last-child td {
+    border-bottom: 0;
+  }
+}
+
+/* Resultados: cabecera de la hoja con «Leyenda» y «Ajustar» a la derecha del titulo */
+@layer responsive {
+  .results-sheet__scroll > .view-header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+
+  .results-heading-copy {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  /* si el titulo no cabe en una linea, que no quede una palabra sola */
+  .results-sheet__scroll > .view-header .view-title {
+    text-wrap: balance;
+  }
+
+  .results-header-actions {
+    display: flex;
+    flex: 0 0 auto;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .results-legend-slot {
+    display: contents;
+  }
+
+  .results-header-actions .map-dialog-button {
+    box-shadow: none;
+  }
+}
+
+@media (max-width: 47.9375rem) {
+  @layer responsive {
+    /* hoja recogida: titulo a todo el ancho; debajo, subtitulo y botones; sin hueco sobre el titulo */
+    .results-sheet__scroll > .view-header {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      column-gap: 0.75rem;
+      align-items: center;
+      padding-top: 0.25rem;
+      padding-bottom: 1rem;
+    }
+
+    .results-sheet__scroll > .view-header .results-heading-copy {
+      display: contents;
+    }
+
+    .results-sheet__scroll > .view-header .view-title {
+      grid-column: 1 / -1;
+    }
+
+    .results-sheet__scroll > .view-header .results-header-actions {
+      grid-column: 2;
+    }
+  }
+}

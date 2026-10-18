@@ -23,6 +23,93 @@ function failedAfterRefresh(source: SourceInfo) {
     return Date.parse(source.last_failure) > Date.parse(source.last_refresh);
 }
 
+// Categorias de la pagina de fuentes, por id de app/config/sources.yaml; un id nuevo cae en «Otras fuentes»
+const SOURCE_GROUPS: { title: string; ids: string[] }[] = [
+    {
+        title: "Deporte",
+        ids: ["eiel_deporte", "nmc_deporte", "ay_idb", "ay_piscinas", "ay_polideportivos", "destination_activity"],
+    },
+    {
+        title: "Parques y naturaleza",
+        ids: ["eiel_parques", "vpla_redes", "areas_recreativas", "vias_pecuarias", "nmc_parques", "ay_parques"],
+    },
+    {
+        title: "Aire y tiempo",
+        ids: ["aire_dia", "aire_estaciones", "ay_aire", "ay_aire_estaciones", "open_meteo", "cams_air"],
+    },
+    {
+        title: "Rutas y mobiliario urbano",
+        ids: ["osm", "ay_fuentes", "ay_bancos", "ay_areas_caninas", "desfibriladores"],
+    },
+    {
+        title: "Salud, educación y servicios",
+        ids: ["sanitarios", "farmacias", "educativos", "atencion_social"],
+    },
+    {
+        title: "Transporte y conectividad",
+        ids: ["nmc_busparadas", "nmc_estmetro", "nmc_estcerca", "eiel_nucleos"],
+    },
+    { title: "Mapa y territorio", ids: ["municipios", "callejero", "padron", "mdt05"] },
+    { title: "Umbrales oficiales y criterio propio", ids: ["boe_ica", "sanidad_calor"] },
+];
+const OTHER_GROUP = "Otras fuentes";
+
+function groupOf(id: string) {
+    if (id.startsWith("config:")) return "Umbrales oficiales y criterio propio";
+    return SOURCE_GROUPS.find((g) => g.ids.includes(id))?.title ?? OTHER_GROUP;
+}
+
+// Grupos en el orden de SOURCE_GROUPS; dentro, el orden del servidor; sin grupos vacios
+function groupSources(sources: SourceInfo[]) {
+    const titles = [...SOURCE_GROUPS.map((g) => g.title), OTHER_GROUP];
+    return titles
+        .map((title) => ({ title, sources: sources.filter((s) => groupOf(s.id) === title) }))
+        .filter((g) => g.sources.length > 0);
+}
+
+function SourcesTable({ title, sources }: { title: string; sources: SourceInfo[] }) {
+    return (
+        <table className="sources-table" role="table">
+            <caption className="sr-only">{title}</caption>
+            <thead role="rowgroup">
+                <tr role="row">
+                    <th scope="col" role="columnheader">Fuente</th>
+                    <th scope="col" role="columnheader">Publicador</th>
+                    <th scope="col" role="columnheader">Licencia</th>
+                    <th scope="col" role="columnheader">Última actualización</th>
+                </tr>
+            </thead>
+            <tbody role="rowgroup">
+                {sources.map((s) => (
+                    <tr key={s.id} role="row">
+                        <td role="cell" data-label="Fuente">
+                            <a
+                                href={s.url}
+                                className="sources-table__link gomad-sources__link gomad-action gomad-action-open-source"
+                                target="_blank"
+                                rel="noreferrer noopener"
+                            >
+                                {s.name}
+                                <span className="sr-only"> (se abre en una pestaña nueva)</span>
+                            </a>
+                        </td>
+                        <td role="cell" data-label="Publicador">{s.publisher}</td>
+                        <td role="cell" data-label="Licencia">{s.license}</td>
+                        <td role="cell" data-label="Última actualización">
+                            {refreshText(s)}
+                            {failedAfterRefresh(s) && (
+                                <span className="sources-table__failure">
+                                    Última recarga fallida: se muestra el dato anterior.
+                                </span>
+                            )}
+                        </td>
+                    </tr>
+                ))}
+            </tbody>
+        </table>
+    );
+}
+
 export default function Sources() {
     const sources = useAsync(() => getSources(), []);
 
@@ -52,44 +139,30 @@ export default function Sources() {
                     <ErrorMessage message="No se pudieron cargar las fuentes." onRetry={sources.reload} />
                 )}
                 {sources.data && (
-                    <table className="sources-table" role="table">
-                        <caption className="sr-only">Fuentes de datos</caption>
-                        <thead role="rowgroup">
-                            <tr role="row">
-                                <th scope="col" role="columnheader">Fuente</th>
-                                <th scope="col" role="columnheader">Publicador</th>
-                                <th scope="col" role="columnheader">Licencia</th>
-                                <th scope="col" role="columnheader">Última actualización</th>
-                            </tr>
-                        </thead>
-                        <tbody role="rowgroup">
-                            {sources.data.sources.map((s) => (
-                                <tr key={s.id} role="row">
-                                    <td role="cell" data-label="Fuente">
-                                        <a
-                                            href={s.url}
-                                            className="sources-table__link gomad-sources__link gomad-action gomad-action-open-source"
-                                            target="_blank"
-                                            rel="noreferrer noopener"
-                                        >
-                                            {s.name}
-                                            <span className="sr-only"> (se abre en una pestaña nueva)</span>
-                                        </a>
-                                    </td>
-                                    <td role="cell" data-label="Publicador">{s.publisher}</td>
-                                    <td role="cell" data-label="Licencia">{s.license}</td>
-                                    <td role="cell" data-label="Última actualización">
-                                        {refreshText(s)}
-                                        {failedAfterRefresh(s) && (
-                                            <span className="sources-table__failure">
-                                                Última recarga fallida: se muestra el dato anterior.
+                    <>
+                        <p className="muted">Pulsa una categoría para ver sus fuentes.</p>
+                        <div className="sources-groups">
+                            {groupSources(sources.data.sources).map((g) => {
+                                const failures = g.sources.filter(failedAfterRefresh).length;
+                                return (
+                                    <details key={g.title} className="sources-group gomad-component gomad-sources-group">
+                                        <summary className="sources-group__summary gomad-action gomad-action-toggle-source-group">
+                                            <span className="sources-group__title">{g.title}</span>
+                                            <span className="sources-group__meta">
+                                                {g.sources.length} {g.sources.length === 1 ? "fuente" : "fuentes"}
+                                                {failures > 0 && (
+                                                    <span className="sources-group__warning"> · {failures} con aviso</span>
+                                                )}
                                             </span>
-                                        )}
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
+                                        </summary>
+                                        <div className="sources-group__body">
+                                            <SourcesTable title={g.title} sources={g.sources} />
+                                        </div>
+                                    </details>
+                                );
+                            })}
+                        </div>
+                    </>
                 )}
             </section>
 
