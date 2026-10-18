@@ -262,9 +262,11 @@ describe("asistente", () => {
     });
 
     it("pide aclaracion si falta la distancia o la duracion", async () => {
+        // con aclaracion devuelve lo entendido (39cad87): actividad sin cantidad
         const data = await interpret("quiero dar un paseo");
-        expect(data.params).toBeNull();
         expect(data.clarification).toBeTruthy();
+        expect(data.params?.distance_km).toBeNull();
+        expect(data.params?.duration_min).toBeNull();
     });
 
     it("comprueba condicion por condicion", async () => {

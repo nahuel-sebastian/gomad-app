@@ -2442,6 +2442,7 @@
     gap: 0.25rem;
     border-radius: var(--radius-sm);
     background: var(--bg);
+    border: 1px solid var(--border-strong);
   }
 
   .seg__option {
