@@ -130,3 +130,22 @@ def test_hasta_place_is_one_way(cfg, text):
 def test_hasta_clock_time_is_not_one_way(cfg):
     p = params("salir hasta las 9, 5 km", cfg)
     assert p.loop is True and p.distance_km == 5 and p.duration_min is None
+
+
+@pytest.mark.parametrize("text", ["5 km hasta las nueve", "5 km hasta la una", "5 km hasta las Doce",
+                                  "salir a las ocho, 5 km hasta las diez"])
+def test_hasta_clock_time_in_words_is_not_one_way(cfg, text):
+    p = params(text, cfg)
+    assert p.loop is True and p.distance_km == 5 and p.duration_min is None
+
+
+def test_hasta_word_that_is_not_an_hour_is_still_one_way(cfg):
+    assert params("5 km hasta la fuente", cfg).loop is False
+    assert params("5 km hasta la unidad de salud", cfg).loop is False   # «una» solo como palabra entera
+
+
+def test_clock_numbers_are_required_in_config(cfg):
+    broken = copy.deepcopy(cfg)
+    del broken["interpret"]["clock_numbers"]
+    with pytest.raises(ValueError, match="clock_numbers"):
+        validate_assistant_config(broken)
