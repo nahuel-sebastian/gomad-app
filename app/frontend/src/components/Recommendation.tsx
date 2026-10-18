@@ -1,5 +1,5 @@
 import { Link, Navigate, useParams } from "react-router";
-import type { HourEvaluation, Recommendation as Rec } from "../api/types";
+import type { Factor, HourEvaluation, Recommendation as Rec } from "../api/types";
 import { formatDestinationName, formatDistance, formatHour, formatMinutes, formatScore } from "../lib/format";
 import { aqiLabel, DESTINATION_TYPE_LABELS, FACTOR_LABELS, verdictFor } from "../lib/labels";
 import { FOOTER_DISCLAIMER, NO_SEARCH_NOTICE } from "../lib/texts";
@@ -55,6 +55,14 @@ function factorSubtitle(text: string): string {
     return detail.charAt(0).toLocaleUpperCase("es-ES") + detail.slice(1);
 }
 
+const FACTOR_ICONS: Record<Factor, string> = {
+    proximity: "bike",
+    suitability: "criteria",
+    green: "grass",
+    air: "air",
+    weather: "rainy",
+};
+
 export default function Recommendation() {
     const { id = "" } = useParams();
     const { results, search, medicalDisclaimer } = useAppState();
@@ -76,9 +84,7 @@ export default function Recommendation() {
             <div className="detail-dialog">
                 <Hero variant={heroVariant} className="detail-media">
                     <Link to="/resultados" className="detail-media__back gomad-action gomad-action-back-to-results">
-                        <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" focusable="false">
-                            <path d="M15 5l-7 7 7 7" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
-                        </svg>
+                        <Icon name="arrow_left" />
                         Volver
                         <span className="sr-only">
                             {" "}a resultados (recomendación {index + 1} de {results.length})
@@ -157,7 +163,7 @@ export default function Recommendation() {
                             {item.factors.map((f) => (
                                 <li key={f.factor}>
                                     <div>
-                                        <strong>{FACTOR_LABELS[f.factor]}</strong>
+                                        <strong><Icon name={FACTOR_ICONS[f.factor]} />{FACTOR_LABELS[f.factor]}</strong>
                                         <span>{factorSubtitle(f.text)}</span>
                                     </div>
                                     {f.value === null ? (

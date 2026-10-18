@@ -70,14 +70,7 @@ export default function MapLegend({
             title="Leyenda del mapa"
             action="gomad-action-open-map-legend"
             className="map-legend gomad-map-legend"
-            icon={
-                // icono de leyenda: un punto de color por tipo y una raya de texto
-                <span className="map-legend-button__glyph" aria-hidden="true">
-                    {KIND_ORDER.slice(0, 3).map((k) => (
-                        <span key={k} style={{ background: KIND_STYLES[k].color }} />
-                    ))}
-                </span>
-            }>
+            icon={<Icon name="legend" />}>
             <>
                 <ul role="list" aria-label="Tipos de lugar en el mapa">
                     {kinds.map((kind) => (

@@ -1066,6 +1066,10 @@
     margin-bottom: 2rem;
   }
 
+  .gomad-sources > .panel {
+    margin-bottom: 0;
+  }
+
   .gomad-home > .panel,
   .gomad-home > .home__secondary > .panel {
     margin-bottom: 0;
@@ -1140,8 +1144,8 @@
     color: var(--navy);
   }
 
-  .activity__icon .icon {
-    font-size: 1.5rem;
+  .activity .icon {
+    font-size: 1rem;
   }
 
   .activity:hover {
@@ -1277,6 +1281,7 @@
 
   .back-button .icon {
     flex: 0 0 auto;
+    font-size: 0.875rem;
   }
 
   /* la misma pildora «Volver» en resultados y en la ficha de municipio */
@@ -1289,6 +1294,10 @@
     background: var(--surface);
     box-shadow: 0 2px 8px rgba(18, 57, 91, 0.16);
     font-size: 0.8125rem;
+  }
+
+  .gomad-results .back-button span {
+    font-size: 0.75rem !important;
   }
 
   .view-header {
@@ -1437,10 +1446,6 @@
   .results-preferences .prefs-form,
   .results-preferences .gomad-preferences-form {
     gap: 0.875rem;
-  }
-
-  .results-preferences .prefs-form {
-    padding-bottom: 0;
   }
 
   .results-preferences .weight-options {
@@ -1700,6 +1705,11 @@
     text-decoration: none;
   }
 
+  .detail-media__back .icon {
+    flex: none;
+    font-size: 0.75rem !important;
+  }
+
   .detail-media__back:hover {
     color: var(--green-dark);
     text-decoration: underline;
@@ -1878,6 +1888,17 @@
     display: flex;
     flex-direction: column;
     gap: 0.1875rem;
+  }
+
+  .factor-list li div > strong {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .factor-list li div > strong .icon {
+    flex: 0 0 auto;
+    font-size: 1.125rem;
   }
 
   .factor-list li div > span {
@@ -3030,7 +3051,6 @@
     gap: 1.25rem;
     min-height: 0;
     container-type: inline-size;
-    padding-bottom: 3rem;
   }
 
   .gomad-preferences-form {
