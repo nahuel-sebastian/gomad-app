@@ -2855,14 +2855,14 @@
     font-size: 1.25rem;
   }
 
-  /* el hueco lo pone el gap: sin el margin-bottom de .panel (se sumaban 3rem) */
+  /* los huecos los pone el gap (de .page y de la rejilla): sin el margin-bottom de .panel */
   .muni__grid {
     display: grid;
     gap: 1rem;
-    margin-bottom: 1rem;
   }
 
-  .muni__grid > .muni__category {
+  .muni__grid > .muni__category,
+  .gomad-municipality > .panel {
     margin-bottom: 0;
   }
 
@@ -2933,7 +2933,8 @@
   }
 
   .gomad-municipality > .button {
-    align-self: flex-start;
+    align-self: stretch;
+    width: 100%;
   }
 
   .sheet-overlay {
