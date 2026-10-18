@@ -11,6 +11,8 @@ import numpy as np
 
 import schemas as s
 import settings
+from ai.dictionary import validate_assistant_config
+from ai.provider import build_provider
 from engine.explanation import fmt_distance, fmt_minutes, fmt_number, route_description
 from repository import M_PER_DEG_LAT, haversine_m
 from routing.graph import RouteNotFound, edge_costs, nearest_nodes, shortest_path, summarize
@@ -20,6 +22,13 @@ from services.route import PoiIndex, path_coordinates
 
 class NoDestination(Exception):
     pass
+
+
+def make_provider(env):
+    """Proveedor de F6 con config/assistant.yaml validado y OCI Language si hay credenciales en env (app/.env)."""
+    cfg = settings.load("assistant")
+    validate_assistant_config(cfg)
+    return build_provider(cfg, env)
 
 
 def plan_loop(graph, origin_node, target_m, waypoint_nodes, costs):
