@@ -5,9 +5,8 @@ import pytest
 from shapely.geometry import LineString
 
 import settings
-from routing.graph import RouteNotFound, edge_costs, load_graph
-
-from routing.loop import Subgraph
+from routing.graph import RouteNotFound, edge_costs, load_graph, summarize
+from routing.loop import Subgraph, loop_route
 
 N = 21                       # rejilla N x N, tramos de 100 m
 STEP_LAT = 100 / 111_320
@@ -94,3 +93,54 @@ def test_subgraph_path_unreachable(grid):
     sub = Subgraph(grid, CENTER, 5000, edge_costs(grid, HEALTHY, 0.5))
     with pytest.raises(RouteNotFound):
         sub.path(CENTER, ISOLATED[0], set(), 3.0)
+
+
+@pytest.fixture
+def cfg():
+    return settings.load("routing")["loop"]
+
+
+def costs_of(g):
+    return edge_costs(g, HEALTHY, 0.5)
+
+
+def test_loop_within_tolerance(grid, cfg):
+    r = loop_route(grid, CENTER, 3000, costs_of(grid), cfg)
+    assert r.within_tolerance and r.warning is None
+    assert abs(r.length_m - 3000) <= 300
+    assert chain_nodes(grid, CENTER, r.edges)[-1] == CENTER
+    assert len(r.waypoints) == 2 and not any(w.requested for w in r.waypoints)
+
+
+def test_loop_coordinates_closed(grid, cfg):
+    r = loop_route(grid, CENTER, 3000, costs_of(grid), cfg)
+    assert r.coordinates[0] == r.coordinates[-1] and len(r.coordinates) >= 4
+
+
+def test_loop_summary_matches(grid, cfg):
+    r = loop_route(grid, CENTER, 3000, costs_of(grid), cfg, snap_m=12)
+    assert r.summary == summarize(grid, r.edges, 0.5)
+    assert r.length_m == pytest.approx(r.summary["distance_m"] + 24)
+
+
+def test_loop_deterministic(grid, cfg):
+    assert loop_route(grid, CENTER, 3000, costs_of(grid), cfg).edges == \
+        loop_route(grid, CENTER, 3000, costs_of(grid), cfg).edges
+
+
+def test_small_component_returns_best_with_flag(grid, cfg):
+    r = loop_route(grid, ISOLATED[0], 3000, costs_of(grid), cfg)
+    assert r.within_tolerance is False
+    assert "más cercana" in r.warning
+
+
+def test_invalid_target(grid, cfg):
+    with pytest.raises(ValueError):
+        loop_route(grid, CENTER, 0, costs_of(grid), cfg)
+
+
+def test_time_budget_returns_best(grid, cfg):
+    cfg = {**cfg, "tolerance": 0.0001}      # ningun intento cumple: solo para el presupuesto
+    ticks = iter(np.arange(0, 1000) * cfg["time_budget_s"])
+    r = loop_route(grid, CENTER, 3000, costs_of(grid), cfg, clock=lambda: next(ticks))
+    assert r.attempts == 1 and r.edges

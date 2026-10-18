@@ -1,9 +1,14 @@
 """Ruta por distancia objetivo, circular o de ida (RF-22, fila 5)."""
+import math
+import time
+from dataclasses import dataclass
+
 import numpy as np
 from scipy.sparse import csr_matrix
 from scipy.sparse.csgraph import dijkstra
 
-from routing.graph import RouteNotFound, bounded_distances
+from routing.graph import RouteNotFound, _xy, bounded_distances, summarize
+from services.route import path_coordinates
 
 MIN_COST = 1e-6     # scipy trata un peso 0 como "sin tramo"
 
@@ -81,3 +86,146 @@ class Subgraph:
         seq = np.array(seq[::-1])
         x, y = np.minimum(seq[:-1], seq[1:]), np.maximum(seq[:-1], seq[1:])
         return [int(e) for e in self.cedge[np.searchsorted(self.keys, x * self.n + y)]]
+
+
+@dataclass
+class Waypoint:
+    node: int
+    lon: float
+    lat: float
+    requested: bool          # True = pedido (p. ej. el parque del asistente); False = elegido por el motor
+
+
+@dataclass
+class LoopRoute:
+    edges: list              # ids globales de tramo, en orden desde el origen
+    coordinates: list        # [[lon, lat], ...] desde el nodo de origen
+    length_m: float          # tramos + snap_m (x 2 si es circular)
+    target_m: float
+    within_tolerance: bool
+    deviation_pct: float     # (length_m - target_m) / target_m * 100
+    waypoints: list          # Waypoint en el orden de paso
+    summary: dict            # summarize(): distance_m, green_pct, traffic_m, fountains, benches, aeds
+    warning: str | None      # texto para la persona usuaria si no cumple la tolerancia
+    attempts: int
+
+
+def _km(m):
+    return f"{m / 1000:.1f}".replace(".", ",")
+
+
+def _bearings(xy, origin):
+    d = xy - xy[origin]
+    return np.degrees(np.arctan2(d[:, 0], d[:, 1])) % 360
+
+
+def _pick(estimate, want, bearings, prefer, exclude, cand_tol):
+    """Nodo cuya distancia estimada se acerca a want; entre los de dentro de cand_tol, el de rumbo mas parecido."""
+    ok = np.isfinite(estimate)
+    ok[list(exclude)] = False
+    if not ok.any():
+        return None
+    gap = np.abs(estimate - want)
+    close = ok & (gap <= cand_tol * want)
+    if close.any():
+        turn = np.abs((bearings - prefer + 180) % 360 - 180)
+        return int(np.flatnonzero(close)[np.argmin(turn[close])])
+    return int(np.flatnonzero(ok)[np.argmin(gap[ok])])
+
+
+def _subgraph(g, origin, radius, costs, waypoints, margin):
+    sub = Subgraph(g, origin, radius, costs)
+    if all(sub.contains(w) for w in waypoints):
+        return sub
+    # punto pedido fuera del radio: se amplia hasta margin x su distancia de red (o no esta conectado)
+    xy = _xy(g.lon, g.lat, g.cos_lat0)
+    straight = max(float(np.hypot(*(xy[w] - xy[origin]))) for w in waypoints)
+    dist = bounded_distances(g, origin, max(radius, 3 * straight))
+    far = max(float(dist[w]) for w in waypoints)
+    if not math.isfinite(far):
+        raise RouteNotFound("El punto de paso no está conectado con el origen por la red peatonal")
+    return Subgraph(g, origin, max(radius, margin * far), costs)
+
+
+def loop_route(g, origin, target_m, costs, cfg, *, loop=True, waypoints=(), snap_m=0.0,
+               traffic_threshold=0.5, clock=time.perf_counter):
+    if not target_m or target_m <= 0:
+        raise ValueError("target_m debe ser positivo")
+    t0 = clock()
+    tol, penalty = cfg["tolerance"], cfg["reuse_penalty"]
+    waypoints = [int(w) for w in waypoints]
+    edges_target = target_m - snap_m * (2 if loop else 1)
+    radius = target_m * (1 + tol) / (2 if loop else 1)
+    sub = _subgraph(g, origin, radius, costs, waypoints, cfg["radius_margin"])
+    xy = _xy(g.lon, g.lat, g.cos_lat0)
+    bearings = _bearings(xy, origin)
+    from_origin = sub.length_from(origin)
+
+    # tramos fijos: origen -> puntos pedidos, en el orden dado (iguales en todos los intentos)
+    fixed, used, anchor = [], set(), origin
+    for w in waypoints:
+        leg = sub.path(anchor, w, used, penalty)
+        fixed += leg
+        used |= set(leg)
+        anchor = w
+    from_anchor = from_origin if anchor == origin else sub.length_from(anchor)
+    two_free = loop and not waypoints
+
+    best, scale, attempts = None, cfg["initial_scale"], 0
+    for i in range(cfg["max_attempts"]):
+        if i > 0 and clock() - t0 >= cfg["time_budget_s"]:
+            break
+        attempts += 1
+        heading = cfg["initial_bearing_deg"] + (i // cfg["rescales_per_direction"]) * cfg["bearing_step_deg"]
+        edges, legs_used, last, free, est, real = list(fixed), set(used), anchor, [], 0.0, 0.0
+        d_last = from_anchor
+        if two_free:
+            want = edges_target * cfg["leg_fraction"] / scale
+            a = _pick(from_origin, want, bearings, heading, {origin}, cfg["candidate_tolerance"])
+            if a is not None:
+                leg = sub.path(origin, a, legs_used, penalty)
+                edges += leg
+                legs_used |= set(leg)
+                free.append(a)
+                est += from_origin[a]
+                real += g.length[leg].sum()
+                last, d_last = a, sub.length_from(a)
+        remaining, x = edges_target - float(g.length[edges].sum()), None
+        # circular: la vuelta mas corta desde la ultima ancla ya consume parte de lo que queda
+        if remaining - (d_last[origin] if loop else 0.0) > tol * target_m:
+            prefer = heading if last == origin else bearings[last] + cfg["turn_deg"]
+            estimate = d_last + from_origin if loop else d_last
+            x = _pick(estimate, remaining / scale, bearings, prefer, {origin, last}, cfg["candidate_tolerance"])
+            if x is not None:
+                leg = sub.path(last, x, legs_used, penalty)
+                edges += leg
+                legs_used |= set(leg)
+                real += g.length[leg].sum()
+                free.append(x)
+                est += estimate[x]
+                last = x
+        if loop and last != origin:
+            leg = sub.path(last, origin, legs_used, penalty)
+            edges += leg
+            if x is not None:
+                real += g.length[leg].sum()   # la vuelta entra en la estimacion de X (d_ancla + d_origen)
+        if est > 0 and real > 0:
+            scale = real / est
+        length = float(g.length[edges].sum()) + snap_m * (2 if loop else 1)
+        if best is None or abs(length - target_m) < abs(best[0] - target_m):
+            best = (length, edges, free)
+        if abs(length - target_m) <= tol * target_m:
+            break
+
+    length, edges, free = best
+    within = abs(length - target_m) <= tol * target_m
+    points = [Waypoint(int(n), float(g.lon[n]), float(g.lat[n]), True) for n in waypoints]
+    points += [Waypoint(int(n), float(g.lon[n]), float(g.lat[n]), False) for n in free]
+    coords = path_coordinates(g, origin, edges) if edges else [[float(g.lon[origin]), float(g.lat[origin])]] * 2
+    warning = None if within else (
+        f"No se ha encontrado una ruta de {_km(target_m)} km dentro del ±{round(tol * 100)} %: "
+        f"la más cercana mide {_km(length)} km.")
+    return LoopRoute(edges=edges, coordinates=coords, length_m=length, target_m=float(target_m),
+                     within_tolerance=within, deviation_pct=100 * (length - target_m) / target_m,
+                     waypoints=points, summary=summarize(g, edges, traffic_threshold), warning=warning,
+                     attempts=attempts)
