@@ -1,6 +1,7 @@
 import { screen, waitFor, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import * as activitiesApi from "../data/activities";
+import * as recommendApi from "../data/recommend";
 import { expectNoAxeViolations, renderAt, SAMPLE_ORIGIN } from "./render";
 
 const WITH_SEARCH = {
@@ -128,7 +129,9 @@ describe("Perfil", () => {
 });
 
 describe("Ajustar en el panel de resultados", () => {
-    it("sustituye los resultados por los pesos y Listo vuelve a la lista", async () => {
+    afterEach(() => vi.restoreAllMocks());
+
+    it("sustituye los resultados por las preferencias y Listo vuelve a la lista", async () => {
         const { user } = renderAt("/resultados", WITH_SEARCH);
         const adjust = screen.getByRole("button", { name: "Ajustar preferencias" });
         await user.click(adjust);
@@ -136,6 +139,36 @@ describe("Ajustar en el panel de resultados", () => {
         expect(screen.getByRole("group", { name: "Importancia de cercanía y rapidez" })).toBeInTheDocument();
         expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
         expect(screen.queryByRole("button", { name: "Guardar preferencias" })).not.toBeInTheDocument();
+        await user.click(screen.getByRole("button", { name: "Listo" }));
+        expect(await screen.findByRole("list", { name: "Resultados" })).toBeInTheDocument();
+    });
+
+    it("deja cambiar tiempo, distancia, ventana, lugar y perfil sin salir de Resultados", async () => {
+        const { user } = renderAt("/resultados", WITH_SEARCH);
+        await screen.findByRole("list", { name: "Resultados" });
+        await user.click(screen.getByRole("button", { name: "Ajustar preferencias" }));
+        expect(screen.getByRole("slider", { name: "Tiempo disponible" })).toBeInTheDocument();
+        expect(screen.getByRole("slider", { name: "Distancia máxima a pie" })).toBeInTheDocument();
+        expect(screen.getByRole("slider", { name: "Ventana horaria" })).toBeInTheDocument();
+        expect(screen.getByRole("group", { name: "Lugar" })).toBeInTheDocument();
+        expect(screen.getByRole("group", { name: "Perfil (opcional)" })).toBeInTheDocument();
+        // en Resultados los cambios se aplican solos: sin «Guardar» ni «Borrar»
+        expect(screen.queryByRole("button", { name: "Guardar preferencias" })).not.toBeInTheDocument();
+        expect(screen.queryByRole("button", { name: "Borrar todas mis preferencias" })).not.toBeInTheDocument();
+    });
+
+    it("cambiar la distancia y el lugar en Resultados recalcula con los nuevos valores", async () => {
+        const spy = vi.spyOn(recommendApi, "recommend");
+        const { user } = renderAt("/resultados", WITH_SEARCH);
+        await screen.findByRole("list", { name: "Resultados" });
+        await user.click(screen.getByRole("button", { name: "Ajustar preferencias" }));
+        await user.click(screen.getByRole("button", { name: "Aumentar distancia máxima a pie" }));
+        await user.click(within(screen.getByRole("group", { name: "Lugar" })).getByRole("radio", { name: "Exterior" }));
+        await waitFor(() =>
+            expect(spy).toHaveBeenLastCalledWith(
+                expect.objectContaining({ max_distance_m: 3500, setting: "outdoor" }),
+            ),
+        );
         await user.click(screen.getByRole("button", { name: "Listo" }));
         expect(await screen.findByRole("list", { name: "Resultados" })).toBeInTheDocument();
     });

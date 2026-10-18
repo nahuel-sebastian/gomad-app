@@ -311,7 +311,8 @@ describe("Resultados: recalculo", () => {
         expect(screen.getByRole("heading", { name: "Tus preferencias" })).toBeInTheDocument();
         expect(screen.queryByRole("dialog", { name: "Tus preferencias" })).not.toBeInTheDocument();
         expect(screen.queryByRole("list", { name: "Resultados" })).not.toBeInTheDocument();
-        expect(screen.queryByText("Tiempo disponible")).not.toBeInTheDocument();
+        // el panel trae tambien tiempo, distancia, lugar y perfil para no ir a /perfil
+        expect(screen.getByRole("slider", { name: "Tiempo disponible" })).toBeInTheDocument();
         expect(screen.queryByRole("button", { name: "Guardar preferencias" })).not.toBeInTheDocument();
         await user.click(within(screen.getByRole("group", { name: "Importancia de cercanía y rapidez" })).getByRole("radio", { name: "Mucha" }));
         await user.click(screen.getByRole("button", { name: "Listo" }));
