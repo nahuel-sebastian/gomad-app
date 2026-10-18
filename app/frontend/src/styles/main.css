@@ -1137,7 +1137,11 @@
     width: 1.5rem;
     height: 1.5rem;
     flex: 0 0 auto;
-    color: var(--muted);
+    color: var(--navy);
+  }
+
+  .activity__icon .icon {
+    font-size: 1.5rem;
   }
 
   .activity:hover {
