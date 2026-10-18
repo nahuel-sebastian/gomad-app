@@ -150,10 +150,6 @@ export default function Assistant() {
                 El asistente solo interpreta tu texto y redacta la respuesta con los resultados del motor; la ruta
                 la calcula el motor con datos abiertos. También puedes rellenar los campos a mano.
             </p>
-            <p className="notice notice--warn" role="note">
-                Respuestas de ejemplo: el asistente todavía no está conectado al servidor.
-            </p>
-
             <p className="sr-only" role="status" aria-live="polite">
                 {announcement}
             </p>

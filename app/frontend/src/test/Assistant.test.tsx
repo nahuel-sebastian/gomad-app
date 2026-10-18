@@ -22,11 +22,18 @@ describe("Asistente de rutas", () => {
         await expectNoAxeViolations(container);
     });
 
-    it("avisa de que sus respuestas todavía son de ejemplo", () => {
+    it("no muestra el aviso de respuestas de ejemplo", () => {
         renderAt("/asistente", { origin: SAMPLE_ORIGIN });
-        expect(screen.getByRole("note")).toHaveTextContent(
-            "Respuestas de ejemplo: el asistente todavía no está conectado al servidor.",
-        );
+        expect(screen.queryByText(/Respuestas de ejemplo/)).toBeNull();
+        expect(screen.queryByRole("note")).toBeNull();
+    });
+
+    it("si interpretar falla, muestra el error", async () => {
+        vi.spyOn(assistantApi, "interpret").mockRejectedValueOnce(new Error("red"));
+        const { user } = renderAt("/asistente", { origin: SAMPLE_ORIGIN });
+        await user.type(screen.getByLabelText("¿Qué ruta quieres?"), "5 km con fuentes");
+        await user.click(screen.getByRole("button", { name: "Interpretar" }));
+        expect(await screen.findByText("No se pudo interpretar ahora. Rellena los campos a mano.")).toBeInTheDocument();
     });
 
     it("interpreta el texto, rellena los controles y solo envia el texto", async () => {
