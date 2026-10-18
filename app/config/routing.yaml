@@ -38,3 +38,20 @@ osm_poi:
   skip_where_official:       # municipio -> tipos que ya da una fuente oficial (Ayuntamiento de Madrid): no se cargan de OSM
     "28079": [bench, fountain, dog_area]
 own_criterion: true
+# Ruta por distancia objetivo, circular o de ida (RF-22, fila 5). Solo la tolerancia viene de RF-22;
+# el resto es criterio propio, ajustado para quedar por debajo de 5 s en el grafo regional.
+loop:
+  tolerance: 0.10             # RF-22: +-10 % de la distancia objetivo
+  leg_fraction: 0.333         # primer punto automatico a ~objetivo/3 (ruta en triangulo)
+  candidate_tolerance: 0.05   # margen para elegir candidato por distancia de red estimada
+  initial_scale: 1.1          # relacion inicial ruta saludable / distancia mas corta
+  turn_deg: 60                # giro del rumbo del punto siguiente (triangulo equilatero)
+  bearing_step_deg: 90        # giro del rumbo inicial entre intentos
+  initial_bearing_deg: 0      # 0 = norte
+  max_attempts: 8
+  rescales_per_direction: 2   # intentos reescalados antes de girar el rumbo
+  reuse_penalty: 3.0          # multiplica el coste de los tramos ya recorridos (evita ir y volver)
+  radius_margin: 1.2          # radio del subgrafo respecto al punto pedido mas lejano
+  waypoint_search_factors: [3, 10]   # busqueda del punto pedido a N x su distancia en linea recta (2.o = rodeos grandes)
+  time_budget_s: 3.0          # presupuesto de intentos; la peticion entera < 5 s (RNF)
+  own_criterion: true
