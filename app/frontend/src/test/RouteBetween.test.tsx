@@ -15,6 +15,10 @@ afterEach(() => {
 async function choose(user: UserEvent, field: string, text: string, candidate: string) {
     await user.type(screen.getByLabelText(field), text);
     await user.click(await screen.findByRole("button", { name: candidate }));
+    // tras elegir, el foco salta a «Cambiar» en el siguiente fotograma: esperarlo antes de seguir escribiendo
+    await waitFor(() =>
+        expect(screen.getByRole("button", { name: new RegExp(`^Cambiar la dirección «${field}»`) })).toHaveFocus(),
+    );
 }
 
 async function chooseBoth(user: UserEvent) {

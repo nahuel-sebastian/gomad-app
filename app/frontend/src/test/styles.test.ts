@@ -70,8 +70,8 @@ describe("estilos", () => {
         expect(rule(".route-between__body")).toMatch(/flex-direction:\s*column/);
     });
 
-    it("el campo de direccion elegida separa el texto del boton Cambiar", () => {
-        expect(rule(".address-field__chosen")).toMatch(/justify-content:\s*space-between/);
+    it("el campo «Hasta», sin boton de ubicacion, ocupa todo el ancho", () => {
+        expect(rule(".location__form--single")).toMatch(/grid-template-columns:\s*minmax\(0, 1fr\)/);
     });
 
     it("un boton con aria-disabled se ve deshabilitado sin bajar el texto de 4,5:1", () => {

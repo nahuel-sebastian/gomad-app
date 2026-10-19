@@ -1,10 +1,10 @@
-import { useEffect, useId, useRef, useState, type KeyboardEvent } from "react";
+import { useEffect, useId, useRef, useState, type FormEvent } from "react";
 import type { LocationCandidate } from "../api/types";
 import { currentLocation, searchLocation } from "../data/location";
 import Icon from "./Icon";
 
 // Campo de direccion controlado por props (ruta entre dos direcciones). No toca el estado
-// global: la direccion elegida solo la conoce quien lo usa. Busqueda como LocationPicker.
+// global: la direccion elegida solo la conoce quien lo usa. Busqueda y aspecto como LocationPicker.
 
 type SearchState =
     | { status: "idle" }
@@ -97,9 +97,8 @@ export default function AddressField({ label, value, onChange, allowCurrentLocat
         }
     };
 
-    // Intro busca sin esperar
-    const onKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
-        if (event.key !== "Enter") return;
+    // Intro o la lupa buscan sin esperar
+    const onSubmit = (event: FormEvent) => {
         event.preventDefault();
         cancelScheduledSearch();
         const query = text.trim();
@@ -110,22 +109,6 @@ export default function AddressField({ label, value, onChange, allowCurrentLocat
         }
         void runSearch(query, ++callRef.current);
     };
-
-    if (value) {
-        return (
-            <div className="address-field gomad-component gomad-address-field">
-                <div className="address-field__chosen">
-                    <p className="address-field__value">
-                        <span className="field__label">{label}</span> <strong>{value.label}</strong>
-                    </p>
-                    <button ref={changeRef} type="button" className="button gomad-action gomad-action-change-address" onClick={clear}>
-                        <Icon name="close" />
-                        <span>Cambiar<span className="sr-only"> la dirección «{label}»: {value.label}</span></span>
-                    </button>
-                </div>
-            </div>
-        );
-    }
 
     let announcement = "";
     if (locating) announcement = "Buscando tu ubicación…";
@@ -147,50 +130,70 @@ export default function AddressField({ label, value, onChange, allowCurrentLocat
             <label htmlFor={inputId} className="field__label">
                 {label}
             </label>
-            <input
-                ref={inputRef}
-                id={inputId}
-                className="field__input gomad-field gomad-field-address"
-                type="text"
-                autoComplete="off"
-                maxLength={200}
-                placeholder="Escribe una dirección o un municipio"
-                value={text}
-                onKeyDown={onKeyDown}
-                onChange={(e) => {
-                    callRef.current += 1;
-                    setText(e.target.value);
-                    setSearch({ status: "idle" });
-                }}
-            />
-            {allowCurrentLocation && (
-                <div className="location__actions">
-                    <button
-                        type="button"
-                        className="button gomad-action gomad-action-use-location"
-                        onClick={locate}
-                        disabled={locating}>
-                        <Icon name="location_on" />
-                        <span>{locating ? "Buscando…" : "Usar mi ubicación"}</span>
-                    </button>
+            <form
+                className={`location__form${allowCurrentLocation ? "" : " location__form--single"}`}
+                onSubmit={onSubmit}
+                role="search"
+                aria-label={`Buscar la dirección «${label}»`}>
+                <div className="location__search-wrap">
+                    <div className="location__search">
+                        <input
+                            ref={inputRef}
+                            id={inputId}
+                            className="field__input gomad-field gomad-field-address"
+                            type="text"
+                            autoComplete="off"
+                            maxLength={200}
+                            placeholder="Escribe una dirección o un municipio"
+                            value={value?.label ?? text}
+                            readOnly={Boolean(value)}
+                            onChange={(e) => {
+                                callRef.current += 1;
+                                setText(e.target.value);
+                                setSearch({ status: "idle" });
+                            }}
+                        />
+                        <button
+                            ref={changeRef}
+                            type={value ? "button" : "submit"}
+                            className={`button location__search-button gomad-action ${value ? "gomad-action-change-address" : "gomad-action-search-address"}`}
+                            aria-label={value ? `Cambiar la dirección «${label}»: ${value.label}` : `Buscar la dirección «${label}»`}
+                            onClick={value ? clear : undefined}>
+                            <Icon name={value ? "close" : "search"} />
+                            <span aria-hidden="true">{value ? "Cambiar" : "Buscar"}</span>
+                        </button>
+                    </div>
                 </div>
-            )}
-            {announcement && (
-                <p className="location__status" role="status" aria-live="polite">
-                    {announcement}
-                </p>
-            )}
-            {search.status === "done" && search.candidates.length > 0 && (
-                <ul role="list" className="location__candidates" aria-label={`Lugares encontrados para «${label}»`}>
-                    {search.candidates.map((c) => (
-                        <li key={`${c.ine_code}-${c.label}`}>
-                            <button type="button" className="candidate gomad-action gomad-action-select-address" onClick={() => pick(c)}>
-                                {c.label}
-                            </button>
-                        </li>
-                    ))}
-                </ul>
-            )}
+                {allowCurrentLocation && (
+                    <div className="location__actions">
+                        <button
+                            type="button"
+                            className="button button--primary gomad-action gomad-action-use-location"
+                            aria-label={locating ? "Buscando tu ubicación…" : "Usar mi ubicación"}
+                            onClick={locate}
+                            disabled={locating}>
+                            <Icon name="location_on" />
+                            <span>{locating ? "Buscando…" : "Usar ubicación"}</span>
+                        </button>
+                    </div>
+                )}
+                {announcement && (
+                    <p className="location__status" role="status" aria-live="polite">
+                        {announcement}
+                    </p>
+                )}
+                {search.status === "done" && search.candidates.length > 0 && (
+                    <ul role="list" className="location__candidates" aria-label={`Lugares encontrados para «${label}»`}>
+                        {search.candidates.map((c) => (
+                            <li key={`${c.ine_code}-${c.label}`}>
+                                <button type="button" className="candidate gomad-action gomad-action-select-address" onClick={() => pick(c)}>
+                                    {c.label}
+                                </button>
+                            </li>
+                        ))}
+                    </ul>
+                )}
+            </form>
         </div>
     );
 }
