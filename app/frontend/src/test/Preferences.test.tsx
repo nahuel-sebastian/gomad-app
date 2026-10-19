@@ -111,9 +111,23 @@ describe("Perfil", () => {
         expect(within(companions).getByRole("checkbox", { name: "Con perro" })).toBeChecked();
     });
 
+    it("al guardar abre un modal con el resumen y al cerrarlo el foco vuelve a «Guardar»", async () => {
+        const { user, container } = renderAt("/perfil");
+        const save = screen.getByRole("button", { name: "Guardar preferencias" });
+        await user.click(save);
+        const dialog = screen.getByRole("dialog", { name: "Preferencias guardadas" });
+        expect(dialog).toHaveTextContent("mientras tengas la página abierta");
+        expect(dialog).toHaveTextContent("45 min");
+        await expectNoAxeViolations(container.ownerDocument.body);
+        await user.click(within(dialog).getByRole("button", { name: "Entendido" }));
+        expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+        expect(save).toHaveFocus();
+    });
+
     it("confirma el guardado en sesión y retira la confirmación al cambiar un filtro", async () => {
         const { user } = renderAt("/perfil");
         await user.click(screen.getByRole("button", { name: "Guardar preferencias" }));
+        await user.click(screen.getByRole("button", { name: "Entendido" }));
         expect(screen.getByRole("status", { name: "" })).toHaveTextContent("Preferencias guardadas durante esta sesión.");
         await user.click(screen.getByRole("checkbox", { name: "Con perro" }));
         expect(screen.queryByText("Preferencias guardadas durante esta sesión.")).not.toBeInTheDocument();

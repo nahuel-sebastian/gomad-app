@@ -148,6 +148,17 @@ describe("Ruta entre dos direcciones", () => {
         expect(screen.getByLabelText("Escribe una dirección o un municipio")).toHaveValue("");
     });
 
+    it("al calcular, enfoca el titulo sin desplazar la pantalla (la hoja recogida no se queda a media altura)", async () => {
+        const focus = vi.spyOn(HTMLElement.prototype, "focus");
+        const { user } = renderAt("/trayecto");
+        await chooseBoth(user);
+        await user.click(screen.getByRole("button", { name: "Calcular ruta" }));
+        const heading = await screen.findByRole("heading", { level: 1, name: "Ruta entre dos direcciones" });
+        await waitFor(() => expect(heading).toHaveFocus());
+        const call = focus.mock.contexts.findLastIndex((el) => el === heading);
+        expect(focus.mock.calls[call]).toEqual([{ preventScroll: true }]);
+    });
+
     it("con la ruta, el mapa ocupa la pantalla y los detalles van en una hoja que se sube y se baja", async () => {
         const { user, container } = renderAt("/trayecto");
         expect(container.querySelector(".map-demo")).toBeNull();
