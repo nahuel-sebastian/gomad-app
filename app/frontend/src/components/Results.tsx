@@ -140,6 +140,23 @@ export default function Results() {
         const id = items[cardIndex(target)]?.destination.id;
         if (id && id !== selectedId) setSelectedId(id);
     };
+    // pin pulsado en movil: la hoja sube y se ve la tarjeta de ese destino (sin mover el foco)
+    const [revealId, setRevealId] = useState<string | null>(null);
+    const selectPin = (id: string) => {
+        setSelectedId(id);
+        if (window.innerWidth >= 768) return;
+        setIsAdjusting(false);
+        setIsSheetExpanded(true);
+        setRevealId(id);
+    };
+
+    useEffect(() => {
+        if (revealId === null) return;
+        const index = items.findIndex((item) => item.destination.id === revealId);
+        listRef.current?.children[index]?.scrollIntoView?.({ block: "nearest", behavior: "smooth" });
+        setRevealId(null);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [revealId]);
 
     useEffect(() => {
         if (first.data) {
@@ -398,8 +415,8 @@ export default function Results() {
                     legendSlot={legendSlot}
                     origin={origin.coordinate}
                     selectedId={selectedId}
-                    // pulsar un pin lo marca y el mapa se acerca a el; no mueve la lista ni el foco
-                    onSelect={setSelectedId}
+                    // pulsar un pin lo marca y el mapa se acerca a el; en movil sube la hoja hasta su tarjeta (el foco no se mueve)
+                    onSelect={selectPin}
                     markers={items.map((item, i) => ({
                         id: item.destination.id,
                         number: i + 1,
