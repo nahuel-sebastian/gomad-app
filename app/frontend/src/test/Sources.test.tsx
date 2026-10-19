@@ -87,6 +87,16 @@ describe("Fuentes y aviso", () => {
         expect(row(/MDT05/)).toHaveTextContent("Sin descargar todavía");
     });
 
+    it("presenta quiénes somos y cómo funciona en tres pasos, antes de las fuentes", () => {
+        renderAt("/fuentes");
+        const about = screen.getByRole("region", { name: "Quiénes somos" });
+        expect(about).toHaveTextContent(/dónde, cuándo y por qué camino/);
+        expect(within(about).getAllByRole("listitem")).toHaveLength(3);
+        expect(about).toHaveTextContent("sin registro");
+        const sources = screen.getByRole("region", { name: "De dónde salen los datos" });
+        expect(about.compareDocumentPosition(sources) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    });
+
     it("tiene el aviso medico, la privacidad y la licencia de nuestros datos", () => {
         renderAt("/fuentes");
         expect(screen.getByRole("heading", { level: 2, name: "No es consejo médico" })).toBeInTheDocument();

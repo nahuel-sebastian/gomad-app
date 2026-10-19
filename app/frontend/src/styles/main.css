@@ -1909,6 +1909,11 @@
     font-size: 1.25rem;
   }
 
+  /* icons.css fija font-size: 1rem en .icon y gana a esta capa: se agranda con transform */
+  .about__icon > .icon {
+    transform: scale(1.25);
+  }
+
   .factor-list b small {
     color: var(--muted);
     font-size: 0.875rem;
@@ -3882,6 +3887,89 @@
     display: flex;
     flex-direction: column;
     gap: 0.5rem;
+  }
+
+  /* quienes somos: destacado con el verde de marca, encima de las fuentes */
+  .about {
+    gap: 0.75rem;
+    border-left: 4px solid var(--green);
+    border-radius: 0 var(--radius) var(--radius) 0;
+  }
+
+  .about > .panel__title {
+    font-size: 1.375rem;
+    color: var(--navy);
+  }
+
+  /* subtitulo: por debajo del titulo en tamano y peso */
+  .about__lead {
+    margin-top: -0.5rem;
+    font-size: 1rem;
+    font-weight: 500;
+    line-height: 1.4;
+    color: var(--muted);
+  }
+
+  .about__lead strong {
+    color: var(--green-dark);
+  }
+
+  .about__steps {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    list-style: none;
+  }
+
+  .about__steps > li {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem;
+    border-radius: 10px;
+    background: var(--green-tint);
+    line-height: 1.4;
+  }
+
+  /* icono centrado en vertical con el texto */
+  .about__icon {
+    display: inline-flex;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+    width: 2.5rem;
+    height: 2.5rem;
+    color: var(--green-dark);
+  }
+
+  /* icons.css fija font-size: 1rem en .icon y gana a esta capa: se agranda con transform */
+  .about__icon > .icon {
+    transform: scale(1.25);
+  }
+
+  @media (max-width: 47.9375rem) {
+    .about > .panel__title {
+      font-size: 1.25rem;
+    }
+
+    .about__lead {
+      font-size: 0.9375rem;
+    }
+
+    .about__steps > li {
+      gap: 0.625rem;
+      padding: 0.625rem;
+      font-size: 0.9375rem;
+    }
+
+    .about__icon {
+      width: 2.25rem;
+      height: 2.25rem;
+    }
+
+    .about__icon > .icon {
+      transform: scale(1.125);
+    }
   }
 
   .sources-group {
