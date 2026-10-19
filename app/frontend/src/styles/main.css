@@ -2092,8 +2092,65 @@
   }
 
   /* navegacion sobre la ruta («Seguir mi ubicacion», RouteNavigation) */
+  /* /trayecto: los controles flotan abajo sobre el mapa, encima del asa de la hoja y de la
+     atribucion; solo los botones y avisos reciben toques, el resto deja mover el mapa */
   .route-between__nav {
-    padding-top: 0.5rem;
+    position: absolute;
+    /* por encima de la hoja (z-index 3): con la hoja subida se sigue viendo y al pulsarlo la recoge */
+    z-index: 4;
+    right: var(--gutter);
+    bottom: calc(var(--tap-min) + 1.75rem);
+    left: var(--gutter);
+    pointer-events: none;
+  }
+
+  /* los botones debajo del aviso «Te quedan…» (el aviso no recibe foco: el orden de foco no cambia) */
+  .route-between__nav .route-nav__actions {
+    order: 1;
+    justify-content: center;
+  }
+
+  /* ocupan todo el ancho, repartido a partes iguales si hay dos */
+  .route-between__nav .route-nav__actions .button {
+    flex: 1 1 0;
+    min-height: 2.5rem;
+    padding: 0 0.875rem;
+    font-size: 0.875rem;
+  }
+
+  .route-between__nav .button,
+  .route-between__nav .notice {
+    pointer-events: auto;
+    box-shadow: 0 2px 8px rgba(18, 57, 91, 0.24);
+  }
+
+  .route-between__nav .button:not(.button--primary) {
+    background: var(--surface);
+  }
+
+  /* «Centrar en mí» en verde, como los botones principales (despues del fondo blanco) */
+  .route-between__nav .route-nav__actions .route-nav__recenter {
+    border: none;
+    background: var(--green-dark);
+    color: #fff;
+  }
+
+  .route-between__nav .route-nav__actions .route-nav__recenter:hover {
+    background: var(--green);
+  }
+
+  /* la hoja recogida baja del todo: solo queda el asa */
+  .gomad-route-between--map .results-sheet {
+    transform: translateY(calc(100% - var(--tap-min)));
+  }
+
+  .gomad-route-between--map .results-sheet--expanded {
+    transform: translateY(0px);
+  }
+
+  /* hueco al final de la hoja para que los controles flotantes no tapen lo ultimo */
+  .gomad-route-between--map .results-sheet__scroll {
+    padding-bottom: 7rem;
   }
 
   .route-nav {
@@ -3970,6 +4027,25 @@
 
     .results-sheet__scroll > .view-header .results-header-actions {
       grid-column: 2;
+    }
+  }
+}
+
+/* /trayecto en escritorio: los controles de navegacion flotan abajo en la columna del mapa */
+@media (min-width: 48rem) {
+  @layer responsive {
+    .route-between__nav {
+      position: relative;
+      right: auto;
+      bottom: auto;
+      left: auto;
+      grid-area: 1 / 2;
+      align-self: end;
+      margin: 0 1rem 2rem;
+    }
+
+    .gomad-route-between--map .results-sheet__scroll {
+      padding-bottom: 0px;
     }
   }
 }

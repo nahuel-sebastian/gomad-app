@@ -261,6 +261,16 @@
     .map-demo .map-panels {
         top: 7.25rem;
     }
+
+    /* /trayecto: la hoja recogida solo deja el asa (44 px); encima flotan los controles de navegacion */
+    .gomad-route-between--map .map-demo {
+        --map-fit-bottom: 8.5rem;
+        --map-covered-bottom: 44px;
+    }
+
+    .gomad-route-between--map .map-demo .map-view__attribution {
+        bottom: calc(var(--tap-min) + 0.25rem);
+    }
 }
 
 /* Boton de icono del mapa: leyenda (sobre el mapa o junto a «Ajustar») */

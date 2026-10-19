@@ -39,8 +39,8 @@ const POI_ICONS: Record<PoiType, string> = {
     supermarket: "shopping_cart",
 };
 
-// alto de la hoja recogida que sigue a la vista al arrastrar (como Resultados)
-const SHEET_PEEK_PX = 164;
+// alto de la hoja recogida al arrastrar: solo el asa (los controles de navegacion flotan sobre el mapa)
+const SHEET_PEEK_PX = 44;
 
 function poiSummary(variant: RouteVariant): { type: PoiType; label: string }[] {
     const counts = new Map<PoiType, number>();
@@ -246,6 +246,9 @@ export default function RouteBetween() {
                 <div className="results-desktop-toolbar">{back}</div>
 
                 <div className="results-layout">
+                    {/* flotan abajo sobre el mapa, encima de la hoja recogida; antes de la hoja en el orden de foco */}
+                    <div className="route-between__nav">{nav.controls}</div>
+
                     <div
                         ref={sheetRef}
                         className={`results-sheet${sheetExpanded ? " results-sheet--expanded" : ""}`}
@@ -264,8 +267,6 @@ export default function RouteBetween() {
                         </button>
 
                         <div className="results-sheet__scroll">
-                            {/* al principio de la hoja: visible con la hoja recogida */}
-                            <div className="container route-between__nav">{nav.controls}</div>
                             <div className="container view-header">
                                 <div className="results-heading-copy" ref={headingRef}>
                                     <PageHeading className="view-title" id="trayecto-titulo">
