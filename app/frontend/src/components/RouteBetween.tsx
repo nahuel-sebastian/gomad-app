@@ -112,8 +112,9 @@ function useSheet() {
 }
 
 export default function RouteBetween() {
-    const { preferences } = useAppState();
-    const [from, setFrom] = useState<LocationCandidate | null>(null);
+    const { origin, preferences } = useAppState();
+    // «Desde» empieza con la ubicacion de Inicio, si la hay (cambiarla aqui no toca la de Inicio)
+    const [from, setFrom] = useState<LocationCandidate | null>(origin);
     const [to, setTo] = useState<LocationCandidate | null>(null);
     const [route, setRoute] = useState<RouteState>({ status: "idle" });
     const [kind, setKind] = useState<"healthy" | "direct">("healthy");

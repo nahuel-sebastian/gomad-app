@@ -3,7 +3,7 @@ import type { UserEvent } from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import * as routeApi from "../data/route";
 import { selectScenario } from "../data/scenarios";
-import { expectNoAxeViolations, renderAt } from "./render";
+import { expectNoAxeViolations, renderAt, SAMPLE_ORIGIN } from "./render";
 import { installFakeGeo } from "./geoMock";
 
 afterEach(() => {
@@ -123,6 +123,17 @@ describe("Ruta entre dos direcciones", () => {
         expect(await screen.findByText("No se pudo calcular la ruta.")).toBeInTheDocument();
         await user.click(screen.getByRole("button", { name: "Reintentar" }));
         expect(await screen.findByRole("list", { name: "Resumen de la ruta" })).toBeInTheDocument();
+    });
+
+    it("«Desde» empieza con la ubicacion de Inicio y cambiarla no toca la de Inicio", async () => {
+        const { user } = renderAt("/trayecto", { origin: SAMPLE_ORIGIN });
+        expect(screen.getByLabelText("Desde")).toHaveValue(SAMPLE_ORIGIN.label);
+        expect(screen.getByLabelText("Hasta")).toHaveValue("");
+        await user.click(screen.getByRole("button", { name: `Cambiar la dirección «Desde»: ${SAMPLE_ORIGIN.label}` }));
+        expect(screen.getByLabelText("Desde")).toHaveValue("");
+        await user.click(screen.getByRole("link", { name: "Volver" }));
+        await screen.findByRole("heading", { level: 1, name: "¿Qué te apetece hacer hoy?" });
+        expect(screen.getByLabelText("Escribe una dirección o un municipio")).toHaveValue(SAMPLE_ORIGIN.label);
     });
 
     it("no cambia la ubicacion de Inicio", async () => {

@@ -77,6 +77,10 @@ describe("estilos", () => {
         expect(rule(".route-between__nav .route-nav__actions")).toMatch(/justify-content:\s*center/);
     });
 
+    it("«Volver» de /trayecto es la misma pildora que en resultados y municipio", () => {
+        expect(css).toMatch(/\.gomad-municipality \.back-button,\s*\.gomad-route-between \.back-button \{[^}]*border-radius:\s*999px/);
+    });
+
     it("en /trayecto la hoja recogida baja del todo y solo deja el asa", () => {
         expect(rule(".gomad-route-between--map .results-sheet")).toMatch(/translateY\(calc\(100% - var\(--tap-min\)\)\)/);
     });
