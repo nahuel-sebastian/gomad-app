@@ -135,6 +135,48 @@ export default function Sources() {
                 públicas. Cada dato que ves lleva su fuente y su fecha.
             </p>
 
+            <section className="panel about gomad-component gomad-about" aria-labelledby="quienes-somos">
+                <h2 className="panel__title" id="quienes-somos">
+                    Quiénes somos
+                </h2>
+                <p className="about__lead">
+                    Dinos qué te apetece hacer y te decimos <strong>dónde, cuándo y por qué camino</strong>.
+                </p>
+                <p>
+                    Somos un equipo del MAD Open Data Challenge 2026. Buscamos que moverse por la
+                    Comunidad de Madrid sea más fácil y más sano, con datos públicos al servicio de cualquier persona.
+                </p>
+                <ol role="list" className="about__steps">
+                    <li>
+                        <span className="about__icon">
+                            <Icon name="running" />
+                        </span>
+                        <span>
+                            <strong>Elige qué hacer:</strong> caminar, correr, nadar, pádel… o «Sorpréndeme».
+                        </span>
+                    </li>
+                    <li>
+                        <span className="about__icon">
+                            <Icon name="air" />
+                        </span>
+                        <span>
+                            <strong>Te decimos dónde y cuándo:</strong> cruzamos tiempo, aire y zonas verdes para darte
+                            la mejor hora.
+                        </span>
+                    </li>
+                    <li>
+                        <span className="about__icon">
+                            <Icon name="route" />
+                        </span>
+                        <span>
+                            <strong>Te llevamos por la ruta más sana:</strong> más verde, menos tráfico, con fuentes y
+                            bancos.
+                        </span>
+                    </li>
+                </ol>
+                <p className="muted">Gratis, sin registro y para los 179 municipios.</p>
+            </section>
+
             <section className="panel" aria-labelledby="tabla-fuentes">
                 <h2 className="panel__title" id="tabla-fuentes">
                     De dónde salen los datos
