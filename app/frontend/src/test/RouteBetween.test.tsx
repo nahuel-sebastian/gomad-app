@@ -228,7 +228,7 @@ describe("Ruta entre dos direcciones: seguir mi ubicacion", () => {
         expect(geo.raw.getCurrentPosition).not.toHaveBeenCalled();
         // los controles flotan sobre el mapa (fuera de la hoja) y van antes del titulo en el orden de foco
         expect(button.closest(".results-sheet")).toBeNull();
-        expect(button.closest(".route-between__nav")).not.toBeNull();
+        expect(button.closest(".route-sheet__nav")).not.toBeNull();
         const heading = screen.getByRole("heading", { level: 1, name: "Ruta entre dos direcciones" });
         expect(button.compareDocumentPosition(heading) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
         await user.click(screen.getByRole("button", { name: "Mostrar detalles de la ruta" }));

@@ -170,93 +170,6 @@
   }
 }
 
-@media (max-width: 47.9375rem) {
-  @layer responsive {
-    .gomad-route-view {
-      position: relative;
-      max-width: none;
-      gap: 0;
-      padding: 0 0 calc(var(--bottom-nav-height) + 1rem);
-    }
-
-    .gomad-route-view.route-page--ready > .back-button {
-      position: absolute;
-      z-index: 3;
-      top: 1rem;
-      left: var(--gutter);
-      min-height: 2.5rem;
-      padding: 0.25rem 0.75rem 0.25rem 0.5rem;
-      border: 1px solid var(--border);
-      border-radius: 999px;
-      background: var(--surface);
-      box-shadow: 0 2px 8px rgb(18 57 91 / 16%);
-    }
-
-    .gomad-route-view .route-map {
-      width: 100%;
-      gap: 0;
-    }
-
-    .gomad-route-view .route-map .map-view--block {
-      height: clamp(16rem, 43dvh, 25rem);
-      border: 0;
-      border-radius: 0;
-    }
-
-    .gomad-route-view .route-legend {
-      padding: 0.75rem var(--gutter) 0;
-    }
-
-    .gomad-route-view .seg {
-      margin: 0.875rem var(--gutter) 0;
-    }
-
-    .gomad-route-view .route-heading {
-      padding: 1rem var(--gutter) 0;
-    }
-
-    .gomad-route-view .route-info {
-      width: auto;
-      margin: 1.5rem var(--gutter) 0;
-    }
-
-    .gomad-route-view .route-sources,
-    .gomad-route-view > .notice,
-    .gomad-route-view > .muted {
-      margin: 1rem var(--gutter) 0;
-    }
-
-    .gomad-route-view > .route-nav {
-      margin: 0.75rem var(--gutter) 0;
-    }
-  }
-}
-
-@media (min-width: 48rem) {
-  @layer responsive {
-    .gomad-route-view {
-      display: grid;
-      grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
-      align-items: start;
-    }
-
-    .gomad-route-view > .back-button,
-    .gomad-route-view > .route-heading,
-    .gomad-route-view > .seg,
-    .gomad-route-view > .route-sources {
-      grid-column: 1 / -1;
-    }
-
-    .gomad-route-view > .back-button { grid-row: 1; }
-    .gomad-route-view > .route-heading { grid-row: 2; }
-    .gomad-route-view > .seg { grid-row: 3; }
-    .gomad-route-view > .route-map { grid-column: 1; grid-row: 4; }
-    .gomad-route-view > .route-legend { grid-column: 1; grid-row: 5; }
-    .gomad-route-view > .route-nav { grid-column: 1; grid-row: 6; }
-    .gomad-route-view > .route-info { grid-column: 2; grid-row: 4 / span 2; }
-  }
-}
-
 @media (prefers-reduced-motion: reduce) {
   @layer responsive {
     html {
@@ -629,14 +542,6 @@
   @layer responsive {
     .results-skeleton li {
       animation: none;
-    }
-  }
-}
-
-@media (min-width: 48rem) {
-  @layer responsive {
-    .route-map .map-view--block {
-      height: 26.25rem;
     }
   }
 }
@@ -2099,9 +2004,9 @@
   }
 
   /* navegacion sobre la ruta («Seguir mi ubicacion», RouteNavigation) */
-  /* /trayecto: los controles flotan abajo sobre el mapa, encima del asa de la hoja y de la
+  /* /trayecto y /ruta/:id: los controles flotan abajo sobre el mapa, encima del asa de la hoja y de la
      atribucion; solo los botones y avisos reciben toques, el resto deja mover el mapa */
-  .route-between__nav {
+  .route-sheet__nav {
     position: absolute;
     /* por debajo de la hoja (z-index 3): al subirla, la hoja los tapa */
     z-index: 2;
@@ -2112,46 +2017,46 @@
   }
 
   /* los botones debajo del aviso «Te quedan…» (el aviso no recibe foco: el orden de foco no cambia) */
-  .route-between__nav .route-nav__actions {
+  .route-sheet__nav .route-nav__actions {
     order: 1;
     justify-content: center;
   }
 
   /* ocupan todo el ancho, repartido a partes iguales si hay dos */
-  .route-between__nav .route-nav__actions .button {
+  .route-sheet__nav .route-nav__actions .button {
     flex: 1 1 0;
     min-height: 2.5rem;
     padding: 0 0.875rem;
     font-size: 0.875rem;
   }
 
-  .route-between__nav .button,
-  .route-between__nav .notice {
+  .route-sheet__nav .button,
+  .route-sheet__nav .notice {
     pointer-events: auto;
     box-shadow: 0 2px 8px rgba(18, 57, 91, 0.24);
   }
 
-  .route-between__nav .button:not(.button--primary) {
+  .route-sheet__nav .button:not(.button--primary) {
     background: var(--surface);
   }
 
   /* «Centrar en mí» en verde, como los botones principales (despues del fondo blanco) */
-  .route-between__nav .route-nav__actions .route-nav__recenter {
+  .route-sheet__nav .route-nav__actions .route-nav__recenter {
     border: none;
     background: var(--green-dark);
     color: #fff;
   }
 
-  .route-between__nav .route-nav__actions .route-nav__recenter:hover {
+  .route-sheet__nav .route-nav__actions .route-nav__recenter:hover {
     background: var(--green);
   }
 
   /* la hoja recogida baja del todo: solo queda el asa */
-  .gomad-route-between--map .results-sheet {
+  .route-sheet-screen .results-sheet {
     transform: translateY(calc(100% - var(--tap-min)));
   }
 
-  .gomad-route-between--map .results-sheet--expanded {
+  .route-sheet-screen .results-sheet--expanded {
     transform: translateY(0px);
   }
 
@@ -2526,13 +2431,14 @@
     font-size: 0.875rem;
   }
 
-  .gomad-route-view .back-button {
+  /* /ruta/:id mientras calcula o con error (con la ruta, la hoja de route-sheet-screen) */
+  .route-page.gomad-route-view .back-button {
     align-self: flex-start;
     min-height: var(--tap-min);
     margin-bottom: 0px;
   }
 
-  .gomad-route-view {
+  .route-page.gomad-route-view {
     min-height: calc(100dvh - var(--header-height));
     background: var(--surface);
   }
@@ -2674,17 +2580,6 @@
     margin: 0;
   }
 
-  .route-legend-slot {
-    display: flex;
-    flex: none;
-  }
-
-  .route-map {
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-  }
-
   .route-legend {
     display: flex;
     flex-wrap: wrap;
@@ -2739,7 +2634,7 @@
     grid-template-columns: minmax(0, 1fr);
   }
 
-  .route-between__body {
+  .route-sheet__body {
     display: flex;
     flex-direction: column;
     gap: 1rem;
@@ -4123,10 +4018,10 @@
   }
 }
 
-/* /trayecto en escritorio: los controles de navegacion flotan abajo en la columna del mapa */
+/* /trayecto y /ruta/:id en escritorio: los controles de navegacion flotan abajo en la columna del mapa */
 @media (min-width: 48rem) {
   @layer responsive {
-    .route-between__nav {
+    .route-sheet__nav {
       position: relative;
       right: auto;
       bottom: auto;

@@ -36,20 +36,24 @@ describe("Ruta saludable", () => {
         const { container } = renderAt(path, init);
         const metrics = await screen.findByRole("list", { name: "Resumen de la ruta" });
         expect(screen.getByRole("link", { name: "Volver" })).toHaveClass("back-button");
-        expect(screen.getByRole("link", { name: "Volver" }).closest(".route-page")).toHaveClass("route-page--ready");
+        // con la ruta, la misma pantalla que /trayecto: mapa entero y detalles en la hoja deslizante
+        expect(screen.getByRole("link", { name: "Volver" }).closest(".route-sheet-screen")).not.toBeNull();
         expect(
             screen.getByRole("heading", { level: 1, name: `Ruta a ${item.destination.name}` }),
         ).toBeInTheDocument();
         const group = screen.getByRole("group", { name: "Variante de ruta" });
-        const map = container.querySelector(".route-map")!;
+        const sheet = container.querySelector(".results-sheet")!;
+        expect(sheet).not.toHaveClass("results-sheet--expanded");
+        expect(screen.getByRole("button", { name: "Mostrar detalles de la ruta" })).toHaveAttribute("aria-expanded", "false");
         const lineLegend = screen.getByRole("list", { name: "Leyenda del mapa" });
         expect(within(lineLegend).getByText("Ruta seleccionada")).toBeInTheDocument();
         expect(within(lineLegend).getByText("Ruta alternativa")).toBeInTheDocument();
         const heading = screen.getByRole("heading", { level: 1, name: `Ruta a ${item.destination.name}` });
-        expect(map.compareDocumentPosition(lineLegend) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-        expect(lineLegend.compareDocumentPosition(heading) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+        expect(sheet).toContainElement(heading);
         expect(heading.compareDocumentPosition(group) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-        expect(container.querySelector(".route-legend-slot")).toContainElement(screen.getByRole("button", { name: "Leyenda del mapa" }));
+        expect(group.compareDocumentPosition(lineLegend) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+        expect(sheet.compareDocumentPosition(container.querySelector(".map-demo")!) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+        expect(container.querySelector(".results-legend-slot")).toContainElement(screen.getByRole("button", { name: "Leyenda del mapa" }));
         expect(group).toHaveClass("seg--routes");
         expect(within(group).getByText("Ruta recomendada").tagName).toBe("STRONG");
         expect(within(group).getByRole("radio", { name: /Ruta recomendada/ })).toBeChecked();
@@ -70,6 +74,17 @@ describe("Ruta saludable", () => {
         expect(pois).toHaveTextContent("1 desfibrilador");
         expect(screen.getByText(/% por zona verde/, { selector: ".route-description" })).toBeInTheDocument();
         await expectNoAxeViolations(container);
+    });
+
+    it("la hoja de detalles se sube y se baja con el asa, como en /trayecto", async () => {
+        const { path, init } = await setup();
+        const { user, container } = renderAt(path, init);
+        await screen.findByRole("list", { name: "Resumen de la ruta" });
+        await user.click(screen.getByRole("button", { name: "Mostrar detalles de la ruta" }));
+        expect(screen.getByRole("button", { name: "Ocultar detalles de la ruta" })).toHaveAttribute("aria-expanded", "true");
+        expect(container.querySelector(".results-sheet")).toHaveClass("results-sheet--expanded");
+        await user.click(screen.getByRole("button", { name: "Ocultar detalles de la ruta" }));
+        expect(container.querySelector(".results-sheet")).not.toHaveClass("results-sheet--expanded");
     });
 
     it("al cambiar a la directa cambia el resumen y se anuncia", async () => {

@@ -502,6 +502,28 @@ describe("Estas aqui en el mapa", () => {
         const { container } = render(<MapView markers={MARKERS} live={{ lat: 40.306, lon: -3.733 }} />);
         expect(container.querySelector(".map-view__live")).not.toBeNull();
     });
+
+    it("con posicion en tiempo real no pinta tambien el pin del origen", async () => {
+        withWebGL();
+        const origin = { lat: 40.3057, lon: -3.7315 };
+        const { container, rerender } = render(<MapView markers={MARKERS} origin={origin} />);
+        await screen.findByTestId("maplibre");
+        expect(container.querySelectorAll(".map-marker--origin")).toHaveLength(1);
+        fitBoundsMock.mockClear();
+        rerender(<MapView markers={MARKERS} origin={origin} live={{ lat: 40.306, lon: -3.733 }} />);
+        expect(container.querySelectorAll(".map-marker--origin")).toHaveLength(0);
+        expect(container.querySelectorAll(".map-marker--live")).toHaveLength(1);
+        // el origen sigue en el encuadre: que llegue la posicion no reencuadra
+        expect(fitBoundsMock).not.toHaveBeenCalled();
+    });
+
+    it("sin WebGL tampoco se duplica: solo el punto en tiempo real", () => {
+        const { container } = render(
+            <MapView markers={MARKERS} origin={{ lat: 40.3057, lon: -3.7315 }} live={{ lat: 40.306, lon: -3.733 }} />,
+        );
+        expect(container.querySelector(".map-view__origin")).toBeNull();
+        expect(container.querySelector(".map-view__live")).not.toBeNull();
+    });
 });
 
 // --- Task 152: el pin de un resultado toma el tipo que da la API (verificador) ---

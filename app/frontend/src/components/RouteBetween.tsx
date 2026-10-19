@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type FocusEvent, type PointerEvent } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router";
 import type { LocationCandidate, PoiType, RouteResponse, RouteVariant } from "../api/types";
 import { getRoute } from "../data/route";
@@ -12,12 +12,14 @@ import MapView from "./MapView";
 import PageHeading from "./PageHeading";
 import { useRouteNavigation } from "./RouteNavigation";
 import SourceList from "./SourceList";
+import { useRouteSheet } from "./useRouteSheet";
 
 // Ruta entre dos direcciones escritas (complementaria a /ruta/:id). Las direcciones son
 // estado local: no cambian la ubicacion de Inicio. Las coordenadas solo van en el cuerpo
 // de POST /route. El resumen copia el de RouteView (sin extraerlo, para no tocarlo).
 // Con la ruta calculada, la pantalla es como Resultados: mapa a pantalla completa y los
 // detalles en una hoja que se sube y se baja (mismas clases; Results.tsx no se toca).
+// RouteView (/ruta/:id) usa la misma hoja y las mismas clases (route-sheet-*).
 
 const VARIANTS = [
     { kind: "healthy", label: "Ruta recomendada", hint: "más verde y menos tráfico" },
@@ -39,9 +41,6 @@ const POI_ICONS: Record<PoiType, string> = {
     supermarket: "shopping_cart",
 };
 
-// alto de la hoja recogida al arrastrar: solo el asa (los controles de navegacion flotan sobre el mapa)
-const SHEET_PEEK_PX = 44;
-
 function poiSummary(variant: RouteVariant): { type: PoiType; label: string }[] {
     const counts = new Map<PoiType, number>();
     variant.pois.forEach((p) => counts.set(p.type, (counts.get(p.type) ?? 0) + 1));
@@ -55,62 +54,6 @@ type RouteState =
     | { status: "error" }
     | { status: "done"; data: RouteResponse; from: LocationCandidate; to: LocationCandidate };
 
-// Hoja inferior arrastrable en movil: mismo gesto que la de Resultados (copiado, no extraido)
-function useSheet() {
-    const [expanded, setExpanded] = useState(false);
-    const sheetRef = useRef<HTMLDivElement>(null);
-    const dragStartY = useRef<number | null>(null);
-    const didDrag = useRef(false);
-
-    const reset = () => {
-        dragStartY.current = null;
-        if (sheetRef.current) sheetRef.current.style.transform = "";
-    };
-
-    return {
-        expanded,
-        setExpanded,
-        sheetRef,
-        onFocus: (event: FocusEvent<HTMLDivElement>) => {
-            // al llegar con el foco al contenido (no al asa ni al h1), la hoja se abre
-            if ((event.target as HTMLElement).closest(".results-body")) setExpanded(true);
-        },
-        onPointerDown: (event: PointerEvent<HTMLDivElement>) => {
-            if (window.innerWidth >= 768) return;
-            if (!(event.target as HTMLElement).closest(".results-sheet__handle")) return;
-            dragStartY.current = event.clientY;
-            didDrag.current = false;
-        },
-        onPointerMove: (event: PointerEvent<HTMLDivElement>) => {
-            if (dragStartY.current === null || !sheetRef.current) return;
-            const delta = event.clientY - dragStartY.current;
-            // la captura solo empieza al arrastrar: un toque sigue siendo un clic en el asa
-            if (Math.abs(delta) > 8 && !didDrag.current) {
-                didDrag.current = true;
-                event.currentTarget.setPointerCapture(event.pointerId);
-            }
-            const maxOffset = Math.max(sheetRef.current.offsetHeight - SHEET_PEEK_PX, 0);
-            const offset = Math.min(maxOffset, Math.max(0, (expanded ? 0 : maxOffset) + delta));
-            sheetRef.current.style.transform = `translateY(${offset}px)`;
-        },
-        onPointerUp: (event: PointerEvent<HTMLDivElement>) => {
-            if (dragStartY.current !== null) {
-                const delta = event.clientY - dragStartY.current;
-                if (Math.abs(delta) > 40) setExpanded(delta < 0);
-            }
-            reset();
-        },
-        onPointerCancel: reset,
-        toggle: () => {
-            if (didDrag.current) {
-                didDrag.current = false;
-                return;
-            }
-            setExpanded((value) => !value);
-        },
-    };
-}
-
 export default function RouteBetween() {
     const { origin, preferences } = useAppState();
     // «Desde» empieza con la ubicacion de Inicio, si la hay (cambiarla aqui no toca la de Inicio)
@@ -123,7 +66,7 @@ export default function RouteBetween() {
     const [sameTry, setSameTry] = useState(0);
     const callRef = useRef(0);
     const headingRef = useRef<HTMLDivElement>(null);
-    const { expanded: sheetExpanded, setExpanded: setSheetExpanded, sheetRef, toggle: toggleSheet, ...sheetEvents } = useSheet();
+    const { expanded: sheetExpanded, setExpanded: setSheetExpanded, sheetRef, toggle: toggleSheet, ...sheetEvents } = useRouteSheet();
 
     // cambiar una direccion invalida la ruta mostrada
     const change = (setter: (c: LocationCandidate | null) => void) => (c: LocationCandidate | null) => {
@@ -245,12 +188,12 @@ export default function RouteBetween() {
     return (
         <>
             {status}
-            <section className="results-screen gomad-results gomad-component gomad-route-between gomad-route-between--map" aria-labelledby="trayecto-titulo">
+            <section className="results-screen gomad-results gomad-component gomad-route-between route-sheet-screen" aria-labelledby="trayecto-titulo">
                 <div className="results-desktop-toolbar">{back}</div>
 
                 <div className="results-layout">
                     {/* flotan abajo sobre el mapa, encima de la hoja recogida; antes de la hoja en el orden de foco */}
-                    <div className="route-between__nav">{nav.controls}</div>
+                    <div className="route-sheet__nav">{nav.controls}</div>
 
                     <div
                         ref={sheetRef}
@@ -279,7 +222,7 @@ export default function RouteBetween() {
                                 </div>
                             </div>
 
-                            <div className="container results-body route-between__body">
+                            <div className="container results-body route-sheet__body">
                                 <fieldset className="seg seg--routes">
                                     <legend className="sr-only">Variante de ruta</legend>
                                     {VARIANTS.map((v) => (

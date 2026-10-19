@@ -30,7 +30,8 @@ export interface MapViewProps {
     onSelect?: (id: string) => void;
     // mapa explorable (C2): al mover o ampliar, pide y muestra los lugares de la zona visible
     explore?: boolean;
-    // posicion en tiempo real (C2); no entra en el encuadre: moverse no reencuadra el mapa
+    // posicion en tiempo real (C2); no entra en el encuadre: moverse no reencuadra el mapa.
+    // Si la hay, sustituye al pin de `origin` (que sigue contando para el encuadre)
     live?: Coordinate | null;
     // donde va el boton de la leyenda: sin la prop, sobre el mapa; con
     // un elemento, ahi (portal, p. ej. junto a «Ajustar» en Resultados); null = sin sitio, no se pinta
@@ -86,7 +87,8 @@ function Schematic({ markers, selectedId, origin, route, secondaryRoute, live, l
                         <polyline className="map-view__route map-view__route--secondary" points={path(secondary)} />
                     )}
                     {main.length > 1 && <polyline className="map-view__route" points={path(main)} />}
-                    {origin && (
+                    {/* como en MapCanvas: con posicion en tiempo real no se pinta tambien el origen */}
+                    {origin && !live && (
                         <circle
                             className="map-view__origin"
                             cx={project([origin.lon, origin.lat])[0]}
