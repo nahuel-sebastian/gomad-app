@@ -1180,7 +1180,6 @@
     flex-direction: row;
     align-items: flex-start;
     justify-content: flex-start;
-    gap: 0.75rem;
   }
 
   .prefs__text {
@@ -1280,9 +1279,10 @@
     font-size: 0.75rem !important;
   }
 
-  /* la misma pildora «Volver» en resultados y municipio */
+  /* la misma pildora «Volver» en resultados, municipio y ruta entre dos direcciones */
   .gomad-results .back-button,
-  .gomad-municipality .back-button {
+  .gomad-municipality .back-button,
+  .gomad-route-between .back-button {
     min-height: 2.25rem;
     padding: 0.25rem 0.75rem 0.25rem 0.5rem;
     border: 1px solid var(--border);
@@ -1292,7 +1292,8 @@
     font-size: 0.8125rem;
   }
 
-  .gomad-results .back-button span {
+  .gomad-results .back-button span,
+  .gomad-route-between .back-button span {
     font-size: 0.75rem !important;
   }
 
@@ -2093,8 +2094,65 @@
   }
 
   /* navegacion sobre la ruta («Seguir mi ubicacion», RouteNavigation) */
+  /* /trayecto: los controles flotan abajo sobre el mapa, encima del asa de la hoja y de la
+     atribucion; solo los botones y avisos reciben toques, el resto deja mover el mapa */
   .route-between__nav {
-    padding-top: 0.5rem;
+    position: absolute;
+    /* por encima de la hoja (z-index 3): con la hoja subida se sigue viendo y al pulsarlo la recoge */
+    z-index: 4;
+    right: var(--gutter);
+    bottom: calc(var(--tap-min) + 1.75rem);
+    left: var(--gutter);
+    pointer-events: none;
+  }
+
+  /* los botones debajo del aviso «Te quedan…» (el aviso no recibe foco: el orden de foco no cambia) */
+  .route-between__nav .route-nav__actions {
+    order: 1;
+    justify-content: center;
+  }
+
+  /* ocupan todo el ancho, repartido a partes iguales si hay dos */
+  .route-between__nav .route-nav__actions .button {
+    flex: 1 1 0;
+    min-height: 2.5rem;
+    padding: 0 0.875rem;
+    font-size: 0.875rem;
+  }
+
+  .route-between__nav .button,
+  .route-between__nav .notice {
+    pointer-events: auto;
+    box-shadow: 0 2px 8px rgba(18, 57, 91, 0.24);
+  }
+
+  .route-between__nav .button:not(.button--primary) {
+    background: var(--surface);
+  }
+
+  /* «Centrar en mí» en verde, como los botones principales (despues del fondo blanco) */
+  .route-between__nav .route-nav__actions .route-nav__recenter {
+    border: none;
+    background: var(--green-dark);
+    color: #fff;
+  }
+
+  .route-between__nav .route-nav__actions .route-nav__recenter:hover {
+    background: var(--green);
+  }
+
+  /* la hoja recogida baja del todo: solo queda el asa */
+  .gomad-route-between--map .results-sheet {
+    transform: translateY(calc(100% - var(--tap-min)));
+  }
+
+  .gomad-route-between--map .results-sheet--expanded {
+    transform: translateY(0px);
+  }
+
+  /* hueco al final de la hoja para que los controles flotantes no tapen lo ultimo */
+  .gomad-route-between--map .results-sheet__scroll {
+    padding-bottom: 7rem;
   }
 
   .route-nav {
@@ -2676,30 +2734,15 @@
     min-width: 0;
   }
 
-  .address-field__chosen {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 0.75rem;
-    min-height: var(--tap-min);
-    padding: 0.25rem 0.25rem 0.25rem 0.75rem;
-    border: 1.5px solid var(--muted);
-    border-radius: 10px;
-    background: var(--surface);
+  /* «Hasta» no lleva boton de ubicacion: el buscador ocupa todo el ancho */
+  .location__form--single {
+    grid-template-columns: minmax(0, 1fr);
   }
 
   .route-between__body {
     display: flex;
     flex-direction: column;
     gap: 1rem;
-  }
-
-  .address-field__value {
-    display: flex;
-    flex-direction: column;
-    min-width: 0;
-    margin: 0;
-    overflow-wrap: anywhere;
   }
 
   .route-details {
@@ -3809,26 +3852,26 @@
   }
 }
 
-/* Preferencias compactas en el inicio sin ubicacion */
+/* Tarjetas compactas (preferencias y ruta entre direcciones) en el inicio sin ubicacion */
 @layer responsive {
-  .home__secondary > .prefs--compact {
+  .home__secondary > .home-card--compact {
     align-items: center;
     padding: 0.75rem 1rem;
     border: 1px solid var(--border);
     box-shadow: none;
   }
 
-  .prefs--compact .surprise__tile {
+  .home-card--compact .surprise__tile {
     width: 2.25rem;
     height: 2.25rem;
   }
 
-  .prefs--compact .panel__title {
+  .home-card--compact .panel__title {
     font-size: 1rem;
     font-weight: 600;
   }
 
-  .home__secondary .prefs--compact .muted {
+  .home__secondary .home-card--compact .muted {
     font-size: 0.875rem;
   }
 }
@@ -3986,6 +4029,25 @@
 
     .results-sheet__scroll > .view-header .results-header-actions {
       grid-column: 2;
+    }
+  }
+}
+
+/* /trayecto en escritorio: los controles de navegacion flotan abajo en la columna del mapa */
+@media (min-width: 48rem) {
+  @layer responsive {
+    .route-between__nav {
+      position: relative;
+      right: auto;
+      bottom: auto;
+      left: auto;
+      grid-area: 1 / 2;
+      align-self: end;
+      margin: 0 1rem 2rem;
+    }
+
+    .gomad-route-between--map .results-sheet__scroll {
+      padding-bottom: 0px;
     }
   }
 }

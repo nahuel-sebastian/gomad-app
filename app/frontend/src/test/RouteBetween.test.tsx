@@ -3,7 +3,7 @@ import type { UserEvent } from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import * as routeApi from "../data/route";
 import { selectScenario } from "../data/scenarios";
-import { expectNoAxeViolations, renderAt } from "./render";
+import { expectNoAxeViolations, renderAt, SAMPLE_ORIGIN } from "./render";
 import { installFakeGeo } from "./geoMock";
 
 afterEach(() => {
@@ -15,6 +15,10 @@ afterEach(() => {
 async function choose(user: UserEvent, field: string, text: string, candidate: string) {
     await user.type(screen.getByLabelText(field), text);
     await user.click(await screen.findByRole("button", { name: candidate }));
+    // tras elegir, el foco salta a «Cambiar» en el siguiente fotograma: esperarlo antes de seguir escribiendo
+    await waitFor(() =>
+        expect(screen.getByRole("button", { name: new RegExp(`^Cambiar la dirección «${field}»`) })).toHaveFocus(),
+    );
 }
 
 async function chooseBoth(user: UserEvent) {
@@ -121,6 +125,17 @@ describe("Ruta entre dos direcciones", () => {
         expect(await screen.findByRole("list", { name: "Resumen de la ruta" })).toBeInTheDocument();
     });
 
+    it("«Desde» empieza con la ubicacion de Inicio y cambiarla no toca la de Inicio", async () => {
+        const { user } = renderAt("/trayecto", { origin: SAMPLE_ORIGIN });
+        expect(screen.getByLabelText("Desde")).toHaveValue(SAMPLE_ORIGIN.label);
+        expect(screen.getByLabelText("Hasta")).toHaveValue("");
+        await user.click(screen.getByRole("button", { name: `Cambiar la dirección «Desde»: ${SAMPLE_ORIGIN.label}` }));
+        expect(screen.getByLabelText("Desde")).toHaveValue("");
+        await user.click(screen.getByRole("link", { name: "Volver" }));
+        await screen.findByRole("heading", { level: 1, name: "¿Qué te apetece hacer hoy?" });
+        expect(screen.getByLabelText("Escribe una dirección o un municipio")).toHaveValue(SAMPLE_ORIGIN.label);
+    });
+
     it("no cambia la ubicacion de Inicio", async () => {
         const { user } = renderAt("/trayecto");
         await chooseBoth(user);
@@ -200,7 +215,9 @@ describe("Ruta entre dos direcciones: seguir mi ubicacion", () => {
         const button = await screen.findByRole("button", { name: "Seguir mi ubicación" });
         expect(geo.raw.watchPosition).not.toHaveBeenCalled();
         expect(geo.raw.getCurrentPosition).not.toHaveBeenCalled();
-        // los controles van al principio de la hoja, antes del titulo
+        // los controles flotan sobre el mapa (fuera de la hoja) y van antes del titulo en el orden de foco
+        expect(button.closest(".results-sheet")).toBeNull();
+        expect(button.closest(".route-between__nav")).not.toBeNull();
         const heading = screen.getByRole("heading", { level: 1, name: "Ruta entre dos direcciones" });
         expect(button.compareDocumentPosition(heading) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
         await user.click(screen.getByRole("button", { name: "Mostrar detalles de la ruta" }));

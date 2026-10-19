@@ -70,8 +70,23 @@ describe("estilos", () => {
         expect(rule(".route-between__body")).toMatch(/flex-direction:\s*column/);
     });
 
-    it("el campo de direccion elegida separa el texto del boton Cambiar", () => {
-        expect(rule(".address-field__chosen")).toMatch(/justify-content:\s*space-between/);
+    it("en /trayecto los controles de navegacion flotan sobre el mapa, centrados", () => {
+        expect(rule(".route-between__nav")).toMatch(/position:\s*absolute/);
+        // por encima de la hoja (z-index 3): con la hoja subida se puede pulsar y la recoge
+        expect(rule(".route-between__nav")).toMatch(/z-index:\s*4/);
+        expect(rule(".route-between__nav .route-nav__actions")).toMatch(/justify-content:\s*center/);
+    });
+
+    it("«Volver» de /trayecto es la misma pildora que en resultados y municipio", () => {
+        expect(css).toMatch(/\.gomad-municipality \.back-button,\s*\.gomad-route-between \.back-button \{[^}]*border-radius:\s*999px/);
+    });
+
+    it("en /trayecto la hoja recogida baja del todo y solo deja el asa", () => {
+        expect(rule(".gomad-route-between--map .results-sheet")).toMatch(/translateY\(calc\(100% - var\(--tap-min\)\)\)/);
+    });
+
+    it("el campo «Hasta», sin boton de ubicacion, ocupa todo el ancho", () => {
+        expect(rule(".location__form--single")).toMatch(/grid-template-columns:\s*minmax\(0, 1fr\)/);
     });
 
     it("un boton con aria-disabled se ve deshabilitado sin bajar el texto de 4,5:1", () => {

@@ -35,7 +35,8 @@ describe("AddressField", () => {
         const onChange = vi.fn();
         const user = userEvent.setup();
         render(<AddressField label="Hasta" value={SAMPLE_ORIGIN} onChange={onChange} />);
-        expect(screen.getByText(SAMPLE_ORIGIN.label)).toBeInTheDocument();
+        expect(screen.getByLabelText("Hasta")).toHaveValue(SAMPLE_ORIGIN.label);
+        expect(screen.getByLabelText("Hasta")).toHaveAttribute("readonly");
         await user.click(screen.getByRole("button", { name: /Cambiar/ }));
         expect(onChange).toHaveBeenCalledWith(null);
     });
