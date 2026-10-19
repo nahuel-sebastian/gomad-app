@@ -67,14 +67,14 @@ describe("estilos", () => {
     });
 
     it("los detalles de la ruta entre dos direcciones van en columna con separacion", () => {
-        expect(rule(".route-between__body")).toMatch(/flex-direction:\s*column/);
+        expect(rule(".route-sheet__body")).toMatch(/flex-direction:\s*column/);
     });
 
     it("en /trayecto los controles de navegacion flotan sobre el mapa, centrados", () => {
-        expect(rule(".route-between__nav")).toMatch(/position:\s*absolute/);
+        expect(rule(".route-sheet__nav")).toMatch(/position:\s*absolute/);
         // por debajo de la hoja (z-index 3): al subirla, la hoja los tapa
-        expect(rule(".route-between__nav")).toMatch(/z-index:\s*2/);
-        expect(rule(".route-between__nav .route-nav__actions")).toMatch(/justify-content:\s*center/);
+        expect(rule(".route-sheet__nav")).toMatch(/z-index:\s*2/);
+        expect(rule(".route-sheet__nav .route-nav__actions")).toMatch(/justify-content:\s*center/);
     });
 
     it("«Volver» de /trayecto es la misma pildora que en resultados y municipio", () => {
@@ -82,7 +82,7 @@ describe("estilos", () => {
     });
 
     it("en /trayecto la hoja recogida baja del todo y solo deja el asa", () => {
-        expect(rule(".gomad-route-between--map .results-sheet")).toMatch(/translateY\(calc\(100% - var\(--tap-min\)\)\)/);
+        expect(rule(".route-sheet-screen .results-sheet")).toMatch(/translateY\(calc\(100% - var\(--tap-min\)\)\)/);
     });
 
     it("el campo «Hasta», sin boton de ubicacion, ocupa todo el ancho", () => {

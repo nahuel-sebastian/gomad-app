@@ -382,7 +382,8 @@ export default function MapCanvas(props: MapViewProps) {
                             <span aria-hidden="true">{shownTip.text}</span>
                         </Popup>
                     )}
-                    {origin && (
+                    {/* con posicion en tiempo real solo se pinta esa: el origen no se duplica (sigue en el encuadre) */}
+                    {origin && !live && (
                         <Marker longitude={origin.lon} latitude={origin.lat}>
                             <span className="map-marker map-marker--origin" />
                         </Marker>
