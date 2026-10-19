@@ -2103,8 +2103,8 @@
      atribucion; solo los botones y avisos reciben toques, el resto deja mover el mapa */
   .route-between__nav {
     position: absolute;
-    /* por encima de la hoja (z-index 3): con la hoja subida se sigue viendo y al pulsarlo la recoge */
-    z-index: 4;
+    /* por debajo de la hoja (z-index 3): al subirla, la hoja los tapa */
+    z-index: 2;
     right: var(--gutter);
     bottom: calc(var(--tap-min) + 1.75rem);
     left: var(--gutter);
@@ -2153,11 +2153,6 @@
 
   .gomad-route-between--map .results-sheet--expanded {
     transform: translateY(0px);
-  }
-
-  /* hueco al final de la hoja para que los controles flotantes no tapen lo ultimo */
-  .gomad-route-between--map .results-sheet__scroll {
-    padding-bottom: 7rem;
   }
 
   .route-nav {
@@ -3171,6 +3166,13 @@
     }
   }
 
+  /* resumen de lo guardado en el modal de «Guardar preferencias» */
+  .confirm-dialog__summary {
+    margin: 0;
+    color: var(--navy);
+    font-weight: 600;
+  }
+
   .confirm-dialog__actions {
     display: flex;
     justify-content: flex-end;
@@ -4132,10 +4134,6 @@
       grid-area: 1 / 2;
       align-self: end;
       margin: 0 1rem 2rem;
-    }
-
-    .gomad-route-between--map .results-sheet__scroll {
-      padding-bottom: 0px;
     }
   }
 }

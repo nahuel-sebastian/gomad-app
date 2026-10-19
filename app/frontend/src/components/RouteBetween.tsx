@@ -169,9 +169,11 @@ export default function RouteBetween() {
 
     const done = route.status === "done" ? route : null;
     const showingRoute = done !== null;
-    // el boton «Calcular ruta» o «Cambiar direcciones» desaparece al cambiar de vista: el foco va al h1
+    // el boton «Calcular ruta» o «Cambiar direcciones» desaparece al cambiar de vista: el foco va al h1.
+    // Sin desplazar: el h1 esta en la hoja recogida y, al enfocarlo, el navegador subia la pantalla
+    // y dejaba la hoja a media altura (habia que subirla para poder bajarla)
     useEffect(() => {
-        headingRef.current?.querySelector("h1")?.focus();
+        headingRef.current?.querySelector("h1")?.focus({ preventScroll: true });
     }, [showingRoute]);
 
     const data = done ? done.data : null;

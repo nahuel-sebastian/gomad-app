@@ -4,6 +4,7 @@ import type { Companion, Factor, Profile, Setting } from "../api/types";
 import { getActivities } from "../data/activities";
 import { useAsync } from "../data/useAsync";
 import { COMPANION_LABELS, FACTOR_LABELS, SETTING_LABELS } from "../lib/labels";
+import { preferencesSummary } from "../lib/request";
 import { useAppState } from "../state/context";
 import ErrorMessage from "./ErrorMessage";
 import Icon from "./Icon";
@@ -45,6 +46,8 @@ export default function PreferencesForm({ inPanel = false, compact = false }: { 
     const [savedPreferences, setSavedPreferences] = useState<typeof preferences | null>(null);
     const [weightsReset, setWeightsReset] = useState(false);
     const [confirmClearOpen, setConfirmClearOpen] = useState(false);
+    // modal de confirmacion al guardar (mismo estilo que el de borrar)
+    const [savedOpen, setSavedOpen] = useState(false);
     const activities = useAsync(() => getActivities(), []);
     // los pesos por defecto los decide el motor (/activities); sin ellos no se pintan los pesos
     const defaults = activities.data?.default_weights ?? null;
@@ -228,13 +231,32 @@ export default function PreferencesForm({ inPanel = false, compact = false }: { 
                         </Dialog.Content>
                     </Dialog.Portal>
                 </Dialog.Root>
-                <button type="button" className="button button--primary gomad-action gomad-action-save-preferences" aria-label="Guardar preferencias" onClick={() => {
-                    setWeightsReset(false);
-                    setSavedPreferences(preferences);
-                }}>
-                    <span className="prefs-form__footer-label--full" aria-hidden="true">Guardar preferencias</span>
-                    <span className="prefs-form__footer-label--short" aria-hidden="true">Guardar</span>
-                </button>
+                <Dialog.Root open={savedOpen} onOpenChange={setSavedOpen}>
+                    <Dialog.Trigger asChild>
+                        <button type="button" className="button button--primary gomad-action gomad-action-save-preferences" aria-label="Guardar preferencias" onClick={() => {
+                            setWeightsReset(false);
+                            setSavedPreferences(preferences);
+                        }}>
+                            <span className="prefs-form__footer-label--full" aria-hidden="true">Guardar preferencias</span>
+                            <span className="prefs-form__footer-label--short" aria-hidden="true">Guardar</span>
+                        </button>
+                    </Dialog.Trigger>
+                    <Dialog.Portal>
+                        <Dialog.Overlay className="confirm-overlay" />
+                        <Dialog.Content className="confirm-dialog">
+                            <Dialog.Title className="sheet__title">Preferencias guardadas</Dialog.Title>
+                            <Dialog.Description className="muted">
+                                Las usaremos en tus próximas búsquedas mientras tengas la página abierta.
+                            </Dialog.Description>
+                            <p className="confirm-dialog__summary">{preferencesSummary(preferences)}</p>
+                            <div className="confirm-dialog__actions">
+                                <Dialog.Close asChild>
+                                    <button type="button" className="button button--primary">Entendido</button>
+                                </Dialog.Close>
+                            </div>
+                        </Dialog.Content>
+                    </Dialog.Portal>
+                </Dialog.Root>
             </div>}
         </div>
     );

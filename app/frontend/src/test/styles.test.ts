@@ -72,8 +72,8 @@ describe("estilos", () => {
 
     it("en /trayecto los controles de navegacion flotan sobre el mapa, centrados", () => {
         expect(rule(".route-between__nav")).toMatch(/position:\s*absolute/);
-        // por encima de la hoja (z-index 3): con la hoja subida se puede pulsar y la recoge
-        expect(rule(".route-between__nav")).toMatch(/z-index:\s*4/);
+        // por debajo de la hoja (z-index 3): al subirla, la hoja los tapa
+        expect(rule(".route-between__nav")).toMatch(/z-index:\s*2/);
         expect(rule(".route-between__nav .route-nav__actions")).toMatch(/justify-content:\s*center/);
     });
 
