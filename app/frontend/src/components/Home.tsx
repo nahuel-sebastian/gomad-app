@@ -173,7 +173,7 @@ export default function Home() {
 
                     <Link
                         to="/perfil"
-                        className={`panel panel--action prefs${origin ? "" : " prefs--compact"} gomad-action gomad-action-adjust-preferences`}>
+                        className={`panel panel--action prefs${origin ? "" : " home-card--compact"} gomad-action gomad-action-adjust-preferences`}>
                         <span className="surprise__tile" aria-hidden="true">
                             <Icon name="settings" />
                         </span>
@@ -197,7 +197,7 @@ export default function Home() {
                         </Link>
                     )}
 
-                    <Link to="/trayecto" className="panel panel--action surprise route-between-link gomad-action gomad-action-open-route-between">
+                    <Link to="/trayecto" className={`panel panel--action surprise route-between-link${origin ? "" : " home-card--compact"} gomad-action gomad-action-open-route-between`}>
                         <span className="surprise__tile" aria-hidden="true">
                             <Icon name="route" />
                         </span>

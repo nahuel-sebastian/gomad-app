@@ -3809,26 +3809,26 @@
   }
 }
 
-/* Preferencias compactas en el inicio sin ubicacion */
+/* Tarjetas compactas (preferencias y ruta entre direcciones) en el inicio sin ubicacion */
 @layer responsive {
-  .home__secondary > .prefs--compact {
+  .home__secondary > .home-card--compact {
     align-items: center;
     padding: 0.75rem 1rem;
     border: 1px solid var(--border);
     box-shadow: none;
   }
 
-  .prefs--compact .surprise__tile {
+  .home-card--compact .surprise__tile {
     width: 2.25rem;
     height: 2.25rem;
   }
 
-  .prefs--compact .panel__title {
+  .home-card--compact .panel__title {
     font-size: 1rem;
     font-weight: 600;
   }
 
-  .home__secondary .prefs--compact .muted {
+  .home__secondary .home-card--compact .muted {
     font-size: 0.875rem;
   }
 }

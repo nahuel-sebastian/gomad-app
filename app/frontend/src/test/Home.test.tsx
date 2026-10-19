@@ -256,4 +256,10 @@ describe("Inicio: region viva", () => {
         renderAt("/");
         expect(screen.getByRole("link", { name: /Ruta entre dos direcciones/ })).toHaveAttribute("href", "/trayecto");
     });
+
+    it("sin ubicacion, la ruta entre dos direcciones tiene el mismo estilo compacto que las preferencias", () => {
+        renderAt("/");
+        expect(screen.getByRole("link", { name: /Tus preferencias/ })).toHaveClass("home-card--compact");
+        expect(screen.getByRole("link", { name: /Ruta entre dos direcciones/ })).toHaveClass("home-card--compact");
+    });
 });
