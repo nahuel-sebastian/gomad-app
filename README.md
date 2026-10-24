@@ -4,31 +4,42 @@
 
 Finalist · MAD Open Data Challenge 2026 · Built by a team of 4 in under a week (Oct 14–19, 2026)
 
-<!-- SCREENSHOTS: docs/screenshots/home.png, results.png, route.png, assistant.png -->
 <p align="center">
-  <img src="docs/screenshots/home.png" width="22%" alt="Home screen">
-  <img src="docs/screenshots/results.png" width="22%" alt="Recommendations with map">
-  <img src="docs/screenshots/route.png" width="22%" alt="Direct vs. healthy route">
-  <img src="docs/screenshots/assistant.png" width="22%" alt="Assistant">
+  <img src="docs/screenshots/home.png" width="22%" alt="Home: location, current weather and air quality, activity picker">
+  <img src="docs/screenshots/results.png" width="22%" alt="Ranked recommendations with a 0–10 score">
+  <img src="docs/screenshots/route.png" width="22%" alt="Healthy route (solid) vs. direct route (dashed)">
+  <img src="docs/screenshots/assistant.png" width="22%" alt="Assistant: 5 km loop route with the conditions it meets">
 </p>
+
+<p align="center"><sub>Home · Recommendations · Healthy route vs. direct route (+95 m, 11 % → 49 % green, 1 km less next to heavy traffic) · Assistant</sub></p>
 
 ## The problem
 
-Deciding where to go for a walk, a run or a bike ride depends on things that change by the hour and by the street: heat, air quality, rain, shade, green areas, drinking fountains. The data exists — spread across dozens of regional and municipal open-data portals in different formats, projections and update cycles — but nobody can combine it in their head before leaving home.
+Deciding where to go for a walk, a run or a game of padel depends on things that change by the hour and by the street: heat, air quality, rain, shade, green areas, drinking fountains. The data exists — spread across dozens of regional and municipal open-data portals in different formats, projections and update cycles — but nobody can combine it in their head before leaving home.
 
 ## The solution
 
 GoMad combines that data for all 179 municipalities of the Community of Madrid and answers three questions from a mobile web app:
 
-- **Where?** The top places for an activity near you, each with a 0–10 score broken down by factor (air, heat, rain, green, distance).
-- **When?** The best time slot in your time window, evaluated hour by hour against the forecast and air quality.
-- **How do I get there?** A direct route and a *healthy* route side by side: more green, less traffic, with fountains, benches and defibrillators along the way.
+- **Where?** The top places for an activity near you, each with a 0–10 score broken down by factor: proximity, fit for the activity, shade and green, clean air and weather.
+- **When?** The best time slot in your time window, evaluated hour by hour against the forecast, air quality and the official heat thresholds.
+- **How do I get there?** A direct route and a *healthy* route side by side: more green, less traffic, with the fountains, benches, defibrillators and playgrounds along the way.
 
-It also shows indicators per municipality and has an assistant that turns free text ("a 5 km walk in the shade this afternoon") into editable search parameters.
+### Features
+
+- **Activities:** walking, running, swimming, padel, tennis, football, basketball, gym and indoor, plus a *Surprise me* option that proposes a plan from your location and free time.
+- **Personal criteria:** time available, maximum walking distance and time window. You can also set a profile (older adults, strollers, sensitivity to pollution), say who you go with (children, a dog) and choose how much each factor matters. You can change all of this from the results and the ranking is recalculated.
+- **Explainable recommendations:** each place shows why it was chosen, an hour-by-hour table with the best slot, and the source and update time of every piece of data.
+- **Healthy routing:** the healthy and the direct route are drawn together. Each one shows its distance, time, share of green areas, metres next to heavy traffic and amenities on the way, plus a plain-text description for screen readers.
+- **Route between two addresses:** the greenest walking route from any address to any other, not only to a recommended place.
+- **Follow my location:** a live mode that tracks your position along the route, shows the distance and time left, and warns you when you leave the route.
+- **Route assistant:** describe the route in your own words ("a 5 km run through a park, past fountains, avoiding traffic"). The assistant fills in editable fields: activity, distance or duration, loop or one way, places to pass by (park, fountains, benches, supermarket, dog area, playground) and things to avoid (traffic, slopes). The engine then builds the route and lists which conditions it meets and which it doesn't.
+- **Municipality profiles:** all 179 municipalities with indicators on sport, nature, mobility, health, education, connectivity and social services. There is deliberately no ranking between them.
+- **Sources and transparency:** a page with every data source grouped by category, its license, a medical disclaimer and the privacy notice.
 
 **Design principle: the rules engine decides; AI only interprets.** Recommendations, scores and routes are deterministic and explainable. Every factor shows its data source and update date. The assistant extracts entities with OCI Language and maps them to a closed dictionary; it never picks destinations or computes routes.
 
-**Privacy:** no sign-up, preferences stay in the browser, and location is used only for the request (never logged).
+**Privacy:** no sign-up and no personal or health data. Preferences live only in the open page, and your location is used for the request and never logged.
 
 ## Architecture
 
