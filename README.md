@@ -4,14 +4,27 @@
 
 Finalist · MAD Open Data Challenge 2026 · Built by a team of 4 in under a week (Oct 14–19, 2026)
 
-<p align="center">
-  <img src="docs/screenshots/home.png" width="22%" alt="Home: location, current weather and air quality, activity picker">
-  <img src="docs/screenshots/results.png" width="22%" alt="Ranked recommendations with a 0–10 score">
-  <img src="docs/screenshots/route.png" width="22%" alt="Healthy route (solid) vs. direct route (dashed)">
-  <img src="docs/screenshots/assistant.png" width="22%" alt="Assistant: 5 km loop route with the conditions it meets">
-</p>
+## Built for people who train outdoors
 
-<p align="center"><sub>Home · Recommendations · Healthy route vs. direct route (+95 m, 11 % → 49 % green, 1 km less next to heavy traffic) · Assistant</sub></p>
+GoMad is designed around three situations that anyone who runs, walks or trains outside runs into:
+
+<table>
+  <tr>
+    <th width="33%">"I know where I'm going, but I want a greener way there"</th>
+    <th width="33%">"I don't have a route"</th>
+    <th width="33%">"I need to get from one point to another"</th>
+  </tr>
+  <tr>
+    <td><img src="docs/screenshots/route.png" alt="Healthy route (solid line) next to the direct route (dashed line)"></td>
+    <td><img src="docs/screenshots/assistant.png" alt="Assistant: a 5 km loop that meets all five requested conditions"></td>
+    <td><img src="docs/screenshots/between.png" alt="Greenest walking route between two addresses"></td>
+  </tr>
+  <tr>
+    <td>Pick a place (or one that GoMad recommends) and compare the healthy route with the direct one. In this case the healthy route is only 95 m longer, but 49 % of it runs through green areas instead of 11 %, and it avoids more than 1 km next to heavy traffic.</td>
+    <td>Describe what you want, such as "a 5 km run through a park, past fountains, avoiding traffic". The assistant turns it into a loop route and checks each condition: here it meets all five.</td>
+    <td>Enter any two addresses and get the greenest walking route between them. In this case it is 250 m longer, but 70 % green instead of 0 %, with 90 m next to heavy traffic instead of 1.4 km.</td>
+  </tr>
+</table>
 
 ## The problem
 
@@ -24,6 +37,12 @@ GoMad combines that data for all 179 municipalities of the Community of Madrid a
 - **Where?** The top places for an activity near you, each with a 0–10 score broken down by factor: proximity, fit for the activity, shade and green, clean air and weather.
 - **When?** The best time slot in your time window, evaluated hour by hour against the forecast, air quality and the official heat thresholds.
 - **How do I get there?** A direct route and a *healthy* route side by side: more green, less traffic, with the fountains, benches, defibrillators and playgrounds along the way.
+
+<p align="center">
+  <img src="docs/screenshots/home.png" width="30%" alt="Home: location, current weather and air quality, activity picker">
+  &nbsp;
+  <img src="docs/screenshots/results.png" width="30%" alt="Ranked recommendations with a 0–10 score and green share">
+</p>
 
 ### Features
 
