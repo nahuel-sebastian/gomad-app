@@ -15,7 +15,7 @@ Uso:
     python3 scripts/download_sources.py --refresh weekly --include-heavy      # OSM (y despues el grafo)
     python3 scripts/download_sources.py --only osm --force                    # descarga aunque no haya cambiado
 
-Niveles de recarga (CLAUDE.md 6.4): reference, weekly, daily, hourly, on_demand.
+Niveles de recarga: reference, weekly, daily, hourly, on_demand.
 Antes de descargar se comprueba si la fuente ha cambiado (metadata_modified de CKAN,
 ETag / Last-Modified o sha256 del contenido); si no ha cambiado, se marca "sin cambios".
 
@@ -228,7 +228,7 @@ def download_nomecalles(ref, folder):
 def download_open_meteo(folder):
     """Prevision de los 179 municipios en UNA peticion (DEC-16), con los puntos de config/forecast_points.csv.
 
-    A Open-Meteo solo van esos puntos (CLAUDE.md 2.8). Guarda la respuesta tal cual y los puntos usados, en el mismo
+    A Open-Meteo solo van esos puntos. Guarda la respuesta tal cual y los puntos usados, en el mismo
     orden: el normalizador asigna el elemento i de la lista al punto i.
     """
     points_text = (CONFIG_DIR / "forecast_points.csv").read_text(encoding="utf-8")
@@ -357,7 +357,7 @@ def main():
     ap.add_argument("--list", action="store_true", help="muestra las fuentes y sale")
     ap.add_argument("--group", choices=["minimal", "full"], default="minimal")
     ap.add_argument("--only", help="ids separados por comas (ignora --group y --refresh)")
-    ap.add_argument("--refresh", choices=REFRESH_LEVELS, help="solo las fuentes de ese nivel de recarga (CLAUDE.md §6.4)")
+    ap.add_argument("--refresh", choices=REFRESH_LEVELS, help="solo las fuentes de ese nivel de recarga")
     ap.add_argument("--include-heavy", action="store_true", help="incluye capas grandes y todos los CSV históricos")
     ap.add_argument("--force", action="store_true", help="descarga aunque la fuente no haya cambiado")
     return run(ap.parse_args())

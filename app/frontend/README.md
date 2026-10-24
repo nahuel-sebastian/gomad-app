@@ -1,6 +1,6 @@
 # GoMad — frontend
 
-SPA móvil de GoMad (React 19 + Vite 8 + TypeScript 6 + React Router 7). Documentación de trabajo en [`docs/`](docs/): empieza por [`docs/pendientes.md`](docs/pendientes.md); cada pantalla está en [`docs/pantallas.md`](docs/pantallas.md) y la guía técnica en [`docs/guia.md`](docs/guia.md).
+SPA móvil de GoMad (React 19 + Vite 8 + TypeScript 6 + React Router 7). Documentación de trabajo en [`docs/`](docs/): cada pantalla está en [`docs/pantallas.md`](docs/pantallas.md) y la guía técnica en [`docs/guia.md`](docs/guia.md).
 
 ## Requisitos
 

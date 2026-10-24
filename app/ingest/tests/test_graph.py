@@ -120,7 +120,7 @@ def test_green_is_nan_outside_covered_municipalities():
 
 
 def test_broken_fountains_do_not_count():
-    # CLAUDE.md §6.1: la ruta solo cuenta working IS NOT FALSE
+    # la ruta solo cuenta working IS NOT FALSE
     poi = gpd.GeoDataFrame({"id": ["f1", "f2"], "type": ["fountain", "fountain"],
                             "working": pd.array([False, pd.NA], dtype="boolean")},
                            geometry=[Point(-3.7294, 40.30505), Point(-3.7282, 40.30505)], crs=4326)

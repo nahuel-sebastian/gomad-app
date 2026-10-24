@@ -1,5 +1,7 @@
 # Pantallas — GoMad (especificación para construir a mano)
 
+> **Nota:** documento de trabajo del equipo durante el reto (14–19/10/2026). Cita documentos de planificación (`CLAUDE.md`, `plan-implementacion.md`, `docs/planes/`…) que no se incluyen en esta copia pública.
+
 **Fecha:** 14/10/2026 · **Sustituye a:** Task 9 de `docs/plan-implementacion.md` (bocetos). **Estado:** propuesta del equipo de documentación, **pendiente de validar con la maquetadora** (cada sección acaba con lo que hay que validar).
 **Quién lo usa:** la persona que programa el frontend (`app/frontend/`) y la maquetadora. La guía técnica (stack, configuración, plan por días, contrato) está en **`app/frontend/docs/guia.md`**.
 

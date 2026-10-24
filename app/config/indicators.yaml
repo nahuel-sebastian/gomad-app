@@ -1,5 +1,5 @@
 # Indicadores de la vista de municipio (F5, RF-17) y encaje con preferencias (RF-18).
-# DEC-09 (16/10): docs/decisiones-pendientes.md D-09 y ficha B1 de docs/trabajo-paralelo.md.
+# DEC-09 (16/10).
 # Lo valida ingest/indicators.py; lo calcula build_db.py (Task 35) -> tabla municipality_indicator.
 #
 # no_rows: que vale un municipio sin filas en la fuente.
@@ -23,7 +23,7 @@ osm_parks:
 
 indicators:
   # complement (C3, 17/10): fuentes que solo se usan donde aportan; la fila cita las que de verdad usa.
-  # n.º de destinos «facility» por municipio: Nomecalles + EIEL + Ayto. + OSM (CLAUDE.md §7.3), sin contar dos
+  # n.º de destinos «facility» por municipio: Nomecalles + EIEL + Ayto. + OSM, sin contar dos
   # veces un punto a <= dedupe_radius_m de otro de una fuente anterior, ni a <= same_name_radius_m de uno con el
   # mismo nombre (build_db.sport_union). Ojo: los dos radios son de recommend.yaml; tocarlos alli cambia tambien
   # este indicador

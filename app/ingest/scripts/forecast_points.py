@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Genera app/config/forecast_points.csv: un punto por municipio para pedir la prevision a Open-Meteo (DEC-16).
 
-Es lo unico que se envia a Open-Meteo (CLAUDE.md 2.8: nunca la ubicacion de la persona). Regla del punto, la misma
+Es lo unico que se envia a Open-Meteo (nunca la ubicacion de la persona). Regla del punto, la misma
 que Geocoder.municipalities de la API: centroide del contorno si cae dentro; si no, point_on_surface.
 Uso: python scripts/forecast_points.py   (lee data/clean/municipality.parquet; rehacer si cambian los limites)
 """

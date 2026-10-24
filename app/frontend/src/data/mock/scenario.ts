@@ -1,6 +1,6 @@
 import type { AqiCategory, Companion, Profile } from "../../api/types";
 
-// Escenarios de las personas de la demo (CLAUDE.md §5.2). Solo existen en
+// Escenarios de las personas de la demo. Solo existen en
 // el paso 1: cambian las condiciones del «mundo de ejemplo».
 
 export type ScenarioId = "neutral" | "carmen" | "lucia" | "dani" | "ana" | "family";

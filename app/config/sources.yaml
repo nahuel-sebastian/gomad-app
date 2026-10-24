@@ -1,10 +1,10 @@
-# Fuentes que usa la app (RF-19, CLAUDE.md §2.11).
+# Fuentes que usa la app (RF-19).
 # labels: texto de cada fuente para la persona (DataSource.label y nombre en /sources).
 # catalog: editor, licencia y URL de cada fuente usada; /sources las lista en este orden (B1 Task 38).
 # Licencias comprobadas el 16/10/2026: CKAN Comunidad y Ayuntamiento (package_show) e IDEM (CSW, ficha EIEL)
 # dicen CC BY 4.0. Nomecalles no tiene licencia CC propia: es publico y se reutiliza con el aviso legal de la
 # Comunidad de Madrid (citar la fuente, sin alterar el dato, con la fecha).
-# destination_activity es la tabla de build_db con el catalogo unificado: dato derivado propio (CC BY, CLAUDE.md §2.11).
+# destination_activity es la tabla de build_db con el catalogo unificado: dato derivado propio (CC BY).
 labels:
   eiel_deporte: "Instalaciones deportivas (EIEL 2023, Comunidad de Madrid)"
   eiel_parques: "Parques (EIEL 2023, Comunidad de Madrid)"
@@ -118,9 +118,9 @@ catalog:
   sanidad_calor: {publisher: "Ministerio de Sanidad", license: "Publicación oficial del Ministerio de Sanidad",
                   url: "https://www.sanidad.gob.es/areas/sanidadAmbiental/riesgosAmbientales/calorExtremo/publicaciones/docs/planNacionalExcesoTemperaturas_2026.pdf"}
   destination_activity: {publisher: "Equipo GoMad (elaboración propia)", license: "CC BY 4.0",
-                         url: "https://<YOUR_DOMAIN>"}
+                         url: "https://github.com/nahuel-sebastian/gomad-app"}
   "config:weights": &own {publisher: "Equipo GoMad (criterio propio)", license: "CC BY 4.0",
-                          url: "https://<YOUR_DOMAIN>"}
+                          url: "https://github.com/nahuel-sebastian/gomad-app"}
   "config:routing": *own
   "config:straight_line": *own
   "config:recommend": *own

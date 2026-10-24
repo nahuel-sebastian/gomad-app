@@ -1,6 +1,6 @@
 import type { SourcesResponse } from "../../api/types";
 
-// Fuentes de ejemplo con las licencias reales de cada portal (CLAUDE.md §2.11);
+// Fuentes de ejemplo con las licencias reales de cada portal;
 // las fechas son de ejemplo, relativas a ahora.
 
 function ago(minutes: number): string {
@@ -89,7 +89,7 @@ export function sourcesMock(): SourcesResponse {
                 name: "Pesos por defecto de la nota (criterio propio)",
                 publisher: "Equipo GoMad (criterio propio)",
                 license: "CC BY 4.0",
-                url: "https://<YOUR_DOMAIN>",
+                url: "https://github.com/nahuel-sebastian/gomad-app",
                 last_refresh: null,
                 last_failure: null,
             },

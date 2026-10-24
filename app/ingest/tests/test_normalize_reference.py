@@ -50,7 +50,7 @@ def test_destination_raw():
     assert d[d.source == "nmc_deporte"].ine_code.nunique() == 178
     eiel = d[d.source == "eiel_deporte"]
     assert eiel["sports"].map(lambda xs: "PADEL" in xs).sum() == 154
-    assert eiel["sports"].map(lambda xs: "NATACION" in xs).sum() == 0     # columna vacia (CLAUDE.md §8)
+    assert eiel["sports"].map(lambda xs: "NATACION" in xs).sum() == 0     # columna vacia
 
 
 def test_green():

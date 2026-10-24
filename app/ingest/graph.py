@@ -72,7 +72,7 @@ def edge_factors(edges, green, poi, config, has_green, covered=None, osm_green=N
             e.loc[idx, "green_pct"] = (_green_length(sub, osm_green.to_crs(25830)) / sub["length_m"]).clip(0, 1)
     p = poi.to_crs(25830)
     if "working" in p:
-        # CLAUDE.md §6.1: la ruta solo cuenta working IS NOT FALSE (las fuentes cerradas se muestran, no cuentan)
+        # la ruta solo cuenta working IS NOT FALSE (las fuentes cerradas se muestran, no cuentan)
         p = p[~p["working"].eq(False).fillna(False).astype(bool)]
     ids = p["id"].astype(str) if "id" in p else pd.Series(p.index.astype(str), index=p.index)
     for kind, column, id_column in (("fountain", "near_fountain", "fountain_id"), ("bench", "near_bench", "bench_id"),

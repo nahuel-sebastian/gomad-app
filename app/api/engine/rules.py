@@ -16,7 +16,7 @@ CATEGORY_LABEL = {"good": "Buena", "fair": "Razonablemente buena", "moderate": "
 AIR_META_KEYS = ("source", "own_criterion", "own_criterion_profiles")
 # zonas meteosalud de la Comunidad de Madrid (Plan de Sanidad 2026, Anexo I); sus umbrales van en rules.yaml
 HEAT_ZONES = ("722801", "722802", "722803")
-MUNICIPALITY_COUNT = 179   # ambito del proyecto: todos los municipios de la Comunidad (CLAUDE.md §2.2)
+MUNICIPALITY_COUNT = 179   # ambito del proyecto: todos los municipios de la Comunidad
 
 
 def pollutant_category(pollutant, value, bands):

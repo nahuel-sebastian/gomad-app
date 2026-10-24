@@ -2,7 +2,7 @@
 
 DEC-16 (16/10): sustituye a la prevision anterior, que limitaba a ~6 peticiones/min. Una sola peticion por
 refresco trae los 179 municipios (una coordenada por municipio, la de app/config/forecast_points.csv); Open-Meteo devuelve una lista en el mismo orden. A Open-Meteo
-solo van esos puntos, nunca la ubicacion de la persona (CLAUDE.md 2.8). Tras un fallo (429, red) se espera de forma
+solo van esos puntos, nunca la ubicacion de la persona. Tras un fallo (429, red) se espera de forma
 GLOBAL y creciente (retry_s, el doble en cada fallo seguido, hasta retry_max_s): nunca una peticion por tick.
 """
 import csv

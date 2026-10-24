@@ -1,5 +1,7 @@
 # Frontend — estado y guía para construirlo a mano
 
+> **Nota:** documento de trabajo del equipo durante el reto (14–19/10/2026). Cita documentos de planificación (`CLAUDE.md`, `plan-implementacion.md`, `docs/planes/`…) que no se incluyen en esta copia pública.
+
 **Fecha:** 14/10/2026 · **Auditado:** `app/frontend/` en `main`, commit `4e875de` (último cambio del front: `aa5102f` «Frontend: ajustes interfaz»).
 **Sustituye a:** Task 10 de `docs/plan-implementacion.md` como guía de ejecución. Las Tasks 23–25 y las filas de Front de viernes a domingo se hacen **a mano** siguiendo §3 de este documento (ver la nota **[manual guiado]** en el plan).
 **Especificación de pantallas:** `app/frontend/docs/pantallas.md` (qué lleva cada pantalla, campos del contrato, estados y accesibilidad). **Lista de trabajo:** `app/frontend/docs/pendientes.md`.

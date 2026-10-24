@@ -184,7 +184,7 @@ def per_1000(counts, pop):
     return counts / pop.reindex(counts.index) * 1000
 
 
-# instalaciones deportivas (CLAUDE.md §7.3): Nomecalles es la principal; el resto suma lo que no repite (Task 171)
+# instalaciones deportivas: Nomecalles es la principal; el resto suma lo que no repite (Task 171)
 SPORT_SOURCES = ("nmc_deporte", "eiel_deporte", "ay_polideportivos", "ay_piscinas", "ay_idb", "osm_sport")
 DOWNLOAD_ID = {"osm_sport": "osm"}   # fuente de destino -> id de download_sources.py (RF-19)
 
@@ -258,7 +258,7 @@ def indicator_values(con, config):
     green = green.reindex(in_vpla, fill_value=0.0)
     green_year = next(i["year"] for i in config["indicators"] if i["key"] == "green_m2_per_inhabitant")
     green = pd.DataFrame({"value": green / pop.reindex(green.index), "source": "vpla_redes", "year": green_year})
-    # fuera de VPLA, los parques de OSM (CLAUDE.md §7.3; indicators.yaml osm_parks: sin bosque ni pradera, que el
+    # fuera de VPLA, los parques de OSM (indicators.yaml osm_parks: sin bosque ni pradera, que el
     # verde de destinos y rutas si cuenta)
     munis = gpd.read_parquet(CLEAN / "municipality.parquet")
     osm = osm_green_area(munis[~munis["ine_code"].isin(in_vpla)], load_osm_parks())

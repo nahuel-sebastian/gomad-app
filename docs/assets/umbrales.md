@@ -1,5 +1,7 @@
 # Umbrales oficiales para el motor de reglas
 
+> **Nota:** documento de trabajo del equipo durante el reto (14–19/10/2026). Cita documentos de planificación (`CLAUDE.md`, `plan-implementacion.md`, `docs/planes/`…) que no se incluyen en esta copia pública.
+
 Regla del proyecto (CLAUDE.md §2.9 y §6.2): los umbrales se **copian de la fuente oficial, no de memoria**, y se citan en la app. Este documento recoge solo lo verificado contra la fuente primaria. Lo que falta está en `docs/PENDIENTES.md`.
 
 ---

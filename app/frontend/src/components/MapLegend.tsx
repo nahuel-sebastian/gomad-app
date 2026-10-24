@@ -29,7 +29,7 @@ function KindIcon({ color, icon }: { color: string; icon: string }) {
 }
 
 // Leyenda del mapa (C2): cada tipo con icono + color + texto y cuantos hay a la vista (nunca
-// solo color, CLAUDE.md §2.10), y una pista de zoom. Un boton de icono la abre en una ventana
+// solo color), y una pista de zoom. Un boton de icono la abre en una ventana
 // (MapDialog), asi no tapa el mapa.
 export default function MapLegend({
     markerKinds,
@@ -47,7 +47,7 @@ export default function MapLegend({
     for (const p of points) if (p.working === false) outOfService.set(p.kind, (outOfService.get(p.kind) ?? 0) + 1);
     const kinds = KIND_ORDER.filter((k) => counts.has(k));
 
-    // el mobiliario solo esta donde la fuente tiene datos (CLAUDE.md §7.4: aviso de cobertura)
+    // el mobiliario solo esta donde la fuente tiene datos (aviso de cobertura)
     const hints: string[] = [];
     if (zoom !== null && zoom < NEARBY_MIN_ZOOM) hints.push("Acerca el mapa para ver más lugares de la zona.");
     else if (zoom !== null && zoom < POI_MIN_ZOOM)

@@ -86,7 +86,7 @@ def test_heat_uses_daily_max(tmp_path):
     assert "Día de calor en tu zona" not in mild.warnings                    # sin diaria: maximo horario 37
 
 
-# --- Privacidad (CLAUDE.md 2.8): la ubicacion de la persona nunca sale hacia Open-Meteo ---------------------------
+# --- Privacidad: la ubicacion de la persona nunca sale hacia Open-Meteo ---------------------------
 def test_user_location_never_sent(tmp_path):
     base = build_mini_data(tmp_path / "data", forecast=False, air=False)
     portal = OpenMeteo()

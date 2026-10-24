@@ -1,5 +1,7 @@
 # Informe de perfil de datos — GoMad
 
+> **Nota:** documento de trabajo del equipo durante el reto (14–19/10/2026). Cita documentos de planificación (`CLAUDE.md`, `plan-implementacion.md`, `docs/planes/`…) que no se incluyen en esta copia pública.
+
 **Generado:** 14/10/2026, de madrugada, sobre `data/raw/` (descarga del 14/10/2026 02:08, 46 fuentes, 222 MB).
 **Herramienta:** `scripts/profile_sources.py` (solo stdlib; se vuelve a ejecutar en ~5 s). Detalle completo por columna: `data/perfil/perfil.json` (no se sube: está en `data/`).
 **Referencia de municipios:** los 179 de `municipios.geojson` (`CDMUNICIPIO` → INE `28` + 3 dígitos).

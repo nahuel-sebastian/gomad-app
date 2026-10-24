@@ -1,5 +1,7 @@
 # Arquitectura técnica — GoMad
 
+> **Nota:** documento de trabajo del equipo durante el reto (14–19/10/2026). Cita documentos de planificación (`CLAUDE.md`, `plan-implementacion.md`, `docs/planes/`…) que no se incluyen en esta copia pública.
+
 **Fecha:** 14/10/2026 · **Estado:** aprobada por secciones en la sesión de diseño del 14/10 (pendientes al final, §10).
 **Contexto:** `CLAUDE.md` (fuente de verdad del proyecto), `docs/assets/requisitos_fuentes.json`, `docs/informe-datos.md`, `docs/assets/umbrales.md`, `docs/decisiones-pendientes.md`.
 **Prioridad:** sacar la app adelante para la demo del **martes 20/10/2026** con un equipo de hasta 4 personas. Ante la duda, lo simple.

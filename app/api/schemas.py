@@ -31,7 +31,7 @@ class DataSource(Strict):
     source: str                       # id de ingest/scripts/download_sources.py, p. ej. "aire_dia"
     label: str                        # texto para la persona, p. ej. "Calidad del aire (Comunidad de Madrid)"
     date: datetime | None             # fecha del dato (no de la descarga) si se conoce
-    own_criterion: bool = False       # True si el umbral/valor no tiene fuente oficial (CLAUDE.md §2.9)
+    own_criterion: bool = False       # True si el umbral/valor no tiene fuente oficial
 
 
 class Weights(Strict):
